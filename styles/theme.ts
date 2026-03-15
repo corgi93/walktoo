@@ -1,8 +1,8 @@
 /**
- * PairWalk Design Tokens — Couple Diary Aesthetic
+ * PairWalk Design Tokens — Retro Pixel Game Aesthetic
  *
- * 토스 스타일의 클린 미니멀리즘 위에
- * 커플 감성의 따뜻한 로즈 코랄 포인트.
+ * 따뜻한 로즈 코랄 컬러 + 도트 게임 감성.
+ * 두꺼운 보더, 솔리드 그림자, 삐뚤빼뚤한 느낌.
  */
 
 // ─── Color Types ────────────────────────────────────────
@@ -28,66 +28,92 @@ export const theme = {
     accentLight: '#FFE0D9',
 
     /** 배경 */
-    background: '#FFFFFF',
+    background: '#F5F0EB',
     surface: '#FFFFFF',
-    surfaceWarm: '#FAFAF8',
+    surfaceWarm: '#FAF6F2',
 
     /** 뉴트럴 그레이 */
-    gray100: '#F5F5F7',
-    gray200: '#E8E8EC',
-    gray300: '#D1D1D6',
-    gray400: '#AEAEB2',
-    gray500: '#8E8E93',
-    gray600: '#636366',
+    gray100: '#F0EDE8',
+    gray200: '#E0DCD6',
+    gray300: '#C8C4BE',
+    gray400: '#A8A4A0',
+    gray500: '#888480',
+    gray600: '#585450',
 
     /** 텍스트 */
-    text: '#1C1C1E',
+    text: '#2C2C2E',
     textSecondary: '#6E6E73',
-    textMuted: '#AEAEB2',
+    textMuted: '#A8A4A0',
+
+    /** 픽셀 보더 */
+    border: '#2C2C2E',
+    borderLight: '#C8C4BE',
 
     white: '#FFFFFF',
     error: '#E06C6C',
     success: '#81B29A',
+
+    /** 게임 보상 컬러 */
+    gold: '#FFD700',
+    goldLight: '#FFF8DC',
+    xp: '#7EC8E3',
   },
 
+  /** 픽셀 스타일 솔리드 그림자 (blur 없음, offset만) */
   shadows: {
     small: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.03,
-      shadowRadius: 4,
-      elevation: 1,
-    },
-    card: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 12,
+      shadowColor: '#2C2C2E',
+      shadowOffset: { width: 2, height: 2 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
       elevation: 2,
     },
-    medium: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.06,
-      shadowRadius: 16,
+    card: {
+      shadowColor: '#2C2C2E',
+      shadowOffset: { width: 3, height: 3 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
       elevation: 3,
     },
+    medium: {
+      shadowColor: '#2C2C2E',
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 4,
+    },
     large: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.08,
-      shadowRadius: 28,
+      shadowColor: '#2C2C2E',
+      shadowOffset: { width: 5, height: 5 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
       elevation: 6,
     },
   },
 
+  /** 픽셀 보더 프리셋 */
+  pixel: {
+    borderThin: {
+      borderWidth: 2,
+      borderColor: '#2C2C2E',
+    },
+    borderThick: {
+      borderWidth: 3,
+      borderColor: '#2C2C2E',
+    },
+    borderAccent: {
+      borderWidth: 2,
+      borderColor: '#E8706A',
+    },
+  },
+
   radius: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20,
-    xxl: 28,
+    xs: 2,
+    sm: 4,
+    md: 6,
+    lg: 8,
+    xl: 10,
+    xxl: 12,
     full: 9999,
   },
 } as const;

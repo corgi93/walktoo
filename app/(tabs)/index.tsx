@@ -1,10 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, Button, Row, Text } from '@/components/base';
+import { Box, Button, PixelBadge, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { formatSteps } from '@/utils';
@@ -23,9 +22,14 @@ export default function HomeScreen() {
   // TODO: replace with real data
   const myName = '남친';
   const partnerName = '여친';
-  const mySteps = 0;
-  const partnerSteps = 0;
-  const totalWalks = 0;
+  const mySteps = 3200;
+  const partnerSteps = 1800;
+  const dailyGoal = 10000;
+  const totalWalks = 12;
+  const currentStreak = 5;
+
+  const myProgress = Math.min(mySteps / dailyGoal, 1);
+  const partnerProgress = Math.min(partnerSteps / dailyGoal, 1);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -34,34 +38,112 @@ export default function HomeScreen() {
         <Text variant="headingLarge" color="primary">
           PairWalk
         </Text>
-        <Pressable hitSlop={8}>
-          <Ionicons
-            name="notifications-outline"
-            size={22}
-            color={theme.colors.gray500}
-          />
-        </Pressable>
+        <Row style={{ gap: SPACING.sm }}>
+          <PixelBadge icon="🔥" label={`${currentStreak}일`} size="small" />
+          <Pressable hitSlop={8}>
+            <Text style={{ fontSize: 18 }}>🔔</Text>
+          </Pressable>
+        </Row>
       </Row>
 
-      {/* 오늘의 걸음 — 나 vs 상대 */}
+      {/* 오늘의 걸음 카드 */}
       <Box px="xxl" style={{ marginTop: SPACING.md }}>
         <Row style={styles.stepsRow}>
-          <StepCard name={myName} steps={mySteps} isMe />
+          {/* 내 걸음 */}
+          <PixelCard style={styles.stepCard} bg={theme.colors.primarySurface}>
+            <Text variant="caption" color="textSecondary">
+              {myName}
+            </Text>
+            <Text variant="displaySmall" color="primary" mt="xs">
+              {formatSteps(mySteps)}
+            </Text>
+            <Text variant="caption" color="textMuted">
+              걸음
+            </Text>
+            <PixelProgressBar
+              progress={myProgress}
+              segments={8}
+              fillColor={theme.colors.primary}
+              style={{ marginTop: SPACING.sm }}
+            />
+            <Row style={styles.calorieBadge}>
+              <Text style={{ fontSize: 10 }}>🔥</Text>
+              <Text variant="caption" color="textSecondary" ml="xxs">
+                {calcCalories(mySteps)} kcal
+              </Text>
+            </Row>
+          </PixelCard>
+
+          {/* VS 하트 */}
           <View style={styles.vsDivider}>
             <Text style={styles.heart}>♥</Text>
           </View>
-          <StepCard name={partnerName} steps={partnerSteps} />
+
+          {/* 상대 걸음 */}
+          <PixelCard style={styles.stepCard}>
+            <Text variant="caption" color="textSecondary">
+              {partnerName}
+            </Text>
+            <Text variant="displaySmall" color="primary" mt="xs">
+              {formatSteps(partnerSteps)}
+            </Text>
+            <Text variant="caption" color="textMuted">
+              걸음
+            </Text>
+            <PixelProgressBar
+              progress={partnerProgress}
+              segments={8}
+              fillColor={theme.colors.accent}
+              style={{ marginTop: SPACING.sm }}
+            />
+            <Row style={styles.calorieBadge}>
+              <Text style={{ fontSize: 10 }}>🔥</Text>
+              <Text variant="caption" color="textSecondary" ml="xxs">
+                {calcCalories(partnerSteps)} kcal
+              </Text>
+            </Row>
+          </PixelCard>
         </Row>
+      </Box>
+
+      {/* 미션 카드 */}
+      <Box px="xxl" style={{ marginTop: SPACING.xl }}>
+        <PixelCard style={styles.missionCard}>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Row style={{ alignItems: 'center', gap: SPACING.sm }}>
+              <Text style={{ fontSize: 20 }}>🏆</Text>
+              <View>
+                <Text variant="headingSmall">오늘의 미션</Text>
+                <Text variant="caption" color="textMuted" mt="xxs">
+                  함께 6,000보 걷기
+                </Text>
+              </View>
+            </Row>
+            <Text variant="label" color="primary">
+              {formatSteps(mySteps + partnerSteps)} / 6,000
+            </Text>
+          </Row>
+          <PixelProgressBar
+            progress={Math.min((mySteps + partnerSteps) / 6000, 1)}
+            segments={12}
+            fillColor={theme.colors.secondary}
+            style={{ marginTop: SPACING.md }}
+          />
+        </PixelCard>
       </Box>
 
       {/* 캐릭터 영역 */}
       <View style={styles.characterArea}>
-        <View style={styles.characterCircle}>
+        <PixelCard style={styles.characterFrame} bg={theme.colors.surfaceWarm}>
           <Text style={styles.characterEmoji}>🌱</Text>
-        </View>
-        <Text variant="bodySmall" color="textMuted" mt="lg">
+        </PixelCard>
+        <Text variant="bodySmall" color="textMuted" mt="md">
           함께 걸으면 자라나요
         </Text>
+        <Row style={{ marginTop: SPACING.sm, gap: SPACING.xs }}>
+          <PixelBadge icon="⭐" label={`${totalWalks}회`} size="small" bg={theme.colors.goldLight} />
+          <PixelBadge icon="👣" label="Lv.2" size="small" bg={theme.colors.primarySurface} />
+        </Row>
       </View>
 
       {/* 하단 CTA */}
@@ -71,41 +153,9 @@ export default function HomeScreen() {
           size="large"
           onPress={() => router.push('/footprint-create')}
         >
-          오늘의 발자취 남기기
+          오늘의 발자취 남기기 👣
         </Button>
       </Box>
-    </View>
-  );
-}
-
-// ─── Sub Components ─────────────────────────────────────
-
-function StepCard({
-  name,
-  steps,
-  isMe = false,
-}: {
-  name: string;
-  steps: number;
-  isMe?: boolean;
-}) {
-  return (
-    <View style={[styles.stepCard, isMe && styles.stepCardMe]}>
-      <Text variant="caption" color="textMuted">
-        {name}
-      </Text>
-      <Text variant="displaySmall" color="primary" mt="xs">
-        {formatSteps(steps)}
-      </Text>
-      <Text variant="caption" color="textMuted">
-        걸음
-      </Text>
-      <View style={styles.calorieBadge}>
-        <Ionicons name="flame-outline" size={12} color={theme.colors.accent} />
-        <Text variant="caption" color="textSecondary" ml="xxs">
-          {calcCalories(steps)} kcal
-        </Text>
-      </View>
     </View>
   );
 }
@@ -115,7 +165,7 @@ function StepCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: theme.colors.background,
   },
   topBar: {
     justifyContent: 'space-between',
@@ -126,18 +176,11 @@ const styles = StyleSheet.create({
   },
   stepCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.xl,
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.md,
     alignItems: 'center',
-    ...theme.shadows.card,
-  },
-  stepCardMe: {
-    backgroundColor: theme.colors.primarySurface,
+    padding: SPACING.md,
   },
   vsDivider: {
-    width: 32,
+    width: 36,
     alignItems: 'center',
   },
   heart: {
@@ -145,27 +188,27 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   calorieBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACING.sm,
     backgroundColor: theme.colors.gray100,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xxs,
-    borderRadius: theme.radius.full,
+    borderRadius: 4,
+  },
+  missionCard: {
+    padding: SPACING.lg,
   },
   characterArea: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  characterCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: theme.colors.surface,
+  characterFrame: {
+    width: 120,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.card,
+    padding: 0,
   },
   characterEmoji: {
     fontSize: 56,

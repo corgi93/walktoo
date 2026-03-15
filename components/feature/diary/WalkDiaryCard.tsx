@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Column, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -24,11 +23,89 @@ export function WalkDiaryCard({ diary, onPress }: WalkDiaryCardProps) {
     weekday: 'short',
   });
 
+  if (!diary.isRevealed) {
+    return <LockedFeedCard diary={diary} formattedDate={formattedDate} onPress={onPress} />;
+  }
+
+  return <RevealedFeedCard diary={diary} formattedDate={formattedDate} onPress={onPress} />;
+}
+
+// ─── Locked Feed Card ───────────────────────────────────
+
+function LockedFeedCard({
+  diary,
+  formattedDate,
+  onPress,
+}: {
+  diary: WalkDiary;
+  formattedDate: string;
+  onPress?: (diary: WalkDiary) => void;
+}) {
+  const hasMyEntry = !!diary.myEntry;
+  const hasPartnerEntry = !!diary.partnerEntry;
+
+  return (
+    <Pressable
+      style={[styles.card, styles.cardLocked]}
+      onPress={() => onPress?.(diary)}
+    >
+      {/* 헤더 */}
+      <Row style={styles.header}>
+        <Column style={{ flex: 1 }}>
+          <Text variant="caption" color="textMuted">
+            {formattedDate}
+          </Text>
+          <Row style={styles.locationRow}>
+            <Text style={{ fontSize: 12 }}>📍</Text>
+            <Text variant="headingSmall" color="textSecondary" ml="xs">
+              {diary.locationName}
+            </Text>
+          </Row>
+        </Column>
+        <Text style={{ fontSize: 18 }}>🔒</Text>
+      </Row>
+
+      {/* 잠금 상태 */}
+      <View style={styles.lockArea}>
+        <Row style={styles.lockStatusRow}>
+          <View style={styles.lockChip}>
+            <Text style={{ fontSize: 12 }}>{hasMyEntry ? '✅' : '⏳'}</Text>
+            <Text variant="caption" color="textSecondary" ml="xs">
+              나
+            </Text>
+          </View>
+          <View style={styles.lockChip}>
+            <Text style={{ fontSize: 12 }}>{hasPartnerEntry ? '✅' : '⏳'}</Text>
+            <Text variant="caption" color="textSecondary" ml="xs">
+              상대방
+            </Text>
+          </View>
+        </Row>
+        <Text variant="caption" color="textMuted" mt="sm" align="center">
+          {hasMyEntry
+            ? '상대방의 발자취를 기다리는 중...'
+            : '나의 발자취를 남겨주세요!'}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Revealed Feed Card ─────────────────────────────────
+
+function RevealedFeedCard({
+  diary,
+  formattedDate,
+  onPress,
+}: {
+  diary: WalkDiary;
+  formattedDate: string;
+  onPress?: (diary: WalkDiary) => void;
+}) {
   return (
     <Pressable
       style={styles.card}
       onPress={() => onPress?.(diary)}
-      android_ripple={{ color: theme.colors.gray100 }}
     >
       {/* 헤더: 날짜 + 위치 */}
       <Row style={styles.header}>
@@ -37,47 +114,81 @@ export function WalkDiaryCard({ diary, onPress }: WalkDiaryCardProps) {
             {formattedDate}
           </Text>
           <Row style={styles.locationRow}>
-            <Ionicons
-              name="location-outline"
-              size={14}
-              color={theme.colors.primary}
-            />
+            <Text style={{ fontSize: 12 }}>📍</Text>
             <Text variant="headingSmall" ml="xs">
               {diary.locationName}
             </Text>
           </Row>
         </Column>
-        <View style={styles.footprintBadge}>
-          <Text style={styles.footprintEmoji}>👣</Text>
-        </View>
+        <Text style={{ fontSize: 18 }}>👣</Text>
       </Row>
 
-      {/* 사진 영역 */}
-      {diary.photos.length > 0 ? (
-        <View style={styles.photoArea}>
-          <View style={styles.photoPlaceholder}>
-            <Ionicons name="image-outline" size={32} color={theme.colors.gray300} />
-          </View>
-        </View>
-      ) : null}
-
-      {/* 메모 */}
-      {diary.memo ? (
-        <Text variant="bodyMedium" color="text" mt="md">
-          {diary.memo}
-        </Text>
-      ) : null}
+      {/* 둘의 기록 나란히 */}
+      <Row style={styles.dualEntries}>
+        {diary.myEntry && (
+          <Column style={styles.entryCol}>
+            <Text variant="label" color="primary" mb="xs">
+              {diary.myEntry.nickname}
+            </Text>
+            {diary.myEntry.photos.length > 0 && (
+              <View style={styles.entryPhoto}>
+                <Image
+                  source={{ uri: diary.myEntry.photos[0] }}
+                  style={styles.entryPhotoImage}
+                />
+              </View>
+            )}
+            {diary.myEntry.memo ? (
+              <Text
+                variant="bodySmall"
+                color="textSecondary"
+                mt="xs"
+                numberOfLines={3}
+              >
+                {diary.myEntry.memo}
+              </Text>
+            ) : null}
+          </Column>
+        )}
+        {diary.partnerEntry && (
+          <Column style={styles.entryCol}>
+            <Text variant="label" color="primary" mb="xs">
+              {diary.partnerEntry.nickname}
+            </Text>
+            {diary.partnerEntry.photos.length > 0 && (
+              <View style={styles.entryPhoto}>
+                <Image
+                  source={{ uri: diary.partnerEntry.photos[0] }}
+                  style={styles.entryPhotoImage}
+                />
+              </View>
+            )}
+            {diary.partnerEntry.memo ? (
+              <Text
+                variant="bodySmall"
+                color="textSecondary"
+                mt="xs"
+                numberOfLines={3}
+              >
+                {diary.partnerEntry.memo}
+              </Text>
+            ) : null}
+          </Column>
+        )}
+      </Row>
 
       {/* 걸음수 */}
-      <Row style={styles.statsRow}>
-        <Ionicons name="footsteps-outline" size={14} color={theme.colors.textMuted} />
-        <Text variant="label" color="text" ml="xs">
-          {formatSteps(diary.steps)}
-        </Text>
-        <Text variant="caption" color="textMuted" ml="xxs">
-          걸음
-        </Text>
-      </Row>
+      {diary.steps > 0 && (
+        <Row style={styles.statsRow}>
+          <Text style={{ fontSize: 12 }}>👟</Text>
+          <Text variant="label" color="text" ml="xs">
+            {formatSteps(diary.steps)}
+          </Text>
+          <Text variant="caption" color="textMuted" ml="xxs">
+            걸음
+          </Text>
+        </Row>
+      )}
     </Pressable>
   );
 }
@@ -87,9 +198,22 @@ export function WalkDiaryCard({ diary, onPress }: WalkDiaryCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.xxl,
-    padding: SPACING.xl,
-    ...theme.shadows.card,
+    borderRadius: theme.radius.lg,
+    padding: SPACING.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    // 픽셀 솔리드 그림자
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  cardLocked: {
+    borderColor: theme.colors.gray400,
+    borderStyle: 'dashed',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   header: {
     justifyContent: 'space-between',
@@ -99,33 +223,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACING.xxs,
   },
-  footprintBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primarySurface,
-    justifyContent: 'center',
+  lockArea: {
+    marginTop: SPACING.lg,
     alignItems: 'center',
   },
-  footprintEmoji: {
-    fontSize: 16,
+  lockStatusRow: {
+    flexDirection: 'row',
+    gap: SPACING.md,
   },
-  photoArea: {
+  lockChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray100,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 4,
+  },
+  dualEntries: {
     marginTop: SPACING.md,
-    borderRadius: theme.radius.lg,
+    gap: SPACING.sm,
+  },
+  entryCol: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.md,
+    padding: SPACING.md,
+  },
+  entryPhoto: {
+    borderRadius: theme.radius.sm,
     overflow: 'hidden',
   },
-  photoPlaceholder: {
-    height: 180,
+  entryPhotoImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.gray100,
-    borderRadius: theme.radius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   statsRow: {
-    marginTop: SPACING.lg,
+    marginTop: SPACING.md,
     paddingTop: SPACING.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 2,
     borderTopColor: theme.colors.gray200,
     alignItems: 'center',
   },

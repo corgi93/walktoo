@@ -1,15 +1,15 @@
 /**
  * PairWalk Typography, Spacing & Component Tokens
  *
- * 픽셀 폰트(NeoDunggeunmo)는 제목/숫자/강조에만.
- * 본문은 시스템 폰트로 가독성 확보.
+ * 도트 게임 감성: 모든 텍스트에 픽셀 폰트.
+ * NeoDunggeunmo로 통일해서 레트로 느낌 극대화.
  */
 
 // ─── Font Family ────────────────────────────────────────
 
 export const FONT_FAMILY = {
   pixel: 'NeoDunggeunmo',
-  body: undefined, // RN 시스템 폰트 기본값
+  body: 'NeoDunggeunmo', // 본문도 픽셀폰트로 통일
 } as const;
 
 export type FontFamily = keyof typeof FONT_FAMILY;
@@ -25,12 +25,12 @@ export const TYPOGRAPHY = {
   headingMedium: { fontFamily: FONT_FAMILY.pixel, fontSize: 18, lineHeight: 24 },
   headingSmall: { fontFamily: FONT_FAMILY.pixel, fontSize: 16, lineHeight: 22 },
 
-  bodyLarge: { fontSize: 16, lineHeight: 24 },
-  bodyMedium: { fontSize: 14, lineHeight: 20 },
-  bodySmall: { fontSize: 12, lineHeight: 16 },
+  bodyLarge: { fontFamily: FONT_FAMILY.pixel, fontSize: 16, lineHeight: 24 },
+  bodyMedium: { fontFamily: FONT_FAMILY.pixel, fontSize: 14, lineHeight: 20 },
+  bodySmall: { fontFamily: FONT_FAMILY.pixel, fontSize: 12, lineHeight: 18 },
 
   label: { fontFamily: FONT_FAMILY.pixel, fontSize: 14, lineHeight: 18 },
-  caption: { fontSize: 12, lineHeight: 16 },
+  caption: { fontFamily: FONT_FAMILY.pixel, fontSize: 11, lineHeight: 16 },
 } as const;
 
 export type TypographyVariant = keyof typeof TYPOGRAPHY;

@@ -35,11 +35,13 @@ export function DiaryEmptyState() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.xxl,
+    borderRadius: theme.radius.lg,
     padding: SPACING.xxxl,
     marginHorizontal: SPACING.xxl,
     alignItems: 'center',
-    ...theme.shadows.card,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderStyle: 'dashed',
   },
   emoji: {
     fontSize: 40,

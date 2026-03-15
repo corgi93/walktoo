@@ -64,13 +64,21 @@ const Button: React.FC<ButtonProps> = ({
   mt, mb,
   style,
 }) => {
+  const hasBorder = variant !== 'ghost' && variant !== 'text';
+
   const buttonStyle: ViewStyle = {
     ...styles.base,
     backgroundColor: VARIANT_BG[variant],
     height: SIZE_HEIGHT[size],
-    ...(variant === 'outline' && {
-      borderWidth: 1.5,
-      borderColor: theme.colors.primary,
+    ...(hasBorder && {
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      // 픽셀 솔리드 그림자
+      shadowColor: theme.colors.border,
+      shadowOffset: { width: 3, height: 3 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+      elevation: 3,
     }),
     ...(fullWidth ? { width: '100%' } : { alignSelf: 'flex-start' }),
     ...(disabled && { opacity: 0.5 }),

@@ -1,9 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, Row, Text } from '@/components/base';
+import { Box, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { COMPONENT_SIZE, SPACING } from '@/styles/type';
 
@@ -22,11 +21,7 @@ export default function ProfileScreen() {
       >
         <Text variant="headingLarge">마이</Text>
         <Pressable hitSlop={8}>
-          <Ionicons
-            name="settings-outline"
-            size={22}
-            color={theme.colors.gray500}
-          />
+          <Text style={{ fontSize: 20 }}>⚙️</Text>
         </Pressable>
       </Row>
 
@@ -36,7 +31,7 @@ export default function ProfileScreen() {
       >
         {/* Profile Card */}
         <Box px="xxl">
-          <View style={styles.profileCard}>
+          <PixelCard style={styles.profileCard}>
             <View style={styles.avatar}>
               <Text style={{ fontSize: 28 }}>🚶</Text>
             </View>
@@ -44,25 +39,64 @@ export default function ProfileScreen() {
             <Text variant="headingMedium" mt="md">
               사용자
             </Text>
-          </View>
+            <Text variant="caption" color="textMuted" mt="xxs">
+              Lv.2 초보 산책러
+            </Text>
+
+            {/* 레벨 프로그레스 */}
+            <View style={styles.levelBar}>
+              <PixelProgressBar
+                progress={0.4}
+                segments={10}
+                fillColor={theme.colors.xp}
+                label="400 / 1000 XP"
+              />
+            </View>
+          </PixelCard>
         </Box>
 
         {/* Stats Grid — Couple Stats */}
         <Box px="xxl" style={{ marginTop: SPACING.lg }}>
           <Row gap={12}>
-            <StatCard label="총 산책" value="0회" icon="footsteps-outline" />
-            <StatCard label="총 걸음" value="0" icon="walk-outline" />
-            <StatCard label="연속 산책" value="0일" icon="flame-outline" />
+            <PixelCard style={styles.statCard} bg={theme.colors.primarySurface}>
+              <Text style={{ fontSize: 20 }}>👣</Text>
+              <Text variant="displaySmall" color="primary" mt="sm">
+                0회
+              </Text>
+              <Text variant="caption" color="textSecondary" mt="xs">
+                총 산책
+              </Text>
+            </PixelCard>
+            <PixelCard style={styles.statCard}>
+              <Text style={{ fontSize: 20 }}>👟</Text>
+              <Text variant="displaySmall" color="primary" mt="sm">
+                0
+              </Text>
+              <Text variant="caption" color="textSecondary" mt="xs">
+                총 걸음
+              </Text>
+            </PixelCard>
+            <PixelCard style={styles.statCard} bg={theme.colors.goldLight}>
+              <Text style={{ fontSize: 20 }}>🔥</Text>
+              <Text variant="displaySmall" color="primary" mt="sm">
+                0일
+              </Text>
+              <Text variant="caption" color="textSecondary" mt="xs">
+                연속 산책
+              </Text>
+            </PixelCard>
           </Row>
         </Box>
 
         {/* Menu Items */}
         <Box px="xxl" style={{ marginTop: SPACING.xxl }}>
-          <MenuItem icon="person-outline" label="프로필 수정" />
-          <MenuItem icon="heart-outline" label="커플 관리" />
-          <MenuItem icon="bar-chart-outline" label="산책 통계" />
-          <MenuItem icon="help-circle-outline" label="도움말" />
-          <MenuItem icon="log-out-outline" label="로그아웃" isDestructive />
+          <PixelCard style={styles.menuCard}>
+            <MenuItem emoji="✏️" label="프로필 수정" />
+            <MenuItem emoji="💕" label="커플 관리" />
+            <MenuItem emoji="📊" label="산책 통계" />
+            <MenuItem emoji="❓" label="도움말" />
+            <MenuItem emoji="🚪" label="로그아웃" isDestructive isLast />
+          </PixelCard>
         </Box>
       </ScrollView>
     </View>
@@ -71,45 +105,21 @@ export default function ProfileScreen() {
 
 // ─── Sub Components ─────────────────────────────────────
 
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}) {
-  return (
-    <View style={styles.statCard}>
-      <Ionicons name={icon} size={20} color={theme.colors.primary} />
-      <Text variant="displaySmall" color="primary" mt="sm">
-        {value}
-      </Text>
-      <Text variant="caption" color="textMuted" mt="xs">
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 function MenuItem({
-  icon,
+  emoji,
   label,
   isDestructive = false,
+  isLast = false,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  emoji: string;
   label: string;
   isDestructive?: boolean;
+  isLast?: boolean;
 }) {
   return (
-    <Pressable style={styles.menuItem}>
+    <Pressable style={[styles.menuItem, isLast && styles.menuItemLast]}>
       <Row style={{ alignItems: 'center', flex: 1 }}>
-        <Ionicons
-          name={icon}
-          size={20}
-          color={isDestructive ? theme.colors.error : theme.colors.gray500}
-        />
+        <Text style={{ fontSize: 16 }}>{emoji}</Text>
         <Text
           variant="bodyMedium"
           color={isDestructive ? 'error' : 'text'}
@@ -118,11 +128,7 @@ function MenuItem({
           {label}
         </Text>
       </Row>
-      <Ionicons
-        name="chevron-forward"
-        size={18}
-        color={theme.colors.gray300}
-      />
+      <Text variant="caption" color="textMuted">{'>'}</Text>
     </Pressable>
   );
 }
@@ -139,33 +145,39 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   profileCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.xxl,
-    padding: SPACING.xxl,
     alignItems: 'center',
-    ...theme.shadows.card,
+    padding: SPACING.xxl,
   },
   avatar: {
     width: COMPONENT_SIZE.avatarLarge,
     height: COMPONENT_SIZE.avatarLarge,
-    borderRadius: COMPONENT_SIZE.avatarLarge / 2,
+    borderRadius: 8,
     backgroundColor: theme.colors.primarySurface,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  levelBar: {
+    width: '100%',
+    marginTop: SPACING.lg,
+  },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.xl,
-    padding: SPACING.lg,
     alignItems: 'center',
-    ...theme.shadows.card,
+    padding: SPACING.md,
+  },
+  menuCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACING.lg,
+    borderBottomWidth: 2,
     borderBottomColor: theme.colors.gray200,
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
 });

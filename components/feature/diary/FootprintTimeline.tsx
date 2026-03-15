@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Column, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -30,7 +29,6 @@ export function FootprintTimeline({
           'ko-KR',
           { month: 'short', day: 'numeric' },
         );
-
         const weekday = new Date(diary.date).toLocaleDateString('ko-KR', {
           weekday: 'short',
         });
@@ -41,68 +39,169 @@ export function FootprintTimeline({
             style={styles.item}
             onPress={() => onItemPress?.(diary)}
           >
-            {/* 타임라인 선 + 발자국 아이콘 */}
+            {/* 타임라인 선 + 발자국 */}
             <View style={styles.timeline}>
-              <View style={styles.footprintDot}>
-                <Text style={styles.footprintEmoji}>👣</Text>
+              <View
+                style={[
+                  styles.dot,
+                  diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
+                ]}
+              >
+                <Text style={{ fontSize: 12 }}>
+                  {diary.isRevealed ? '👣' : '🔒'}
+                </Text>
               </View>
               {!isLast && <View style={styles.line} />}
             </View>
 
-            {/* 콘텐츠 카드 */}
-            <View style={styles.card}>
-              {/* 날짜 + 위치 */}
-              <Row style={styles.cardHeader}>
-                <Text variant="caption" color="textMuted">
-                  {formattedDate} ({weekday})
-                </Text>
-                {diary.steps > 0 && (
-                  <Row style={styles.stepsBadge}>
-                    <Ionicons
-                      name="footsteps-outline"
-                      size={11}
-                      color={theme.colors.primary}
-                    />
-                    <Text variant="caption" color="primary" ml="xxs">
-                      {formatSteps(diary.steps)}
-                    </Text>
-                  </Row>
-                )}
-              </Row>
-
-              <Text variant="headingSmall" mt="xxs">
-                {diary.locationName}
-              </Text>
-
-              {/* 사진 */}
-              {diary.photos.length > 0 && (
-                <View style={styles.photoArea}>
-                  <View style={styles.photoPlaceholder}>
-                    <Ionicons
-                      name="image-outline"
-                      size={24}
-                      color={theme.colors.gray300}
-                    />
-                  </View>
-                </View>
-              )}
-
-              {/* 메모 */}
-              {diary.memo ? (
-                <Text
-                  variant="bodySmall"
-                  color="textSecondary"
-                  mt="sm"
-                  numberOfLines={3}
-                >
-                  {diary.memo}
-                </Text>
-              ) : null}
-            </View>
+            {/* 카드 */}
+            {diary.isRevealed ? (
+              <RevealedCard
+                diary={diary}
+                formattedDate={formattedDate}
+                weekday={weekday}
+              />
+            ) : (
+              <LockedCard
+                diary={diary}
+                formattedDate={formattedDate}
+                weekday={weekday}
+              />
+            )}
           </Pressable>
         );
       })}
     </View>
+  );
+}
+
+// ─── Locked Card ────────────────────────────────────────
+
+function LockedCard({
+  diary,
+  formattedDate,
+  weekday,
+}: {
+  diary: WalkDiary;
+  formattedDate: string;
+  weekday: string;
+}) {
+  const hasMyEntry = !!diary.myEntry;
+  const hasPartnerEntry = !!diary.partnerEntry;
+
+  return (
+    <View style={[styles.card, styles.cardLocked]}>
+      <Text variant="caption" color="textMuted">
+        {formattedDate} ({weekday})
+      </Text>
+      <Text variant="headingSmall" mt="xxs">
+        {diary.locationName}
+      </Text>
+
+      {/* 상태 표시 */}
+      <View style={styles.lockStatus}>
+        <View style={styles.lockChip}>
+          <Text style={{ fontSize: 12 }}>{hasMyEntry ? '✅' : '⏳'}</Text>
+          <Text variant="caption" color="textSecondary" ml="xs">
+            나
+          </Text>
+        </View>
+        <View style={styles.lockChip}>
+          <Text style={{ fontSize: 12 }}>{hasPartnerEntry ? '✅' : '⏳'}</Text>
+          <Text variant="caption" color="textSecondary" ml="xs">
+            상대방
+          </Text>
+        </View>
+      </View>
+
+      <Text variant="caption" color="textMuted" mt="sm" align="center">
+        {hasMyEntry
+          ? '상대방의 발자취를 기다리는 중...'
+          : '나의 발자취를 남겨주세요!'}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Revealed Card ──────────────────────────────────────
+
+function RevealedCard({
+  diary,
+  formattedDate,
+  weekday,
+}: {
+  diary: WalkDiary;
+  formattedDate: string;
+  weekday: string;
+}) {
+  return (
+    <View style={styles.card}>
+      <Row style={styles.cardHeader}>
+        <Text variant="caption" color="textMuted">
+          {formattedDate} ({weekday})
+        </Text>
+        {diary.steps > 0 && (
+          <View style={styles.stepsBadge}>
+            <Text style={{ fontSize: 10 }}>👟</Text>
+            <Text variant="caption" color="primary" ml="xxs">
+              {formatSteps(diary.steps)}
+            </Text>
+          </View>
+        )}
+      </Row>
+
+      <Text variant="headingSmall" mt="xxs">
+        {diary.locationName}
+      </Text>
+
+      {/* 둘의 기록 나란히 */}
+      <Row style={styles.dualEntries}>
+        {diary.myEntry && (
+          <EntryColumn entry={diary.myEntry} />
+        )}
+        {diary.partnerEntry && (
+          <EntryColumn entry={diary.partnerEntry} />
+        )}
+      </Row>
+    </View>
+  );
+}
+
+// ─── Entry Column (각 사람의 기록) ──────────────────────
+
+function EntryColumn({
+  entry,
+}: {
+  entry: NonNullable<WalkDiary['myEntry']>;
+}) {
+  return (
+    <Column style={styles.entryCol}>
+      <Text variant="label" color="primary" mb="xs">
+        {entry.nickname}
+      </Text>
+
+      {/* 사진 */}
+      {entry.photos.length > 0 && (
+        <View style={styles.entryPhoto}>
+          <Image
+            source={{ uri: entry.photos[0] }}
+            style={styles.entryPhotoImage}
+          />
+        </View>
+      )}
+
+      {/* 메모 */}
+      {entry.memo ? (
+        <Text
+          variant="bodySmall"
+          color="textSecondary"
+          mt="xs"
+          numberOfLines={4}
+        >
+          {entry.memo}
+        </Text>
+      ) : null}
+    </Column>
   );
 }
 
@@ -120,54 +219,95 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
   },
-  footprintDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primarySurface,
+  dot: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
+    borderWidth: 2,
   },
-  footprintEmoji: {
-    fontSize: 14,
+  dotRevealed: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySurface,
+  },
+  dotLocked: {
+    borderColor: theme.colors.gray400,
+    backgroundColor: theme.colors.gray200,
   },
   line: {
-    width: 2,
+    width: 3,
     flex: 1,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.gray300,
     marginTop: -2,
   },
   card: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     padding: SPACING.lg,
     marginLeft: SPACING.md,
     marginBottom: SPACING.lg,
-    ...theme.shadows.card,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    // 픽셀 솔리드 그림자
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  cardLocked: {
+    borderColor: theme.colors.gray400,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   cardHeader: {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   stepsBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.primarySurface,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xxs,
-    borderRadius: theme.radius.full,
+    borderRadius: 4,
   },
-  photoArea: {
-    marginTop: SPACING.sm,
+  lockStatus: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
+  lockChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray100,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 4,
+  },
+  dualEntries: {
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  entryCol: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceWarm,
     borderRadius: theme.radius.md,
+    padding: SPACING.md,
+  },
+  entryPhoto: {
+    borderRadius: theme.radius.sm,
     overflow: 'hidden',
   },
-  photoPlaceholder: {
-    height: 120,
+  entryPhotoImage: {
+    width: '100%',
+    height: 80,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.gray100,
-    borderRadius: theme.radius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

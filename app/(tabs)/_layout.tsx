@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY } from '@/styles/type';
 
@@ -20,18 +20,21 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.background,
+          backgroundColor: theme.colors.surface,
           paddingBottom: bottomPadding,
-          height: 56 + bottomPadding,
-          borderTopWidth: 0,
-          ...theme.shadows.small,
+          height: 60 + bottomPadding,
+          borderTopWidth: 2,
+          borderTopColor: theme.colors.border,
         },
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.gray400,
+        tabBarInactiveTintColor: theme.colors.gray500,
         tabBarLabelStyle: {
           fontFamily: FONT_FAMILY.pixel,
           fontSize: 11,
           lineHeight: 14,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
         },
         tabBarHideOnKeyboard: true,
       }}
@@ -40,41 +43,30 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '홈',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={22}
-              color={color}
-            />
-          ),
+          tabBarIcon: () => <TabIcon emoji="🏠" />,
         }}
       />
       <Tabs.Screen
         name="diary"
         options={{
           title: '발자취',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'footsteps' : 'footsteps-outline'}
-              size={22}
-              color={color}
-            />
-          ),
+          tabBarIcon: () => <TabIcon emoji="👣" />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: '마이',
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
-              size={22}
-              color={color}
-            />
-          ),
+          tabBarIcon: () => <TabIcon emoji="👤" />,
         }}
       />
     </Tabs>
   );
 }
+
+// ─── Tab Icon with Dot ──────────────────────────────────
+
+function TabIcon({ emoji }: { emoji: string }) {
+  return <Text style={{ fontSize: 20 }}>{emoji}</Text>;
+}
+

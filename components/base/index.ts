@@ -5,5 +5,8 @@ export { default as Input } from './Input';
 export { default as Row } from './Row';
 export { default as Text } from './Text';
 export { default as LoadingOverlay } from './LoadingOverlay';
+export { default as PixelCard } from './PixelCard';
+export { default as PixelProgressBar } from './PixelProgressBar';
+export { default as PixelBadge } from './PixelBadge';
 
 export type { BoxProps } from './Box';
