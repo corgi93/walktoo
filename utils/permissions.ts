@@ -1,7 +1,15 @@
 import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
 import { Pedometer } from 'expo-sensors';
 import { Linking, Platform } from 'react-native';
+
+// expo-notifications는 Expo Go(SDK 53+)에서 지원되지 않으므로
+// 안전하게 optional import 처리
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+} catch {
+  // Expo Go에서는 무시
+}
 
 import { PermissionStatus, PermissionType } from '@/types/permission';
 
@@ -37,6 +45,7 @@ export const checkPermission = async (
       return normalizeStatus(status, canAskAgain);
     }
     case 'notifications': {
+      if (!Notifications) return 'denied';
       const { status, canAskAgain } =
         await Notifications.getPermissionsAsync();
       return normalizeStatus(status, canAskAgain);
@@ -70,6 +79,7 @@ export const requestPermission = async (
       return normalizeStatus(status, canAskAgain);
     }
     case 'notifications': {
+      if (!Notifications) return 'denied';
       const { status, canAskAgain } =
         await Notifications.requestPermissionsAsync();
       return normalizeStatus(status, canAskAgain);

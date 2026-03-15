@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, PixelBadge, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
+import PixelCharacter from '@/components/feature/PixelCharacter';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { formatSteps } from '@/utils';
@@ -135,7 +136,7 @@ export default function HomeScreen() {
       {/* 캐릭터 영역 */}
       <View style={styles.characterArea}>
         <PixelCard style={styles.characterFrame} bg={theme.colors.surfaceWarm}>
-          <Text style={styles.characterEmoji}>🌱</Text>
+          <PixelCharacter type="male" pixelSize={5} />
         </PixelCard>
         <Text variant="bodySmall" color="textMuted" mt="md">
           함께 걸으면 자라나요
@@ -204,13 +205,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   characterFrame: {
-    width: 120,
-    height: 120,
+    width: 110,
+    height: 130,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 0,
-  },
-  characterEmoji: {
-    fontSize: 56,
+    padding: SPACING.sm,
   },
 });
