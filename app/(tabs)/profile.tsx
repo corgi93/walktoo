@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
+import { Box, PixelCard, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { COMPONENT_SIZE, SPACING } from '@/styles/type';
 
@@ -40,18 +40,8 @@ export default function ProfileScreen() {
               사용자
             </Text>
             <Text variant="caption" color="textMuted" mt="xxs">
-              Lv.2 초보 산책러
+              함께 걷는 중 💕
             </Text>
-
-            {/* 레벨 프로그레스 */}
-            <View style={styles.levelBar}>
-              <PixelProgressBar
-                progress={0.4}
-                segments={10}
-                fillColor={theme.colors.xp}
-                label="400 / 1000 XP"
-              />
-            </View>
           </PixelCard>
         </Box>
 
@@ -94,7 +84,6 @@ export default function ProfileScreen() {
             <MenuItem emoji="✏️" label="프로필 수정" />
             <MenuItem emoji="💕" label="커플 관리" />
             <MenuItem emoji="📊" label="산책 통계" />
-            <MenuItem emoji="❓" label="도움말" />
             <MenuItem emoji="🚪" label="로그아웃" isDestructive isLast />
           </PixelCard>
         </Box>
@@ -155,10 +144,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySurface,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  levelBar: {
-    width: '100%',
-    marginTop: SPACING.lg,
   },
   statCard: {
     flex: 1,

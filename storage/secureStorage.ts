@@ -1,44 +1,36 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { AuthTokens } from '@/types';
+// ─── Secure Storage Utility ─────────────────────────────
+// Supabase Auth는 server/client.ts의 ExpoSecureStoreAdapter를 통해
+// 자동으로 세션/토큰을 관리합니다.
+// 이 모듈은 앱 자체적으로 필요한 보안 저장소 유틸리티입니다.
 
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
-
-export const tokenStorage = {
-  saveTokens: async (tokens: AuthTokens) => {
+export const secureStorage = {
+  /** 값 저장 */
+  save: async (key: string, value: string) => {
     try {
-      await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, tokens.accessToken);
-      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, tokens.refreshToken);
+      await SecureStore.setItemAsync(key, value);
     } catch (error) {
-      console.error('Error saving tokens', error);
+      console.error(`Error saving ${key}`, error);
     }
   },
 
-  getAccessToken: async () => {
+  /** 값 조회 */
+  get: async (key: string): Promise<string | null> => {
     try {
-      return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+      return await SecureStore.getItemAsync(key);
     } catch (error) {
-      console.error('Error getting access token', error);
+      console.error(`Error getting ${key}`, error);
       return null;
     }
   },
 
-  getRefreshToken: async () => {
+  /** 값 삭제 */
+  remove: async (key: string) => {
     try {
-      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      await SecureStore.deleteItemAsync(key);
     } catch (error) {
-      console.error('Error getting refresh token', error);
-      return null;
-    }
-  },
-
-  clearTokens: async () => {
-    try {
-      await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-    } catch (error) {
-      console.error('Error clearing tokens', error);
+      console.error(`Error removing ${key}`, error);
     }
   },
 };

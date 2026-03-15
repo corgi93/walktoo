@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig, isAxiosError } from 'axios';
 import { router } from 'expo-router';
 
-import { tokenStorage } from '@/storage/secureStorage';
+import { secureStorage } from '@/storage/secureStorage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -17,7 +17,7 @@ export const axiosInstance = axios.create({
 // Access token interceptor
 axiosInstance.interceptors.request.use(
   async config => {
-    const accessToken = await tokenStorage.getAccessToken();
+    const accessToken = await secureStorage.get('accessToken');
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -33,7 +33,7 @@ axiosInstance.interceptors.response.use(
   response => response,
   async error => {
     if (error.response?.status === 401) {
-      const refreshToken = await tokenStorage.getRefreshToken();
+      const refreshToken = await secureStorage.get('refreshToken');
       if (refreshToken) {
         try {
           const response = await axiosInstance.post('/auth/refresh', {
@@ -41,13 +41,15 @@ axiosInstance.interceptors.response.use(
           });
 
           const newTokens = response.data;
-          await tokenStorage.saveTokens(newTokens);
+          await secureStorage.save('accessToken', newTokens.accessToken);
+          await secureStorage.save('refreshToken', newTokens.refreshToken);
 
           const originalRequest = error.config;
           originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
           return axiosInstance(originalRequest);
         } catch (refreshError) {
-          await tokenStorage.clearTokens();
+          await secureStorage.remove('accessToken');
+          await secureStorage.remove('refreshToken');
           router.replace('/login');
         }
       } else {

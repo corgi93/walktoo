@@ -27,14 +27,14 @@ const MOCK_DIARIES: WalkDiary[] = [
     locationName: '한강공원 여의도',
     steps: 8420,
     myEntry: {
-      userId: 1,
+      userId: 'u1',
       nickname: '나',
       memo: '날씨가 너무 좋아서 한강까지 걸었다. 치킨도 시켜 먹고 최고의 데이트 🍗',
       photos: ['photo1.jpg'],
       writtenAt: '2025-06-20T18:30:00Z',
     },
     partnerEntry: {
-      userId: 2,
+      userId: 'u2',
       nickname: '자기',
       memo: '오늘 한강 너무 좋았어~ 치킨이 최고였다 😋',
       photos: ['photo4.jpg'],
@@ -50,7 +50,7 @@ const MOCK_DIARIES: WalkDiary[] = [
     locationName: '경복궁',
     steps: 6210,
     myEntry: {
-      userId: 1,
+      userId: 'u1',
       nickname: '나',
       memo: '한복 입고 산책했는데 너무 더웠다 ㅋㅋ',
       photos: ['photo2.jpg', 'photo3.jpg'],

@@ -3,14 +3,12 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/base';
-import { tokenStorage } from '@/storage/secureStorage';
-import { useAuthStore } from '@/stores/authStore';
+import { authService } from '@/server';
 import { usePermissionStore } from '@/stores/permissionStore';
 import { theme } from '@/styles/theme';
 
 
 export default function SplashAuthScreen() {
-  const { setUser } = useAuthStore();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -22,9 +20,9 @@ export default function SplashAuthScreen() {
 
     const checkAuth = async () => {
       try {
-        const refreshToken = await tokenStorage.getRefreshToken();
-        if (refreshToken) {
-          // TODO: refresh token -> fetch user -> navigate to tabs
+        // Supabase 세션 확인 (SecureStore에서 자동 복원)
+        const session = await authService.getSession();
+        if (session) {
           const { hasCompletedOnboarding } = usePermissionStore.getState();
           router.replace(hasCompletedOnboarding ? '/(tabs)' : '/permissions');
         } else {
@@ -37,7 +35,7 @@ export default function SplashAuthScreen() {
 
     const timer = setTimeout(checkAuth, 1200);
     return () => clearTimeout(timer);
-  }, [fadeAnim, setUser]);
+  }, [fadeAnim]);
 
   return (
     <View style={styles.container}>

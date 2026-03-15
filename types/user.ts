@@ -1,5 +1,5 @@
 export interface UserResponse {
-  id: number;
+  id: string;
   nickname: string;
   phone: string;
   profileImageUrl?: string;
@@ -9,10 +9,4 @@ export interface UserResponse {
   totalSteps: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface CreateUserInput {
-  nickname: string;
-  phone: string;
-  password: string;
 }

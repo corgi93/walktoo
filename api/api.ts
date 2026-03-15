@@ -1,13 +1,34 @@
+/**
+ * @deprecated
+ * 이 파일은 NestJS + REST API 마이그레이션 시 참조용으로 보관됩니다.
+ * 현재는 server/ 레이어 (Supabase)를 사용합니다.
+ *
+ * import { walksService, couplesService, authService } from '@/server';
+ */
+
 import {
-  AuthTokens,
   UserResponse,
-  CreateUserInput,
   WalkDiary,
   CreateWalkDiaryInput,
   CoupleProfile,
 } from '@/types';
 
 import { client } from './client';
+
+// ─── Legacy Types (마이그레이션 시 참조) ─────────────────
+
+interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface CreateUserInput {
+  nickname: string;
+  phone: string;
+  password: string;
+}
+
+// ─── API Routes ─────────────────────────────────────────
 
 const api = {
   auth: {

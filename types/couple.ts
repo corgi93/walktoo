@@ -10,7 +10,7 @@ export interface CoupleProfile {
 }
 
 export interface CouplePartner {
-  id: number;
+  id: string;
   nickname: string;
   profileImageUrl?: string;
 }
