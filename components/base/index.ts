@@ -8,5 +8,7 @@ export { default as LoadingOverlay } from './LoadingOverlay';
 export { default as PixelCard } from './PixelCard';
 export { default as PixelProgressBar } from './PixelProgressBar';
 export { default as PixelBadge } from './PixelBadge';
+export { default as Icon } from './Icon';
 
 export type { BoxProps } from './Box';
+export type { IconName } from './Icon';

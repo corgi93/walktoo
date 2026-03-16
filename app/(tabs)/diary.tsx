@@ -1,77 +1,30 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, PixelBadge, Row, Text } from '@/components/base';
+import { Box, Icon, PixelBadge, Row, Text } from '@/components/base';
+import { NoCoupleCard } from '@/components/feature/couple';
 import {
   DiaryEmptyState,
   FootprintTimeline,
   WalkDiaryCard,
 } from '@/components/feature/diary';
+import { useDiaryListQuery } from '@/hooks/services/diary/query';
+import { useGetMeQuery } from '@/hooks/services/user/query';
 import { theme } from '@/styles/theme';
-import { SPACING } from '@/styles/type';
+import { LAYOUT } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
 
 // ─── Types ──────────────────────────────────────────────
 
 type ViewMode = 'timeline' | 'feed';
-
-// ─── Mock Data (TODO: replace with React Query) ────────
-
-const MOCK_DIARIES: WalkDiary[] = [
-  {
-    id: '1',
-    coupleId: 'c1',
-    date: '2025-06-20',
-    locationName: '한강공원 여의도',
-    steps: 8420,
-    myEntry: {
-      userId: 'u1',
-      nickname: '나',
-      memo: '날씨가 너무 좋아서 한강까지 걸었다. 치킨도 시켜 먹고 최고의 데이트 🍗',
-      photos: ['photo1.jpg'],
-      writtenAt: '2025-06-20T18:30:00Z',
-    },
-    partnerEntry: {
-      userId: 'u2',
-      nickname: '자기',
-      memo: '오늘 한강 너무 좋았어~ 치킨이 최고였다 😋',
-      photos: ['photo4.jpg'],
-      writtenAt: '2025-06-20T19:00:00Z',
-    },
-    isRevealed: true,
-    createdAt: '2025-06-20T18:30:00Z',
-  },
-  {
-    id: '2',
-    coupleId: 'c1',
-    date: '2025-06-15',
-    locationName: '경복궁',
-    steps: 6210,
-    myEntry: {
-      userId: 'u1',
-      nickname: '나',
-      memo: '한복 입고 산책했는데 너무 더웠다 ㅋㅋ',
-      photos: ['photo2.jpg', 'photo3.jpg'],
-      writtenAt: '2025-06-15T15:00:00Z',
-    },
-    partnerEntry: undefined,
-    isRevealed: false,
-    createdAt: '2025-06-15T15:00:00Z',
-  },
-  {
-    id: '3',
-    coupleId: 'c1',
-    date: '2025-06-10',
-    locationName: '남산타워',
-    steps: 12350,
-    myEntry: undefined,
-    partnerEntry: undefined,
-    isRevealed: false,
-    createdAt: '2025-06-10T20:00:00Z',
-  },
-];
 
 // ─── Component ──────────────────────────────────────────
 
@@ -80,9 +33,26 @@ export default function DiaryScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
 
-  const diaries = MOCK_DIARIES;
+  const { data: me } = useGetMeQuery();
+  const hasCoupleId = !!me?.coupleId;
 
-  const handleItemPress = useCallback((diary: WalkDiary) => {
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+    isRefetching,
+  } = useDiaryListQuery();
+
+  // 페이지 데이터 → flat array
+  const diaries = useMemo(
+    () => data?.pages.flatMap(page => page) ?? [],
+    [data],
+  );
+
+  const handleItemPress = useCallback((_diary: WalkDiary) => {
     // TODO: navigate to diary detail
   }, []);
 
@@ -94,24 +64,55 @@ export default function DiaryScreen() {
     setViewMode(prev => (prev === 'timeline' ? 'feed' : 'timeline'));
   };
 
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  // ─── No Couple State ────────────────────────────────────
+
+  if (!hasCoupleId) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <Row px="xxl" style={styles.header}>
+          <Text variant="headingLarge">산책 기록</Text>
+        </Row>
+        <View style={styles.noCoupleWrapper}>
+          <NoCoupleCard />
+        </View>
+      </View>
+    );
+  }
+
+  // ─── Loading State ────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text variant="bodySmall" color="textMuted" mt="md">
+          기록 불러오는 중...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <Row
-        px="xxl"
-        py="lg"
-        style={{ justifyContent: 'space-between', alignItems: 'center' }}
-      >
-        <Text variant="headingLarge">발자취</Text>
-        <Row style={{ gap: SPACING.sm, alignItems: 'center' }}>
-          {/* 뷰 전환 토글 */}
+      <Row px="xxl" style={styles.header}>
+        <Text variant="headingLarge">산책 기록</Text>
+        <Row style={styles.headerActions}>
           <Pressable onPress={toggleView} hitSlop={8}>
-            <Text style={{ fontSize: 18 }}>
-              {viewMode === 'timeline' ? '📋' : '📍'}
-            </Text>
+            <Icon
+              name={viewMode === 'timeline' ? 'list' : 'map-pin'}
+              size={20}
+              color={theme.colors.gray600}
+            />
           </Pressable>
           <Pressable onPress={handleAdd} hitSlop={8}>
-            <Text style={{ fontSize: 20 }}>✏️</Text>
+            <Icon name="plus" size={22} color={theme.colors.text} />
           </Pressable>
         </Row>
       </Row>
@@ -120,38 +121,79 @@ export default function DiaryScreen() {
         <View style={styles.emptyWrapper}>
           <DiaryEmptyState />
         </View>
-      ) : (
-        <ScrollView
+      ) : viewMode === 'timeline' ? (
+        /* 타임라인 뷰 */
+        <FlatList
+          data={[null]}
+          renderItem={() => (
+            <>
+              <Row px="xxl" style={styles.summaryRow}>
+                <PixelBadge
+                  iconName="footprint"
+                  label={`총 ${diaries.length}개의 기록`}
+                  size="small"
+                  bg={theme.colors.primarySurface}
+                />
+              </Row>
+              <FootprintTimeline
+                diaries={diaries}
+                onItemPress={handleItemPress}
+              />
+            </>
+          )}
+          keyExtractor={() => 'timeline'}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          refreshing={isRefetching}
+          onRefresh={refetch}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
-        >
-          {/* 발자취 수 요약 */}
-          <Row px="xxl" style={styles.summaryRow}>
-            <PixelBadge
-              icon="👣"
-              label={`총 ${diaries.length}개의 발자취`}
-              size="small"
-              bg={theme.colors.primarySurface}
-            />
-          </Row>
-
-          {viewMode === 'timeline' ? (
-            /* 타임라인 뷰 */
-            <FootprintTimeline
-              diaries={diaries}
-              onItemPress={handleItemPress}
-            />
-          ) : (
-            /* 피드 뷰 (인스타 스타일) */
-            <View style={styles.feedList}>
-              {diaries.map(diary => (
-                <Box key={diary.id} px="xxl" style={{ marginBottom: SPACING.lg }}>
-                  <WalkDiaryCard diary={diary} onPress={handleItemPress} />
-                </Box>
-              ))}
-            </View>
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.primary}
+                style={styles.footerLoader}
+              />
+            ) : null
+          }
+        />
+      ) : (
+        /* 피드 뷰 (인스타 스타일) */
+        <FlatList
+          data={diaries}
+          renderItem={({ item }) => (
+            <Box px="xxl" style={styles.feedItem}>
+              <WalkDiaryCard diary={item} onPress={handleItemPress} />
+            </Box>
           )}
-        </ScrollView>
+          keyExtractor={item => item.id}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <Row px="xxl" style={styles.summaryRow}>
+              <PixelBadge
+                iconName="footprint"
+                label={`총 ${diaries.length}개의 기록`}
+                size="small"
+                bg={theme.colors.primarySurface}
+              />
+            </Row>
+          }
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.primary}
+                style={styles.footerLoader}
+              />
+            ) : null
+          }
+        />
       )}
     </View>
   );
@@ -164,18 +206,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: LAYOUT.headerPy,
+  },
+  headerActions: {
+    gap: LAYOUT.itemGap,
+    alignItems: 'center',
+  },
   emptyWrapper: {
     flex: 1,
     justifyContent: 'center',
   },
+  noCoupleWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   scroll: {
-    paddingBottom: 40,
+    paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap,
   },
   summaryRow: {
     alignItems: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: LAYOUT.sectionGap,
   },
-  feedList: {
-    paddingTop: SPACING.xs,
+  feedItem: {
+    marginBottom: LAYOUT.sectionGap,
+  },
+  footerLoader: {
+    paddingVertical: LAYOUT.sectionGap,
   },
 });

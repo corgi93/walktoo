@@ -3,7 +3,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Text } from '@/components/base';
+import { Icon, IconName } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY } from '@/styles/type';
 
@@ -43,30 +43,29 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '홈',
-          tabBarIcon: () => <TabIcon emoji="🏠" />,
+          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="diary"
         options={{
-          title: '발자취',
-          tabBarIcon: () => <TabIcon emoji="👣" />,
+          title: '산책 기록',
+          tabBarIcon: ({ color }) => <TabIcon name="footprint" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: '마이',
-          tabBarIcon: () => <TabIcon emoji="👤" />,
+          tabBarIcon: ({ color }) => <TabIcon name="user" color={color} />,
         }}
       />
     </Tabs>
   );
 }
 
-// ─── Tab Icon with Dot ──────────────────────────────────
+// ─── Tab Icon ────────────────────────────────────────────
 
-function TabIcon({ emoji }: { emoji: string }) {
-  return <Text style={{ fontSize: 20 }}>{emoji}</Text>;
+function TabIcon({ name, color }: { name: IconName; color: string }) {
+  return <Icon name={name} size={22} color={color} />;
 }
-

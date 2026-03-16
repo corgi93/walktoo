@@ -1,7 +1,7 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/base';
+import { Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 
 // ─── Component ──────────────────────────────────────────
@@ -11,7 +11,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
       <View style={styles.container}>
-        <Text style={{ fontSize: 48 }}>🗺️</Text>
+        <Icon name="search" size={48} color={theme.colors.gray400} />
         <Text variant="headingMedium" mt="lg">
           페이지를 찾을 수 없습니다
         </Text>

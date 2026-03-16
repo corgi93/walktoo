@@ -1,5 +1,5 @@
 /**
- * PairWalk Design Tokens — Retro Pixel Game Aesthetic
+ * walkToo Design Tokens — Retro Pixel Game Aesthetic
  *
  * 따뜻한 로즈 코랄 컬러 + 도트 게임 감성.
  * 두꺼운 보더, 솔리드 그림자, 삐뚤빼뚤한 느낌.

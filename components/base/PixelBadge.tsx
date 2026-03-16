@@ -4,6 +4,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 
+import Icon, { IconName } from './Icon';
 import Text from './Text';
 
 interface PixelBadgeProps {
@@ -13,7 +14,11 @@ interface PixelBadgeProps {
   color?: string;
   /** 배경 색상 */
   bg?: string;
-  /** 아이콘 이모지 (왼쪽) */
+  /** 아이콘 이름 (Icon 컴포넌트) */
+  iconName?: IconName;
+  /** 아이콘 색상 */
+  iconColor?: string;
+  /** @deprecated emoji 대신 iconName 사용 */
   icon?: string;
   /** 크기 */
   size?: 'small' | 'medium';
@@ -24,11 +29,14 @@ const PixelBadge: React.FC<PixelBadgeProps> = ({
   label,
   color = theme.colors.text,
   bg = theme.colors.gray100,
+  iconName,
+  iconColor,
   icon,
   size = 'medium',
   style,
 }) => {
   const isSmall = size === 'small';
+  const hasIcon = !!iconName || !!icon;
 
   return (
     <View
@@ -42,10 +50,18 @@ const PixelBadge: React.FC<PixelBadgeProps> = ({
         style,
       ]}
     >
-      {icon && <Text style={{ fontSize: isSmall ? 10 : 12 }}>{icon}</Text>}
+      {iconName ? (
+        <Icon
+          name={iconName}
+          size={isSmall ? 12 : 14}
+          color={iconColor ?? color}
+        />
+      ) : icon ? (
+        <Text style={{ fontSize: isSmall ? 10 : 12 }}>{icon}</Text>
+      ) : null}
       <Text
         variant={isSmall ? 'caption' : 'label'}
-        style={{ color, marginLeft: icon ? SPACING.xxs : 0 }}
+        style={{ color, marginLeft: hasIcon ? SPACING.xxs : 0 }}
       >
         {label}
       </Text>

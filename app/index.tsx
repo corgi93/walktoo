@@ -41,10 +41,10 @@ export default function SplashAuthScreen() {
     <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Text variant="displayLarge" color="primary">
-          PairWalk
+          walkToo
         </Text>
         <Text variant="bodyLarge" color="textSecondary" mt="md">
-          같이 걷는 즐거움
+          우리 둘의 걸음, 하나의 이야기
         </Text>
       </Animated.View>
     </View>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { Column, Row, Text } from '@/components/base';
+import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
@@ -56,35 +56,43 @@ function LockedFeedCard({
             {formattedDate}
           </Text>
           <Row style={styles.locationRow}>
-            <Text style={{ fontSize: 12 }}>📍</Text>
+            <Icon name="map-pin" size={13} color={theme.colors.gray500} />
             <Text variant="headingSmall" color="textSecondary" ml="xs">
               {diary.locationName}
             </Text>
           </Row>
         </Column>
-        <Text style={{ fontSize: 18 }}>🔒</Text>
+        <Icon name="lock" size={18} color={theme.colors.gray400} />
       </Row>
 
       {/* 잠금 상태 */}
       <View style={styles.lockArea}>
         <Row style={styles.lockStatusRow}>
           <View style={styles.lockChip}>
-            <Text style={{ fontSize: 12 }}>{hasMyEntry ? '✅' : '⏳'}</Text>
+            <Icon
+              name={hasMyEntry ? 'check-circle' : 'clock'}
+              size={13}
+              color={hasMyEntry ? theme.colors.secondary : theme.colors.gray400}
+            />
             <Text variant="caption" color="textSecondary" ml="xs">
               나
             </Text>
           </View>
           <View style={styles.lockChip}>
-            <Text style={{ fontSize: 12 }}>{hasPartnerEntry ? '✅' : '⏳'}</Text>
+            <Icon
+              name={hasPartnerEntry ? 'check-circle' : 'clock'}
+              size={13}
+              color={hasPartnerEntry ? theme.colors.secondary : theme.colors.gray400}
+            />
             <Text variant="caption" color="textSecondary" ml="xs">
-              상대방
+              연인
             </Text>
           </View>
         </Row>
         <Text variant="caption" color="textMuted" mt="sm" align="center">
           {hasMyEntry
-            ? '상대방의 발자취를 기다리는 중...'
-            : '나의 발자취를 남겨주세요!'}
+            ? '연인의 기록을 기다리는 중...'
+            : '나의 하루를 먼저 남겨주세요'}
         </Text>
       </View>
     </Pressable>
@@ -114,13 +122,13 @@ function RevealedFeedCard({
             {formattedDate}
           </Text>
           <Row style={styles.locationRow}>
-            <Text style={{ fontSize: 12 }}>📍</Text>
+            <Icon name="map-pin" size={13} color={theme.colors.primary} />
             <Text variant="headingSmall" ml="xs">
               {diary.locationName}
             </Text>
           </Row>
         </Column>
-        <Text style={{ fontSize: 18 }}>👣</Text>
+        <Icon name="footprint" size={20} color={theme.colors.primary} />
       </Row>
 
       {/* 둘의 기록 나란히 */}
@@ -180,7 +188,7 @@ function RevealedFeedCard({
       {/* 걸음수 */}
       {diary.steps > 0 && (
         <Row style={styles.statsRow}>
-          <Text style={{ fontSize: 12 }}>👟</Text>
+          <Icon name="shoe-sneaker" size={14} color={theme.colors.primary} />
           <Text variant="label" color="text" ml="xs">
             {formatSteps(diary.steps)}
           </Text>

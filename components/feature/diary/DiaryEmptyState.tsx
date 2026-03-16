@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Column, Text } from '@/components/base';
+import { Column, Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 
@@ -10,11 +10,13 @@ import { SPACING } from '@/styles/type';
 export function DiaryEmptyState() {
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>👣</Text>
+      <View style={styles.iconWrap}>
+        <Icon name="footprint" size={32} color={theme.colors.gray400} />
+      </View>
 
       <Column style={{ alignItems: 'center', marginTop: SPACING.lg }}>
         <Text variant="headingSmall" align="center">
-          아직 발자취가 없어요
+          아직 둘의 기록이 없어요
         </Text>
         <Text
           variant="bodySmall"
@@ -22,7 +24,7 @@ export function DiaryEmptyState() {
           align="center"
           mt="sm"
         >
-          함께 걸은 첫 번째 발자국을{'\n'}
+          첫 번째 산책 기록을{'\n'}
           남겨보세요
         </Text>
       </Column>
@@ -43,7 +45,12 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderStyle: 'dashed',
   },
-  emoji: {
-    fontSize: 40,
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

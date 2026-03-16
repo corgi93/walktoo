@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
-import { Column, Row, Text } from '@/components/base';
+import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
@@ -47,9 +47,11 @@ export function FootprintTimeline({
                   diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
                 ]}
               >
-                <Text style={{ fontSize: 12 }}>
-                  {diary.isRevealed ? '👣' : '🔒'}
-                </Text>
+                <Icon
+                  name={diary.isRevealed ? 'footprint' : 'lock'}
+                  size={13}
+                  color={diary.isRevealed ? theme.colors.primary : theme.colors.gray500}
+                />
               </View>
               {!isLast && <View style={styles.line} />}
             </View>
@@ -101,23 +103,31 @@ function LockedCard({
       {/* 상태 표시 */}
       <View style={styles.lockStatus}>
         <View style={styles.lockChip}>
-          <Text style={{ fontSize: 12 }}>{hasMyEntry ? '✅' : '⏳'}</Text>
+          <Icon
+            name={hasMyEntry ? 'check-circle' : 'clock'}
+            size={13}
+            color={hasMyEntry ? theme.colors.secondary : theme.colors.gray400}
+          />
           <Text variant="caption" color="textSecondary" ml="xs">
             나
           </Text>
         </View>
         <View style={styles.lockChip}>
-          <Text style={{ fontSize: 12 }}>{hasPartnerEntry ? '✅' : '⏳'}</Text>
+          <Icon
+            name={hasPartnerEntry ? 'check-circle' : 'clock'}
+            size={13}
+            color={hasPartnerEntry ? theme.colors.secondary : theme.colors.gray400}
+          />
           <Text variant="caption" color="textSecondary" ml="xs">
-            상대방
+            연인
           </Text>
         </View>
       </View>
 
       <Text variant="caption" color="textMuted" mt="sm" align="center">
         {hasMyEntry
-          ? '상대방의 발자취를 기다리는 중...'
-          : '나의 발자취를 남겨주세요!'}
+          ? '연인의 기록을 기다리는 중...'
+          : '나의 하루를 먼저 남겨주세요'}
       </Text>
     </View>
   );
@@ -142,7 +152,7 @@ function RevealedCard({
         </Text>
         {diary.steps > 0 && (
           <View style={styles.stepsBadge}>
-            <Text style={{ fontSize: 10 }}>👟</Text>
+            <Icon name="shoe-sneaker" size={12} color={theme.colors.primary} />
             <Text variant="caption" color="primary" ml="xxs">
               {formatSteps(diary.steps)}
             </Text>

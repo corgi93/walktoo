@@ -87,7 +87,7 @@ export default function PermissionsScreen() {
       <Box px="xxl" py="lg">
         <Text variant="headingLarge">시작하기 전에</Text>
         <Text variant="bodySmall" color="textSecondary" mt="xs">
-          PairWalk을 위해 몇 가지 권한이 필요해요
+          walkToo를 위해 몇 가지 권한이 필요해요
         </Text>
       </Box>
 

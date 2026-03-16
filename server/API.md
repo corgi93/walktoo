@@ -1,6 +1,6 @@
-# PairWalk API Specification
+# walkToo API Specification
 
-> **Base URL**: Supabase 직접 호출 (현재) → `https://api.pairwalk.app/v1` (NestJS 마이그레이션 후)
+> **Base URL**: Supabase 직접 호출 (현재) → `https://api.walktoo.app/v1` (NestJS 마이그레이션 후)
 >
 > **인증**: `Authorization: Bearer <access_token>` (Supabase JWT)
 >
@@ -146,7 +146,7 @@
   "id": "uuid-user-1",
   "nickname": "산책러",
   "phone": "010-1234-5678",
-  "profileImageUrl": "https://storage.pairwalk.app/avatars/uuid-user-1.jpg",
+  "profileImageUrl": "https://storage.walktoo.app/avatars/uuid-user-1.jpg",
   "coupleId": "uuid-couple-1",
   "partnerNickname": "자기",
   "totalWalks": 12,
@@ -169,7 +169,7 @@
 {
   "nickname": "걷기왕",
   "phone": "010-9876-5432",
-  "profileImageUrl": "https://storage.pairwalk.app/avatars/new.jpg"
+  "profileImageUrl": "https://storage.walktoo.app/avatars/new.jpg"
 }
 ```
 
@@ -181,7 +181,7 @@
   "id": "uuid-user-1",
   "nickname": "걷기왕",
   "phone": "010-9876-5432",
-  "profileImageUrl": "https://storage.pairwalk.app/avatars/new.jpg",
+  "profileImageUrl": "https://storage.walktoo.app/avatars/new.jpg",
   "coupleId": "uuid-couple-1",
   "totalWalks": 12,
   "totalSteps": 84200,
@@ -257,7 +257,7 @@
   "user1": {
     "id": "uuid-user-1",
     "nickname": "산책러",
-    "profileImageUrl": "https://storage.pairwalk.app/avatars/user1.jpg"
+    "profileImageUrl": "https://storage.walktoo.app/avatars/user1.jpg"
   },
   "user2": {
     "id": "uuid-user-2",
@@ -342,7 +342,7 @@
       "nickname": "산책러",
       "memo": "날씨가 너무 좋아서 한강까지 걸었다 🍗",
       "photos": [
-        "https://storage.pairwalk.app/footprints/couple1/walk1/001.jpg"
+        "https://storage.walktoo.app/footprints/couple1/walk1/001.jpg"
       ],
       "writtenAt": "2026-03-15T18:30:00Z"
     },
@@ -351,7 +351,7 @@
       "nickname": "자기",
       "memo": "오늘 한강 너무 좋았어~ 😋",
       "photos": [
-        "https://storage.pairwalk.app/footprints/couple1/walk1/002.jpg"
+        "https://storage.walktoo.app/footprints/couple1/walk1/002.jpg"
       ],
       "writtenAt": "2026-03-15T19:00:00Z"
     },
@@ -406,7 +406,7 @@
   "steps": 5430,
   "memo": "벚꽃이 피기 시작했다 🌸",
   "photos": [
-    "https://storage.pairwalk.app/footprints/couple1/walk3/001.jpg"
+    "https://storage.walktoo.app/footprints/couple1/walk3/001.jpg"
   ]
 }
 ```
@@ -439,7 +439,7 @@
 {
   "memo": "나도 서울숲 좋았어! 사슴이 귀여웠다 🦌",
   "photos": [
-    "https://storage.pairwalk.app/footprints/couple1/walk3/002.jpg"
+    "https://storage.walktoo.app/footprints/couple1/walk3/002.jpg"
   ]
 }
 ```
@@ -497,8 +497,8 @@
 ```json
 {
   "urls": [
-    "https://storage.pairwalk.app/footprints/couple1/walk3/1710500400_0.jpg",
-    "https://storage.pairwalk.app/footprints/couple1/walk3/1710500400_1.jpg"
+    "https://storage.walktoo.app/footprints/couple1/walk3/1710500400_0.jpg",
+    "https://storage.walktoo.app/footprints/couple1/walk3/1710500400_1.jpg"
   ]
 }
 ```
@@ -516,7 +516,7 @@
 **Request**
 ```json
 {
-  "url": "https://storage.pairwalk.app/footprints/couple1/walk3/1710500400_0.jpg"
+  "url": "https://storage.walktoo.app/footprints/couple1/walk3/1710500400_0.jpg"
 }
 ```
 

@@ -1,5 +1,5 @@
 /**
- * PairWalk Typography, Spacing & Component Tokens
+ * walkToo Typography, Spacing & Component Tokens
  *
  * 도트 게임 감성: 모든 텍스트에 픽셀 폰트.
  * NeoDunggeunmo로 통일해서 레트로 느낌 극대화.
@@ -70,6 +70,53 @@ export const COMPONENT_SIZE = {
   avatarSmall: 40,
   avatarMedium: 60,
   avatarLarge: 80,
+} as const;
+
+// ─── Layout Conventions ─────────────────────────────────
+//
+// 화면 전체에서 일관된 여백·간격을 유지하기 위한 레이아웃 토큰.
+// 각 화면에서 SPACING 을 직접 쓰지 말고, LAYOUT 을 통해 사용할 것.
+//
+//  ┌─ screenPx ─────────────────────────── screenPx ─┐
+//  │ [Header]                          headerPy      │
+//  │                                   sectionGap    │
+//  │ ┌─ Card ── cardPx ──────────────── cardPx ─┐    │
+//  │ │  Title              cardPy               │    │
+//  │ │  Content            itemGap              │    │
+//  │ │  Badge row          cardPy               │    │
+//  │ └──────────────────────────────────────────┘    │
+//  │                                   sectionGap    │
+//  │ ┌─ Card ───────────────────────────────────┐    │
+//  │ │  ...                                     │    │
+//  │ └──────────────────────────────────────────┘    │
+//  │                                   bottomSafe    │
+//  └─────────────────────────────────────────────────┘
+
+export const LAYOUT = {
+  /** 화면 좌우 여백 — Box px="xxl" 과 동일 */
+  screenPx: SPACING.xxl,           // 24
+
+  /** 섹션(카드) 사이 기본 간격 */
+  sectionGap: SPACING.lg,          // 16
+
+  /** 큰 섹션 간격 (미션, CTA 위 등) */
+  sectionGapLg: SPACING.xl,        // 20
+
+  /** 카드 내부 패딩 */
+  cardPx: SPACING.lg,              // 16
+  cardPy: SPACING.lg,              // 16
+
+  /** 카드 내 요소 간 간격 — 작음 (배지 사이 등) */
+  itemGap: SPACING.sm,             // 8
+
+  /** 카드 내 요소 간 간격 — 보통 (라벨↔값 등) */
+  itemGapMd: SPACING.md,           // 12
+
+  /** 상단 바 세로 패딩 */
+  headerPy: SPACING.md,            // 12
+
+  /** 하단 고정 영역 패딩 */
+  bottomSafe: SPACING.xxl,         // 24
 } as const;
 
 // ─── Button & Size Variants ─────────────────────────────

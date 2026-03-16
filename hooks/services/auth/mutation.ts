@@ -46,6 +46,61 @@ export const useLoginMutation = () => {
   });
 };
 
+// ─── useSocialLoginMutation ─────────────────────────────
+
+export const useSocialLoginMutation = () => {
+  const { setUser } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({
+      provider,
+      idToken,
+      nonce,
+    }: {
+      provider: 'apple' | 'google';
+      idToken: string;
+      nonce?: string;
+    }) => {
+      const { profile } = await authService.signInWithSocial(
+        provider,
+        idToken,
+        nonce,
+      );
+      return profile;
+    },
+    onSuccess: (profile) => {
+      setUser(profile);
+      router.replace('/permissions');
+    },
+  });
+};
+
+// ─── useWebOAuthMutation (Expo Go fallback) ─────────────
+
+export const useWebOAuthMutation = () => {
+  const { setUser } = useAuthStore();
+
+  return useMutation({
+    mutationFn: async ({
+      accessToken,
+      refreshToken,
+    }: {
+      accessToken: string;
+      refreshToken: string;
+    }) => {
+      const { profile } = await authService.handleOAuthCallback(
+        accessToken,
+        refreshToken,
+      );
+      return profile;
+    },
+    onSuccess: (profile) => {
+      setUser(profile);
+      router.replace('/permissions');
+    },
+  });
+};
+
 // ─── useLogoutMutation ──────────────────────────────────
 
 export const useLogoutMutation = () => {

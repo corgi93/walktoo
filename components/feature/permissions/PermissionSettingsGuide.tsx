@@ -42,7 +42,7 @@ export const PermissionSettingsGuide: React.FC<
           align="center"
           mt="sm"
         >
-          {'설정에서 직접 권한을 허용해주세요.\n앱 설정 → PairWalk → 권한'}
+          {'설정에서 직접 권한을 허용해주세요.\n앱 설정 → walkToo → 권한'}
         </Text>
       </Column>
 

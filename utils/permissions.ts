@@ -1,14 +1,19 @@
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
 import { Linking, Platform } from 'react-native';
 
-// expo-notifications는 Expo Go(SDK 53+)에서 지원되지 않으므로
-// 안전하게 optional import 처리
+// expo-notifications는 Expo Go(SDK 53+)에서 네이티브 에러를 던지므로
+// Expo Go 환경에서는 아예 로드하지 않음
+const isExpoGo = Constants.appOwnership === 'expo';
+
 let Notifications: typeof import('expo-notifications') | null = null;
-try {
-  Notifications = require('expo-notifications');
-} catch {
-  // Expo Go에서는 무시
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch {
+    // dev build에서도 실패 시 무시
+  }
 }
 
 import { PermissionStatus, PermissionType } from '@/types/permission';

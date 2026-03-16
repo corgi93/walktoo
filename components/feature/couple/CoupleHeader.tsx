@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Row, Text } from '@/components/base';
+import { Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { COMPONENT_SIZE, SPACING } from '@/styles/type';
 import { formatDday } from '@/utils';
@@ -26,13 +26,13 @@ export function CoupleHeader({
       {/* 두 아바타 + 하트 */}
       <Row style={styles.avatarRow}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarEmoji}>🚶‍♂️</Text>
+          <Icon name="user" size={24} color={theme.colors.primary} />
         </View>
         <View style={styles.heartBadge}>
-          <Text style={styles.heartEmoji}>💕</Text>
+          <Icon name="heart" size={14} color={theme.colors.primary} />
         </View>
         <View style={styles.avatar}>
-          <Text style={styles.avatarEmoji}>🚶‍♀️</Text>
+          <Icon name="user" size={24} color={theme.colors.accent} />
         </View>
       </Row>
 
@@ -74,9 +74,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: theme.colors.white,
   },
-  avatarEmoji: {
-    fontSize: 24,
-  },
   heartBadge: {
     width: 28,
     height: 28,
@@ -86,9 +83,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: -10,
     zIndex: 1,
-  },
-  heartEmoji: {
-    fontSize: 14,
   },
   nameRow: {
     alignItems: 'center',
