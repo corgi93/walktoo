@@ -1,6 +1,6 @@
 # server/ — 백엔드 레이어
 
-PairWalk의 서버 통신 레이어입니다. NestJS 스타일의 **Repository → Service** 패턴을 사용합니다.
+walkToo의 서버 통신 레이어입니다. NestJS 스타일의 **Repository → Service** 패턴을 사용합니다.
 
 ## 구조
 
