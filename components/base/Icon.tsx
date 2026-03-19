@@ -88,6 +88,11 @@ const Icon: React.FC<IconProps> = ({
 }) => {
   const config = ICON_MAP[name];
 
+  if (!config) {
+    console.warn(`[Icon] Unknown icon name: "${name}"`);
+    return null;
+  }
+
   if (config.set === 'material') {
     return (
       <MaterialCommunityIcons

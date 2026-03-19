@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pedometer } from 'expo-sensors';
 
 /**
  * 오늘 자정부터 현재까지의 걸음수를 실시간으로 추적합니다.
  *
- * 1) 앱 진입 시 오늘 0시~현재까지 누적 걸음수를 가져옴
- * 2) 이후 실시간 걸음 이벤트를 구독하여 누적
+ * 1) 앱 진입 시 오늘 0시~현재까지 누적 걸음수를 가져옴 (baseSteps)
+ * 2) 이후 실시간 걸음 이벤트를 구독하여 추가분 누적 (liveSteps)
+ * 3) 표시 걸음수 = baseSteps + liveSteps
  */
 export function usePedometer() {
-  const [steps, setSteps] = useState(0);
+  const [baseSteps, setBaseSteps] = useState(0);
+  const [liveSteps, setLiveSteps] = useState(0);
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
@@ -21,25 +23,24 @@ export function usePedometer() {
 
       // 오늘 자정
       const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
 
       // 오늘 누적 걸음수
       try {
         const result = await Pedometer.getStepCountAsync(startOfDay, now);
-        setSteps(result.steps);
+        setBaseSteps(result.steps);
       } catch (e) {
         console.warn('[Pedometer] 기록 조회 실패:', e);
       }
 
-      // 실시간 구독 (이후 추가 걸음)
-      let liveSteps = 0;
+      // 실시간 구독 — Android는 구독 이후 누적값, iOS는 이벤트당 걸음수
+      // data.steps는 구독 시작 이후 총 걸음수 (누적)
       subscription = Pedometer.watchStepCount((data) => {
-        liveSteps += data.steps;
-        setSteps((prev) => {
-          // 중복 방지: 기존 누적 + 실시간 추가분
-          const base = prev - liveSteps + data.steps;
-          return base + liveSteps;
-        });
+        setLiveSteps(data.steps);
       });
     };
 
@@ -50,5 +51,5 @@ export function usePedometer() {
     };
   }, []);
 
-  return { steps, available };
+  return { steps: baseSteps + liveSteps, available };
 }

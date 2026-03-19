@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -19,7 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
+import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { usePedometer } from '@/hooks/usePedometer';
+import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
 
@@ -30,7 +32,10 @@ export default function FootprintCreateScreen() {
   const router = useRouter();
 
   const { data: me } = useGetMeQuery();
-  const hasCoupleId = !!me?.coupleId;
+  const { data: couple } = useGetCoupleQuery();
+  const { steps: pedometerSteps } = usePedometer();
+  const dialog = useDialogStore();
+  const isCoupleConnected = !!me?.coupleId && !!couple?.user2?.id;
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -51,7 +56,7 @@ export default function FootprintCreateScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '사진을 업로드하려면 갤러리 접근 권한이 필요해요.');
+      dialog.alert('권한 필요', '사진을 업로드하려면 갤러리 접근 권한이 필요해요.');
       return;
     }
 
@@ -74,7 +79,7 @@ export default function FootprintCreateScreen() {
 
   const handleSave = async () => {
     if (!locationName.trim()) {
-      Alert.alert('', '오늘의 데이트 장소를 적어주세요!');
+      dialog.alert('', '오늘의 데이트 장소를 적어주세요!');
       return;
     }
 
@@ -84,14 +89,14 @@ export default function FootprintCreateScreen() {
         locationName: locationName.trim(),
         memo: memo.trim(),
         photos,
-        steps: 0, // TODO: 만보기 연동 시 실제 걸음수
+        steps: pedometerSteps,
       },
       {
         onSuccess: () => {
           router.back();
         },
         onError: (error) => {
-          Alert.alert('저장 실패', error.message || '다시 시도해주세요.');
+          dialog.alert('저장 실패', error.message || '다시 시도해주세요.');
         },
       },
     );
@@ -109,7 +114,7 @@ export default function FootprintCreateScreen() {
       </Row>
 
       {/* ── 커플 미연결 시 — 차단 안내 ── */}
-      {!hasCoupleId ? (
+      {!isCoupleConnected ? (
         <View style={styles.noCoupleArea}>
           <PixelCard style={styles.noCoupleBlockCard} bg={theme.colors.surfaceWarm}>
             <View style={styles.blockIcon}>

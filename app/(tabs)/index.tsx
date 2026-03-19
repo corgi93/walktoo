@@ -19,14 +19,7 @@ import { formatDday, formatSteps } from '@/utils';
 const calcCalories = (steps: number): number =>
   Math.round(steps * 0.04);
 
-const calcLevel = (totalWalks: number): number => {
-  if (totalWalks >= 100) return 10;
-  if (totalWalks >= 50) return 7;
-  if (totalWalks >= 30) return 5;
-  if (totalWalks >= 15) return 3;
-  if (totalWalks >= 5) return 2;
-  return 1;
-};
+// calcLevel 제거됨 — 추후 필요 시 재추가
 
 // ─── Component ──────────────────────────────────────────
 
@@ -41,7 +34,9 @@ export default function HomeScreen() {
   const { data: couple } = useGetCoupleQuery();
   const { data: stats } = useCoupleStatsQuery();
 
+  // coupleId가 있어도 user2가 없으면 아직 미연결 (초대코드만 만든 상태)
   const hasCoupleId = !!me?.coupleId;
+  const isCoupleConnected = hasCoupleId && !!couple?.user2?.id;
 
   // 커플 정보에서 나/상대방 구분
   const isUser1 = couple?.user1?.id === me?.id;
@@ -53,10 +48,9 @@ export default function HomeScreen() {
   // 통계
   const totalWalks = stats?.totalWalks ?? 0;
   const currentStreak = stats?.currentStreak ?? 0;
-  const level = calcLevel(totalWalks);
-
-  // 오늘의 걸음 (TODO: 만보기 API 연동)
-  const mySteps = me?.totalSteps ?? 0;
+  // 오늘의 걸음 (만보기 연동)
+  const { steps: pedometerSteps } = usePedometer();
+  const mySteps = pedometerSteps;
   const partnerSteps = 0; // TODO: 실시간 상대방 걸음수
   const dailyGoal = 10000;
 
@@ -71,7 +65,7 @@ export default function HomeScreen() {
           walkToo
         </Text>
         <Row style={styles.topBarRight}>
-          {hasCoupleId && (
+          {isCoupleConnected && (
             <PixelBadge iconName="zap" label={`${currentStreak}일`} size="small" />
           )}
           <Pressable hitSlop={8}>
@@ -85,7 +79,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── 커플 D+Day ── */}
-        {hasCoupleId && (
+        {isCoupleConnected && (
           <Box px="xxl" style={styles.section}>
             <Pressable onPress={() => setShowDatePicker(true)}>
               <Row style={styles.ddayRow}>
@@ -120,7 +114,7 @@ export default function HomeScreen() {
 
         {/* ── 오늘의 걸음 카드 ── */}
         <Box px="xxl" style={styles.section}>
-          {hasCoupleId ? (
+          {isCoupleConnected ? (
             /* ─── 커플 모드: 나 | ♥ | 상대방 ─── */
             <Row style={styles.stepsRow}>
               <PixelCard style={styles.stepCard} bg={theme.colors.primarySurface}>
@@ -192,20 +186,12 @@ export default function HomeScreen() {
                     </Text>
                   </Row>
                 </View>
-                <Row style={styles.miniStatRow}>
-                  <View style={styles.miniStat}>
-                    <Icon name="fire" size={11} color={theme.colors.accent} />
-                    <Text variant="caption" color="textSecondary" ml="xxs">
-                      {calcCalories(mySteps)}
-                    </Text>
-                  </View>
-                  <View style={styles.miniStat}>
-                    <Icon name="activity" size={11} color={theme.colors.secondary} />
-                    <Text variant="caption" color="textSecondary" ml="xxs">
-                      {(mySteps * 0.0007).toFixed(1)}km
-                    </Text>
-                  </View>
-                </Row>
+                <View style={styles.miniStat}>
+                  <Icon name="fire" size={11} color={theme.colors.accent} />
+                  <Text variant="caption" color="textSecondary" ml="xxs">
+                    {calcCalories(mySteps)} kcal
+                  </Text>
+                </View>
               </Row>
               <PixelProgressBar
                 progress={myProgress}
@@ -218,14 +204,14 @@ export default function HomeScreen() {
         </Box>
 
         {/* ── 솔로 모드: 커플 연결 (초대코드 만들기/입력하기) ── */}
-        {!hasCoupleId && (
+        {!isCoupleConnected && (
           <Box style={styles.section}>
             <NoCoupleCard />
           </Box>
         )}
 
         {/* ── 커플 연결 시 — 미션 카드 ── */}
-        {hasCoupleId && (
+        {isCoupleConnected && (
           <Box px="xxl" style={styles.section}>
             <PixelCard style={styles.missionCard}>
               <Row style={styles.missionHeader}>
@@ -258,7 +244,7 @@ export default function HomeScreen() {
             <PixelCharacter type="male" pixelSize={5} />
           </PixelCard>
 
-          {hasCoupleId ? (
+          {isCoupleConnected ? (
             <Text variant="bodySmall" color="textMuted" mt="md">
               우리의 걸음이 쌓이고 있어요
             </Text>
@@ -274,14 +260,13 @@ export default function HomeScreen() {
           )}
 
           <Row style={styles.badgeRow}>
-            <PixelBadge iconName="star" label={`${totalWalks}회`} size="small" bg={theme.colors.goldLight} />
-            <PixelBadge iconName="footprint" label={`Lv.${level}`} size="small" bg={theme.colors.primarySurface} />
+            <PixelBadge iconName="star" label={`${totalWalks}회 산책`} size="small" bg={theme.colors.goldLight} />
           </Row>
         </View>
       </ScrollView>
 
       {/* ── 하단 CTA — 커플 연결 시에만 ── */}
-      {hasCoupleId && (
+      {isCoupleConnected && (
         <Box px="xxl" style={styles.bottomCta}>
           <Button
             variant="primary"

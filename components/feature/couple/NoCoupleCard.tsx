@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   Share,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   useCreateInviteMutation,
   useJoinCoupleMutation,
 } from '@/hooks/services/couple/mutation';
+import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, SPACING } from '@/styles/type';
 
@@ -35,6 +35,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
 
   const createInvite = useCreateInviteMutation();
   const joinCouple = useJoinCoupleMutation();
+  const dialog = useDialogStore();
 
   // ─── Handlers ─────────────────────────────────────────
 
@@ -46,7 +47,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
         setMode('invite');
       },
       onError: (err) => {
-        Alert.alert('오류', err.message || '초대코드 생성에 실패했어요');
+        dialog.alert('오류', err.message || '초대코드 생성에 실패했어요');
       },
     });
   };
@@ -64,17 +65,17 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
   const handleJoin = () => {
     const trimmed = joinCode.trim();
     if (!trimmed) {
-      Alert.alert('', '초대코드를 입력해주세요!');
+      dialog.alert('', '초대코드를 입력해주세요!');
       return;
     }
     joinCouple.mutate(trimmed, {
       onSuccess: () => {
-        Alert.alert('연결 완료!', '이제 둘만의 산책이 시작돼요');
+        dialog.alert('연결 완료!', '이제 둘만의 산책이 시작돼요');
         setMode('idle');
         setJoinCode('');
       },
       onError: (err) => {
-        Alert.alert('연결 실패', err.message || '코드를 확인해주세요');
+        dialog.alert('연결 실패', err.message || '코드를 확인해주세요');
       },
     });
   };

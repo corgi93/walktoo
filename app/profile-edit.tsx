@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -13,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box, Icon, Row, Text } from '@/components/base';
 import { useUpdateProfileMutation } from '@/hooks/services/user/mutation';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 
@@ -30,6 +30,7 @@ export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
   const { data: me } = useGetMeQuery();
   const updateProfile = useUpdateProfileMutation();
+  const dialog = useDialogStore();
 
   const [nickname, setNickname] = useState(me?.nickname ?? '');
 
@@ -54,7 +55,7 @@ export default function ProfileEditScreen() {
 
   const handleSave = () => {
     if (!nickname.trim()) {
-      Alert.alert('', '닉네임을 입력해주세요');
+      dialog.alert('', '닉네임을 입력해주세요');
       return;
     }
 
@@ -67,9 +68,12 @@ export default function ProfileEditScreen() {
       } as { nickname: string; birthday?: string },
       {
         onSuccess: () => {
-          Alert.alert('', '프로필이 수정되었어요', [
-            { text: '확인', onPress: () => router.back() },
-          ]);
+          dialog.showDialog({
+            title: '프로필이 수정되었어요',
+            buttons: [
+              { label: '확인', variant: 'primary', onPress: () => router.back() },
+            ],
+          });
         },
       },
     );

@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useEffect } from 'react';
 
+import { GlobalDialog } from '@/components/base/GlobalDialog';
 import { GlobalLoadingBar, LoadingOverlay } from '@/components/base';
 import { PopupProvider } from '@/components/composite/popup/PopupProvider';
 import { ToastProvider } from '@/components/composite/toast/ToastProvider';
@@ -60,6 +61,7 @@ export default function RootLayout() {
         <ToastProvider>
           <PopupProvider>
             <GlobalLoadingBar />
+            <GlobalDialog />
             <Suspense fallback={<LoadingOverlay />}>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
