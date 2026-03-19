@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/base';
-import { authService } from '@/server';
+import { authService, couplesService } from '@/server';
 import { usePermissionStore } from '@/stores/permissionStore';
 import { theme } from '@/styles/theme';
 
@@ -23,6 +23,15 @@ export default function SplashAuthScreen() {
         // Supabase 세션 확인 (SecureStore에서 자동 복원)
         const session = await authService.getSession();
         if (session) {
+          // 프로필 완성 여부 확인
+          const user = await authService.getCurrentUser();
+          if (user) {
+            const profile = await couplesService.getMyProfile(user.id);
+            if (!profile.isProfileComplete) {
+              router.replace('/profile-setup');
+              return;
+            }
+          }
           const { hasCompletedOnboarding } = usePermissionStore.getState();
           router.replace(hasCompletedOnboarding ? '/(tabs)' : '/permissions');
         } else {

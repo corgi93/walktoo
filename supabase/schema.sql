@@ -10,7 +10,9 @@ create table if not exists public.profiles (
   nickname text not null,
   phone text not null default '',
   profile_image_url text,
+  birthday date,
   couple_id uuid,
+  is_profile_complete boolean not null default false,
   total_walks integer not null default 0,
   total_steps integer not null default 0,
   created_at timestamptz not null default now(),
@@ -24,6 +26,7 @@ create table if not exists public.couples (
   user2_id uuid references public.profiles(id) on delete set null,
   invite_code text not null unique,
   start_date date not null default current_date,
+  first_met_date date,
   created_at timestamptz not null default now()
 );
 
@@ -196,7 +199,12 @@ begin
   insert into public.profiles (id, nickname, phone)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'nickname', '사용자'),
+    coalesce(
+      new.raw_user_meta_data->>'nickname',
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'name',
+      '사용자'
+    ),
     coalesce(new.raw_user_meta_data->>'phone', '')
   );
   return new;

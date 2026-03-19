@@ -15,7 +15,9 @@ const toUserResponse = (row: ProfileRow): UserResponse => ({
   nickname: row.nickname,
   phone: row.phone,
   profileImageUrl: row.profile_image_url ?? undefined,
+  birthday: row.birthday ?? undefined,
   coupleId: row.couple_id ?? undefined,
+  isProfileComplete: row.is_profile_complete,
   totalWalks: row.total_walks,
   totalSteps: row.total_steps,
   createdAt: row.created_at,
@@ -50,12 +52,20 @@ export const couplesService = {
   /** 프로필 수정 */
   updateProfile: async (
     userId: string,
-    updates: { nickname?: string; phone?: string; profileImageUrl?: string },
+    updates: {
+      nickname?: string;
+      phone?: string;
+      profileImageUrl?: string;
+      birthday?: string;
+      isProfileComplete?: boolean;
+    },
   ): Promise<UserResponse> => {
     const { data, error } = await couplesRepository.updateProfile(userId, {
       nickname: updates.nickname,
       phone: updates.phone,
       profile_image_url: updates.profileImageUrl,
+      birthday: updates.birthday,
+      is_profile_complete: updates.isProfileComplete,
     });
     if (error) throw error;
     return toUserResponse(data);
@@ -122,9 +132,18 @@ export const couplesService = {
         profileImageUrl: data.user2?.profile_image_url ?? undefined,
       },
       startDate: data.start_date,
+      firstMetDate: data.first_met_date ?? undefined,
       totalWalks: stats.totalWalks,
       currentStreak: stats.currentStreak,
     };
+  },
+
+  /** 처음 만난 날 설정 */
+  updateFirstMetDate: async (coupleId: string, date: string) => {
+    const { error } = await couplesRepository.updateCouple(coupleId, {
+      first_met_date: date,
+    });
+    if (error) throw error;
   },
 
   /** 커플 연결 해제 */

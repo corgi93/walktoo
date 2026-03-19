@@ -40,6 +40,28 @@ export const useJoinCoupleMutation = () => {
   });
 };
 
+// ─── useUpdateFirstMetDateMutation ──────────────────────
+// 처음 만난 날 설정
+
+export const useUpdateFirstMetDateMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      coupleId,
+      date,
+    }: {
+      coupleId: string;
+      date: string;
+    }) => {
+      return couplesService.updateFirstMetDate(coupleId, date);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.couple.profile });
+    },
+  });
+};
+
 // ─── useDisconnectCoupleMutation ────────────────────────
 // 커플 연결 해제
 

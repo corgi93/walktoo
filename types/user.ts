@@ -3,7 +3,9 @@ export interface UserResponse {
   nickname: string;
   phone: string;
   profileImageUrl?: string;
+  birthday?: string;
   coupleId?: string;
+  isProfileComplete: boolean;
   partnerNickname?: string;
   totalWalks: number;
   totalSteps: number;

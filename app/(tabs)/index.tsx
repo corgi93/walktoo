@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, Icon, PixelBadge, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import PixelCharacter from '@/components/feature/PixelCharacter';
+import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
 import { useGetCoupleQuery, useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { usePedometer } from '@/hooks/usePedometer';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { formatDday, formatSteps } from '@/utils';
@@ -31,6 +33,8 @@ const calcLevel = (totalWalks: number): number => {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const updateFirstMetDate = useUpdateFirstMetDateMutation();
 
   // 실제 데이터
   const { data: me } = useGetMeQuery();
@@ -81,18 +85,37 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── 커플 D+Day ── */}
-        {hasCoupleId && couple?.startDate && (
+        {hasCoupleId && (
           <Box px="xxl" style={styles.section}>
-            <Row style={styles.ddayRow}>
-              <PixelBadge
-                iconName="heart"
-                iconColor={theme.colors.primary}
-                label={`${myName}과 ${partnerName}이 만난 지 ${formatDday(couple.startDate)}`}
-                size="small"
-                bg={theme.colors.primarySurface}
-              />
-            </Row>
+            <Pressable onPress={() => setShowDatePicker(true)}>
+              <Row style={styles.ddayRow}>
+                <PixelBadge
+                  iconName="heart"
+                  iconColor={theme.colors.primary}
+                  label={
+                    couple?.firstMetDate
+                      ? `${myName}과 ${partnerName}이 만난 지 ${formatDday(couple.firstMetDate)}`
+                      : '처음 만난 날을 설정해주세요'
+                  }
+                  size="small"
+                  bg={theme.colors.primarySurface}
+                />
+              </Row>
+            </Pressable>
           </Box>
+        )}
+
+        {/* ── 처음 만난 날 선택 모달 ── */}
+        {showDatePicker && couple && (
+          <FirstMetDatePicker
+            coupleId={couple.id}
+            currentDate={couple.firstMetDate}
+            onSave={(date) => {
+              updateFirstMetDate.mutate({ coupleId: couple.id, date });
+              setShowDatePicker(false);
+            }}
+            onClose={() => setShowDatePicker(false)}
+          />
         )}
 
         {/* ── 오늘의 걸음 카드 ── */}
@@ -273,6 +296,127 @@ export default function HomeScreen() {
   );
 }
 
+// ─── FirstMetDatePicker ─────────────────────────────────
+
+const PICKER_YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);
+const PICKER_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+function FirstMetDatePicker({
+  coupleId,
+  currentDate,
+  onSave,
+  onClose,
+}: {
+  coupleId: string;
+  currentDate?: string;
+  onSave: (date: string) => void;
+  onClose: () => void;
+}) {
+  const parsed = currentDate ? new Date(currentDate) : null;
+  const [year, setYear] = React.useState<number | null>(parsed?.getFullYear() ?? null);
+  const [month, setMonth] = React.useState<number | null>(parsed ? parsed.getMonth() + 1 : null);
+  const [day, setDay] = React.useState<number | null>(parsed?.getDate() ?? null);
+  const [step, setStep] = React.useState<'year' | 'month' | 'day'>('year');
+
+  const daysInMonth = year && month ? new Date(year, month, 0).getDate() : 31;
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const handleSave = () => {
+    if (year && month && day) {
+      onSave(`${year}-${pad2(month)}-${pad2(day)}`);
+    }
+  };
+
+  return (
+    <Pressable style={styles.dateOverlay} onPress={onClose}>
+      <Pressable style={styles.dateModal} onPress={(e) => e.stopPropagation()}>
+        <Text variant="headingSmall" mb="md">
+          처음 만난 날이 언제인가요?
+        </Text>
+
+        {year && month && day && (
+          <Text variant="bodyLarge" color="primary" mb="sm" style={{ textAlign: 'center' }}>
+            {year}.{pad2(month)}.{pad2(day)}
+          </Text>
+        )}
+
+        {step === 'year' && (
+          <FlatList
+            data={PICKER_YEARS}
+            numColumns={4}
+            keyExtractor={(item) => String(item)}
+            style={{ maxHeight: 200 }}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <Pressable
+                style={[styles.dateItem, year === item && styles.dateItemSelected]}
+                onPress={() => { setYear(item); setStep('month'); }}
+              >
+                <Text variant="bodySmall" color={year === item ? 'white' : 'text'}>
+                  {item}년
+                </Text>
+              </Pressable>
+            )}
+          />
+        )}
+        {step === 'month' && (
+          <FlatList
+            data={PICKER_MONTHS}
+            numColumns={4}
+            keyExtractor={(item) => String(item)}
+            style={{ maxHeight: 200 }}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <Pressable
+                style={[styles.dateItem, month === item && styles.dateItemSelected]}
+                onPress={() => { setMonth(item); setDay(null); setStep('day'); }}
+              >
+                <Text variant="bodySmall" color={month === item ? 'white' : 'text'}>
+                  {item}월
+                </Text>
+              </Pressable>
+            )}
+          />
+        )}
+        {step === 'day' && (
+          <FlatList
+            data={days}
+            numColumns={7}
+            keyExtractor={(item) => String(item)}
+            style={{ maxHeight: 200 }}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <Pressable
+                style={[styles.dateItem, day === item && styles.dateItemSelected]}
+                onPress={() => { setDay(item); }}
+              >
+                <Text variant="bodySmall" color={day === item ? 'white' : 'text'}>
+                  {item}
+                </Text>
+              </Pressable>
+            )}
+          />
+        )}
+
+        <Row style={{ justifyContent: 'flex-end', marginTop: 16, gap: 12 }}>
+          <Pressable onPress={onClose}>
+            <Text variant="bodySmall" color="textSecondary">취소</Text>
+          </Pressable>
+          {year && month && day && (
+            <Pressable
+              style={styles.dateSaveBtn}
+              onPress={handleSave}
+            >
+              <Text variant="bodySmall" color="white">저장</Text>
+            </Pressable>
+          )}
+        </Row>
+      </Pressable>
+    </Pressable>
+  );
+}
+
 // ─── Styles ─────────────────────────────────────────────
 //
 // 모든 간격은 LAYOUT 토큰 기반.
@@ -403,5 +547,42 @@ const styles = StyleSheet.create({
   /* ── 하단 CTA ── */
   bottomCta: {
     paddingBottom: LAYOUT.bottomSafe,
+  },
+
+  /* ── 날짜 선택 모달 ── */
+  dateOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(44, 44, 46, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  dateModal: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: 20,
+    width: '85%',
+    ...theme.pixel.borderThin,
+    ...theme.shadows.card,
+  },
+  dateItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: theme.radius.sm,
+  },
+  dateItemSelected: {
+    backgroundColor: theme.colors.primary,
+  },
+  dateSaveBtn: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.radius.sm,
+    ...theme.pixel.borderThin,
   },
 });

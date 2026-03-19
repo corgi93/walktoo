@@ -5,7 +5,20 @@ import { authService, couplesService } from '@/server';
 import { useAuthStore } from '@/stores/authStore';
 import { useCoupleStore } from '@/stores/coupleStore';
 import { useLoadingStore } from '@/stores/loadingStore';
+import { usePermissionStore } from '@/stores/permissionStore';
+import type { UserResponse } from '@/types/user';
 import type { SignInInput, SignUpInput } from '@/types';
+
+// ─── 로그인 후 라우팅 헬퍼 ──────────────────────────────
+
+const routeAfterLogin = (profile: UserResponse) => {
+  if (!profile.isProfileComplete) {
+    router.replace('/profile-setup');
+  } else {
+    const { hasCompletedOnboarding } = usePermissionStore.getState();
+    router.replace(hasCompletedOnboarding ? '/(tabs)' : '/permissions');
+  }
+};
 
 // ─── useSignUpMutation ──────────────────────────────────
 
@@ -27,7 +40,7 @@ export const useSignUpMutation = () => {
     onSuccess: (profile) => {
       hideLoading();
       setUser(profile);
-      router.replace('/(tabs)');
+      routeAfterLogin(profile);
     },
     onError: () => {
       hideLoading();
@@ -51,7 +64,7 @@ export const useLoginMutation = () => {
     onSuccess: (profile) => {
       hideLoading();
       setUser(profile);
-      router.replace('/(tabs)');
+      routeAfterLogin(profile);
     },
     onError: () => {
       hideLoading();
@@ -87,7 +100,7 @@ export const useSocialLoginMutation = () => {
       hideLoading();
       console.log('[SocialLogin] 성공! user:', profile?.id, profile?.nickname);
       setUser(profile);
-      router.replace('/(tabs)');
+      routeAfterLogin(profile);
     },
     onError: (error) => {
       hideLoading();
@@ -121,7 +134,7 @@ export const useWebOAuthMutation = () => {
       hideLoading();
       console.log('[WebOAuth] 성공! user:', profile?.id, profile?.nickname);
       setUser(profile);
-      router.replace('/(tabs)');
+      routeAfterLogin(profile);
     },
     onError: () => {
       hideLoading();

@@ -32,6 +32,9 @@ const ICON_MAP = {
   'image-plus': { set: 'feather', name: 'image' },
   search: { set: 'feather', name: 'search' },
   'chevron-right': { set: 'feather', name: 'chevron-right' },
+  'chevron-down': { set: 'feather', name: 'chevron-down' },
+  'arrow-left': { set: 'feather', name: 'arrow-left' },
+  unlink: { set: 'material', name: 'link-variant-off' },
 
   // Status
   heart: { set: 'feather', name: 'heart' },

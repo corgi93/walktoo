@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { formatSteps } from '@/utils';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const { data: me } = useGetMeQuery();
   const { data: stats } = useCoupleStatsQuery();
@@ -156,9 +158,18 @@ export default function ProfileScreen() {
         {/* ── Menu Items ── */}
         <Box px="xxl" style={styles.menuSection}>
           <PixelCard style={styles.menuCard}>
-            <MenuItem iconName="edit" label="프로필 수정" />
+            <MenuItem
+              iconName="edit"
+              label="프로필 수정"
+              onPress={() => router.push('/profile-edit')}
+            />
             {hasCoupleId ? (
-              <MenuItem iconName="heart" label="커플 관리" iconColor={theme.colors.primary} />
+              <MenuItem
+                iconName="heart"
+                label="커플 관리"
+                iconColor={theme.colors.primary}
+                onPress={() => router.push('/couple-manage')}
+              />
             ) : (
               <MenuItem iconName="link" label="커플 연결하기" />
             )}

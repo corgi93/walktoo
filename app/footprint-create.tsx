@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
+import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useGetMeQuery } from '@/hooks/services/user/query';
 import { theme } from '@/styles/theme';
@@ -30,7 +32,8 @@ export default function FootprintCreateScreen() {
   const { data: me } = useGetMeQuery();
   const hasCoupleId = !!me?.coupleId;
 
-  const [date] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [locationName, setLocationName] = useState('');
   const [memo, setMemo] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
@@ -156,13 +159,27 @@ export default function FootprintCreateScreen() {
             >
               {/* ── 날짜 ── */}
               <Box px="xxl">
-                <Pressable style={styles.dateCard}>
+                <Pressable
+                  style={styles.dateCard}
+                  onPress={() => setShowDatePicker(true)}
+                >
                   <Icon name="calendar" size={18} color={theme.colors.gray600} />
                   <Text variant="bodyMedium" color="text" ml="sm">
                     {formattedDate}
                   </Text>
+                  <Icon name="chevron-down" size={14} color={theme.colors.gray400} style={{ marginLeft: 'auto' }} />
                 </Pressable>
               </Box>
+
+              {showDatePicker && (
+                <SimpleDatePicker
+                  currentDate={date}
+                  onSave={(d) => { setDate(d); setShowDatePicker(false); }}
+                  onClose={() => setShowDatePicker(false)}
+                  title="날짜 선택"
+                  maxDate={new Date()}
+                />
+              )}
 
               {/* ── 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>

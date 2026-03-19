@@ -64,8 +64,11 @@ export default function RootLayout() {
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="login" />
+                <Stack.Screen name="profile-setup" />
                 <Stack.Screen name="permissions" />
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="profile-edit" />
+                <Stack.Screen name="couple-manage" />
                 <Stack.Screen
                   name="footprint-create"
                   options={{ presentation: 'modal' }}

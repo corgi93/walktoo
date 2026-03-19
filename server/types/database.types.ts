@@ -20,7 +20,9 @@ export interface Database {
           nickname: string;
           phone: string;
           profile_image_url: string | null;
+          birthday: string | null;
           couple_id: string | null;
+          is_profile_complete: boolean;
           total_walks: number;
           total_steps: number;
           created_at: string;
@@ -31,7 +33,9 @@ export interface Database {
           nickname: string;
           phone: string;
           profile_image_url?: string | null;
+          birthday?: string | null;
           couple_id?: string | null;
+          is_profile_complete?: boolean;
           total_walks?: number;
           total_steps?: number;
         };
@@ -39,7 +43,9 @@ export interface Database {
           nickname?: string;
           phone?: string;
           profile_image_url?: string | null;
+          birthday?: string | null;
           couple_id?: string | null;
+          is_profile_complete?: boolean;
           total_walks?: number;
           total_steps?: number;
         };
@@ -52,16 +58,19 @@ export interface Database {
           user2_id: string | null;
           invite_code: string;
           start_date: string;
+          first_met_date: string | null;
           created_at: string;
         };
         Insert: {
           user1_id: string;
           invite_code: string;
           start_date?: string;
+          first_met_date?: string | null;
         };
         Update: {
           user2_id?: string | null;
           start_date?: string;
+          first_met_date?: string | null;
         };
         Relationships: [
           {

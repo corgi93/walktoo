@@ -5,6 +5,7 @@ export interface CoupleProfile {
   user1: CouplePartner;
   user2: CouplePartner;
   startDate: string;
+  firstMetDate?: string;
   totalWalks: number;
   currentStreak: number;
 }

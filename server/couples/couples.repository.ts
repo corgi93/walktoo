@@ -51,6 +51,13 @@ export const couplesRepository = {
       .select()
       .single<CoupleRow>(),
 
+  /** 커플 업데이트 */
+  updateCouple: (coupleId: string, data: CoupleUpdate) =>
+    supabase
+      .from('couples')
+      .update(data as never)
+      .eq('id', coupleId),
+
   /** 커플 해제 */
   disconnect: (coupleId: string) =>
     supabase
