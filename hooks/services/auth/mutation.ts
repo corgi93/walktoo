@@ -4,15 +4,18 @@ import { router } from 'expo-router';
 import { authService, couplesService } from '@/server';
 import { useAuthStore } from '@/stores/authStore';
 import { useCoupleStore } from '@/stores/coupleStore';
+import { useLoadingStore } from '@/stores/loadingStore';
 import type { SignInInput, SignUpInput } from '@/types';
 
 // ─── useSignUpMutation ──────────────────────────────────
 
 export const useSignUpMutation = () => {
   const { setUser } = useAuthStore();
+  const { showLoading, hideLoading } = useLoadingStore();
 
   return useMutation({
     mutationFn: async ({ email, password, nickname, phone }: SignUpInput) => {
+      showLoading();
       const { profile } = await authService.signUp(
         email,
         password,
@@ -22,8 +25,12 @@ export const useSignUpMutation = () => {
       return profile;
     },
     onSuccess: (profile) => {
+      hideLoading();
       setUser(profile);
       router.replace('/(tabs)');
+    },
+    onError: () => {
+      hideLoading();
     },
   });
 };
@@ -32,16 +39,22 @@ export const useSignUpMutation = () => {
 
 export const useLoginMutation = () => {
   const { setUser } = useAuthStore();
+  const { showLoading, hideLoading } = useLoadingStore();
 
   return useMutation({
     mutationFn: async ({ email, password }: SignInInput) => {
+      showLoading();
       const { user } = await authService.signIn(email, password);
       const profile = await couplesService.getMyProfile(user.id);
       return profile;
     },
     onSuccess: (profile) => {
+      hideLoading();
       setUser(profile);
       router.replace('/(tabs)');
+    },
+    onError: () => {
+      hideLoading();
     },
   });
 };
@@ -50,6 +63,7 @@ export const useLoginMutation = () => {
 
 export const useSocialLoginMutation = () => {
   const { setUser } = useAuthStore();
+  const { showLoading, hideLoading } = useLoadingStore();
 
   return useMutation({
     mutationFn: async ({
@@ -61,6 +75,7 @@ export const useSocialLoginMutation = () => {
       idToken: string;
       nonce?: string;
     }) => {
+      showLoading();
       const { profile } = await authService.signInWithSocial(
         provider,
         idToken,
@@ -69,8 +84,14 @@ export const useSocialLoginMutation = () => {
       return profile;
     },
     onSuccess: (profile) => {
+      hideLoading();
+      console.log('[SocialLogin] 성공! user:', profile?.id, profile?.nickname);
       setUser(profile);
-      router.replace('/permissions');
+      router.replace('/(tabs)');
+    },
+    onError: (error) => {
+      hideLoading();
+      console.error('[SocialLogin] 실패:', error);
     },
   });
 };
@@ -79,6 +100,7 @@ export const useSocialLoginMutation = () => {
 
 export const useWebOAuthMutation = () => {
   const { setUser } = useAuthStore();
+  const { showLoading, hideLoading } = useLoadingStore();
 
   return useMutation({
     mutationFn: async ({
@@ -88,6 +110,7 @@ export const useWebOAuthMutation = () => {
       accessToken: string;
       refreshToken: string;
     }) => {
+      showLoading();
       const { profile } = await authService.handleOAuthCallback(
         accessToken,
         refreshToken,
@@ -95,8 +118,13 @@ export const useWebOAuthMutation = () => {
       return profile;
     },
     onSuccess: (profile) => {
+      hideLoading();
+      console.log('[WebOAuth] 성공! user:', profile?.id, profile?.nickname);
       setUser(profile);
-      router.replace('/permissions');
+      router.replace('/(tabs)');
+    },
+    onError: () => {
+      hideLoading();
     },
   });
 };
@@ -107,20 +135,31 @@ export const useLogoutMutation = () => {
   const { clearUser } = useAuthStore();
   const { clearCouple } = useCoupleStore();
   const queryClient = useQueryClient();
+  const { showLoading, hideLoading } = useLoadingStore();
+
+  const cleanup = async () => {
+    hideLoading();
+    clearUser();
+    clearCouple();
+    queryClient.clear();
+
+    // Google 네이티브 로그인 세션 초기화 → 다음 로그인 시 계정 선택기 표시
+    try {
+      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+      await GoogleSignin.signOut();
+    } catch {
+      // Expo Go 등 네이티브 모듈 없는 환경에서는 무시
+    }
+
+    router.replace('/login');
+  };
 
   return useMutation({
-    mutationFn: () => authService.signOut(),
-    onSuccess: () => {
-      clearUser();
-      clearCouple();
-      queryClient.clear();
-      router.replace('/login');
+    mutationFn: () => {
+      showLoading();
+      return authService.signOut();
     },
-    onError: () => {
-      clearUser();
-      clearCouple();
-      queryClient.clear();
-      router.replace('/login');
-    },
+    onSuccess: cleanup,
+    onError: cleanup,
   });
 };

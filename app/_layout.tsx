@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useEffect } from 'react';
 
-import { LoadingOverlay } from '@/components/base';
+import { GlobalLoadingBar, LoadingOverlay } from '@/components/base';
 import { PopupProvider } from '@/components/composite/popup/PopupProvider';
 import { ToastProvider } from '@/components/composite/toast/ToastProvider';
 import { theme } from '@/styles/theme';
@@ -29,6 +29,15 @@ const WarmTheme = {
 
 SplashScreen.preventAutoHideAsync();
 
+// ─── ENV 디버그 로그 ────────────────────────────────────
+if (__DEV__) {
+  console.log('[ENV] SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
+  console.log('[ENV] SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? '***set***' : '❌ MISSING');
+  console.log('[ENV] GOOGLE_WEB_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+  console.log('[ENV] GOOGLE_IOS_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '(empty)');
+  console.log('[ENV] API_URL:', process.env.EXPO_PUBLIC_API_URL);
+}
+
 // ─── Root Layout ────────────────────────────────────────
 
 export default function RootLayout() {
@@ -50,6 +59,7 @@ export default function RootLayout() {
       <ThemeProvider value={WarmTheme}>
         <ToastProvider>
           <PopupProvider>
+            <GlobalLoadingBar />
             <Suspense fallback={<LoadingOverlay />}>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />

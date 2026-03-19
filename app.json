@@ -89,8 +89,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "c5e98a14-901b-445b-84b5-6efdcf59ddfa"
+        "projectId": "fe8e3729-de65-4da5-9734-3ade2a92a40e"
       }
-    }
+    },
+    "owner": "cogi"
   }
 }

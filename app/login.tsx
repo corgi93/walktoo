@@ -11,7 +11,7 @@ import {
   useSocialLoginMutation,
   useWebOAuthMutation,
 } from '@/hooks/services/auth/mutation';
-import { authService } from '@/server';
+import { supabase } from '@/server/client';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
 
@@ -92,23 +92,35 @@ export default function LoginScreen() {
   const handleGoogleNative = async () => {
     try {
       setLoadingProvider('google');
+      console.log('[Google Native] 로그인 시작');
 
       await GoogleSignin.hasPlayServices();
+      console.log('[Google Native] Play Services 확인 완료');
+
       const response = await GoogleSignin.signIn();
+      console.log('[Google Native] signIn response type:', typeof response);
+      console.log('[Google Native] isSuccess:', isSuccessResponse(response));
 
       if (!isSuccessResponse(response)) {
         throw new Error('Google 인증에 실패했어요');
       }
 
       const idToken = response.data.idToken;
+      const user = response.data.user;
+      console.log('[Google Native] idToken 존재:', !!idToken);
+      console.log('[Google Native] user:', JSON.stringify(user, null, 2));
+
       if (!idToken) {
         throw new Error('Google ID 토큰을 받지 못했어요');
       }
 
+      console.log('[Google Native] Supabase socialLogin 호출...');
       socialLogin.mutate({ provider: 'google', idToken });
     } catch (e: unknown) {
+      console.error('[Google Native] 에러:', e);
       if (isErrorWithCode?.(e)) {
         const err = e as { code: string };
+        console.error('[Google Native] 에러 코드:', err.code);
         if (err.code === statusCodes?.SIGN_IN_CANCELLED) return;
         if (err.code === statusCodes?.IN_PROGRESS) return;
       }
@@ -118,32 +130,75 @@ export default function LoginScreen() {
     }
   };
 
-  // ─── Google Sign In (웹 OAuth — Expo Go fallback) ───────
+  // ─── Google Sign In (웹 OAuth — Expo Go fallback, PKCE) ──
 
   const handleGoogleWeb = async () => {
     try {
       setLoadingProvider('google');
 
-      const redirectUri = makeRedirectUri();
-      const url = await authService.getOAuthUrl('google', redirectUri);
+      const redirectUri = makeRedirectUri({
+        scheme: 'walktoo',
+        path: 'auth/callback',
+      });
+      console.log('[OAuth] redirectUri:', redirectUri);
 
-      const result = await WebBrowser.openAuthSessionAsync(url, redirectUri);
+      // Supabase PKCE OAuth URL 생성
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUri,
+          skipBrowserRedirect: true,
+        },
+      });
 
-      if (result.type !== 'success') return; // 유저가 취소
-
-      // Supabase는 #fragment에 access_token, refresh_token 전달
-      const hashParams = new URLSearchParams(
-        result.url.split('#')[1] ?? '',
-      );
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-
-      if (!accessToken || !refreshToken) {
-        throw new Error('인증 토큰을 받지 못했어요');
+      if (error || !data.url) {
+        console.error('[OAuth] signInWithOAuth error:', error);
+        throw error ?? new Error('OAuth URL 생성 실패');
       }
 
-      webOAuth.mutate({ accessToken, refreshToken });
-    } catch {
+      console.log('[OAuth] supabase auth URL:', data.url);
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+      console.log('[OAuth] result type:', result.type);
+
+      if (result.type !== 'success') return;
+      console.log('[OAuth] result url:', result.url);
+
+      // PKCE 흐름: URL에서 code 추출
+      const url = new URL(result.url);
+      const code = url.searchParams.get('code');
+      console.log('[OAuth] has code:', !!code);
+
+      if (code) {
+        // PKCE code → session 교환
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.exchangeCodeForSession(code);
+        console.log('[OAuth] session exchange result:', !!sessionData.session, sessionError);
+
+        if (sessionError) throw sessionError;
+
+        // webOAuth mutation으로 프로필 조회 등 후처리
+        const session = sessionData.session!;
+        webOAuth.mutate({
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
+        });
+      } else {
+        // implicit 흐름 fallback: fragment에서 토큰 추출
+        const hashParams = new URLSearchParams(result.url.split('#')[1] ?? '');
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        console.log('[OAuth] has accessToken:', !!accessToken);
+        console.log('[OAuth] has refreshToken:', !!refreshToken);
+
+        if (!accessToken || !refreshToken) {
+          throw new Error('인증 토큰을 받지 못했어요');
+        }
+        webOAuth.mutate({ accessToken, refreshToken });
+      }
+    } catch (e) {
+      console.error('[OAuth] error:', e);
       Alert.alert('로그인 실패', 'Google 로그인 중 문제가 발생했어요');
     } finally {
       setLoadingProvider(null);
