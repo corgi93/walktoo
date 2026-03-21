@@ -12,11 +12,18 @@ import { formatSteps } from '@/utils';
 interface WalkDiaryCardProps {
   diary: WalkDiary;
   onPress?: (diary: WalkDiary) => void;
+  onNudge?: (diary: WalkDiary) => void;
+  nudgeLoading?: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────
 
-export function WalkDiaryCard({ diary, onPress }: WalkDiaryCardProps) {
+export function WalkDiaryCard({
+  diary,
+  onPress,
+  onNudge,
+  nudgeLoading,
+}: WalkDiaryCardProps) {
   const formattedDate = new Date(diary.date).toLocaleDateString('ko-KR', {
     month: 'long',
     day: 'numeric',
@@ -24,7 +31,15 @@ export function WalkDiaryCard({ diary, onPress }: WalkDiaryCardProps) {
   });
 
   if (!diary.isRevealed) {
-    return <LockedFeedCard diary={diary} formattedDate={formattedDate} onPress={onPress} />;
+    return (
+      <LockedFeedCard
+        diary={diary}
+        formattedDate={formattedDate}
+        onPress={onPress}
+        onNudge={onNudge}
+        nudgeLoading={nudgeLoading}
+      />
+    );
   }
 
   return <RevealedFeedCard diary={diary} formattedDate={formattedDate} onPress={onPress} />;
@@ -36,13 +51,19 @@ function LockedFeedCard({
   diary,
   formattedDate,
   onPress,
+  onNudge,
+  nudgeLoading,
 }: {
   diary: WalkDiary;
   formattedDate: string;
   onPress?: (diary: WalkDiary) => void;
+  onNudge?: (diary: WalkDiary) => void;
+  nudgeLoading?: boolean;
 }) {
   const hasMyEntry = !!diary.myEntry;
   const hasPartnerEntry = !!diary.partnerEntry;
+  // 내가 기록했고, 상대방은 아직 → 톡톡 가능
+  const canNudge = hasMyEntry && !hasPartnerEntry;
 
   return (
     <Pressable
@@ -94,6 +115,22 @@ function LockedFeedCard({
             ? '연인의 기록을 기다리는 중...'
             : '나의 하루를 먼저 남겨주세요'}
         </Text>
+
+        {/* ── 톡톡 버튼 ── */}
+        {canNudge && onNudge && (
+          <Pressable
+            style={[styles.nudgeBtn, nudgeLoading && styles.nudgeBtnDisabled]}
+            onPress={() => !nudgeLoading && onNudge(diary)}
+            disabled={nudgeLoading}
+          >
+            <Text style={styles.nudgeEmoji}>
+              {nudgeLoading ? '...' : '👆'}
+            </Text>
+            <Text variant="label" color="primary" ml="xs">
+              {nudgeLoading ? '보내는 중' : '톡톡! 두드리기'}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );
@@ -246,6 +283,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: 4,
+  },
+  nudgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
+  },
+  nudgeBtnDisabled: {
+    opacity: 0.6,
+  },
+  nudgeEmoji: {
+    fontSize: 16,
   },
   dualEntries: {
     marginTop: SPACING.md,

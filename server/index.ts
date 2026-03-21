@@ -13,6 +13,7 @@ export { authService } from './auth';
 export { walksService } from './walks';
 export { couplesService } from './couples';
 export { storageService } from './storage';
+export { notificationsService } from './notifications';
 
 // Supabase client (직접 접근이 필요한 경우)
 export { supabase } from './client';

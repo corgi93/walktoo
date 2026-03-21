@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,6 +22,7 @@ import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
 import { usePedometer } from '@/hooks/usePedometer';
 import { useDialogStore } from '@/stores/dialogStore';
+import { usePhotoBoothStore } from '@/stores/photoBoothStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
 
@@ -35,6 +36,7 @@ export default function FootprintCreateScreen() {
   const { data: couple } = useGetCoupleQuery();
   const { steps: pedometerSteps } = usePedometer();
   const dialog = useDialogStore();
+  const photoBooth = usePhotoBoothStore();
   const isCoupleConnected = !!me?.coupleId && !!couple?.user2?.id;
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -44,6 +46,25 @@ export default function FootprintCreateScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
 
   const createDiary = useCreateDiaryMutation();
+
+  // 포토부스에서 돌아왔을 때 결과 이미지 반영
+  useFocusEffect(
+    useCallback(() => {
+      if (photoBooth.resultUri) {
+        setPhotos((prev) => [...prev, photoBooth.resultUri!].slice(0, 5));
+        photoBooth.reset();
+      }
+    }, [photoBooth.resultUri]),
+  );
+
+  const handleOpenPhotoBooth = () => {
+    if (photos.length === 0) {
+      dialog.alert('', '먼저 사진을 추가해주세요!');
+      return;
+    }
+    photoBooth.setPhotos(photos);
+    router.push('/photo-booth');
+  };
 
   const formattedDate = new Date(date).toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -249,6 +270,16 @@ export default function FootprintCreateScreen() {
                     </View>
                   ))}
                 </ScrollView>
+
+                {/* 포토부스 버튼 */}
+                {photos.length > 0 && (
+                  <Pressable style={styles.photoBoothBtn} onPress={handleOpenPhotoBooth}>
+                    <Icon name="grid" size={14} color={theme.colors.primary} />
+                    <Text variant="label" color="primary" ml="xs">
+                      포토부스 만들기
+                    </Text>
+                  </Pressable>
+                )}
               </Box>
 
               {/* ── 메모 ── */}
@@ -412,6 +443,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.error,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  photoBoothBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: LAYOUT.itemGapMd,
+    paddingVertical: SPACING.sm,
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryLight,
   },
 
   /* ── 메모 ── */
