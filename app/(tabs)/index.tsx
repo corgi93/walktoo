@@ -8,6 +8,7 @@ import { NoCoupleCard } from '@/components/feature/couple';
 import PixelCharacter from '@/components/feature/PixelCharacter';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
 import { useGetCoupleQuery, useCoupleStatsQuery } from '@/hooks/services/couple/query';
+import { useUnreadCountQuery } from '@/hooks/services/notification/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
 import { usePedometer } from '@/hooks/usePedometer';
 import { theme } from '@/styles/theme';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const { data: me } = useGetMeQuery();
   const { data: couple } = useGetCoupleQuery();
   const { data: stats } = useCoupleStatsQuery();
+  const { data: unreadCount = 0 } = useUnreadCountQuery();
 
   // coupleId가 있어도 user2가 없으면 아직 미연결 (초대코드만 만든 상태)
   const hasCoupleId = !!me?.coupleId;
@@ -68,8 +70,17 @@ export default function HomeScreen() {
           {isCoupleConnected && (
             <PixelBadge iconName="zap" label={`${currentStreak}일`} size="small" />
           )}
-          <Pressable hitSlop={8}>
-            <Icon name="bell" size={20} color={theme.colors.text} />
+          <Pressable hitSlop={8} onPress={() => router.push('/notifications')}>
+            <View>
+              <Icon name="bell" size={20} color={theme.colors.text} />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           </Pressable>
         </Row>
       </Row>
@@ -569,5 +580,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: theme.radius.sm,
     ...theme.pixel.borderThin,
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  bellBadgeText: {
+    color: theme.colors.white,
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

@@ -1,5 +1,6 @@
 import type { WalkDiary, CreateWalkDiaryInput, FootprintEntry } from '@/types/diary';
 
+import { notificationsService } from '../notifications/notifications.service';
 import type { FootprintEntryRow } from '../types/database.types';
 import { walksRepository, type WalkWithEntries } from './walks.repository';
 
@@ -107,6 +108,14 @@ export const walksService = {
     });
     if (entryError) throw entryError;
 
+    // 상대방에게 알림 (비동기, 실패해도 무시)
+    walksService._notifyPartnerWalkCreated(
+      coupleId,
+      currentUserId,
+      walk.id,
+      input.locationName,
+    ).catch(() => {});
+
     return walk.id;
   },
 
@@ -129,6 +138,9 @@ export const walksService = {
     const { count } = await walksRepository.countEntries(walkId);
     if (count && count >= 2) {
       await walksRepository.update(walkId, { is_revealed: true });
+
+      // 양쪽에 reveal 알림 (비동기)
+      walksService._notifyWalkRevealed(walkId).catch(() => {});
     }
   },
 
@@ -136,6 +148,71 @@ export const walksService = {
   remove: async (walkId: string) => {
     const { error } = await walksRepository.delete(walkId);
     if (error) throw error;
+  },
+
+  /** 내부: 산책 생성 시 상대방에게 알림 */
+  _notifyPartnerWalkCreated: async (
+    coupleId: string,
+    senderId: string,
+    walkId: string,
+    locationName: string,
+  ) => {
+    const { supabase } = await import('../client');
+    // 커플의 상대방 찾기
+    const { data: couple } = await supabase
+      .from('couples')
+      .select('user1_id, user2_id')
+      .eq('id', coupleId)
+      .single();
+    if (!couple) return;
+
+    const recipientId =
+      couple.user1_id === senderId ? couple.user2_id : couple.user1_id;
+    if (!recipientId) return;
+
+    // 발신자 닉네임
+    const { data: sender } = await supabase
+      .from('profiles')
+      .select('nickname')
+      .eq('id', senderId)
+      .single();
+
+    await notificationsService.notifyWalkCreated(
+      recipientId,
+      senderId,
+      coupleId,
+      sender?.nickname ?? '연인',
+      walkId,
+      locationName,
+    );
+  },
+
+  /** 내부: reveal 시 양쪽에 알림 */
+  _notifyWalkRevealed: async (walkId: string) => {
+    const { data: walk } = await walksRepository.findById(walkId);
+    if (!walk) return;
+
+    const { supabase } = await import('../client');
+    const { data: couple } = await supabase
+      .from('couples')
+      .select('user1_id, user2_id')
+      .eq('id', walk.couple_id)
+      .single();
+    if (!couple) return;
+
+    const recipients = [couple.user1_id, couple.user2_id].filter(Boolean);
+    for (const recipientId of recipients) {
+      if (recipientId) {
+        notificationsService
+          .notifyWalkRevealed(
+            recipientId,
+            walk.couple_id,
+            walkId,
+            walk.location_name,
+          )
+          .catch(() => {});
+      }
+    }
   },
 
   /** 커플 산책 통계 (총 횟수, 총 걸음수, 연속 산책) */

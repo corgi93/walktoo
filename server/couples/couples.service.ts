@@ -1,6 +1,7 @@
 import type { CoupleProfile } from '@/types/couple';
 import type { UserResponse } from '@/types/user';
 
+import { notificationsService } from '../notifications/notifications.service';
 import type { ProfileRow } from '../types/database.types';
 import { walksService } from '../walks/walks.service';
 import { couplesRepository } from './couples.repository';
@@ -107,6 +108,17 @@ export const couplesService = {
     await couplesRepository.updateProfile(couple.user1_id, {
       couple_id: data.id,
     });
+
+    // 5. user1에게 커플 연결 알림
+    const joinerProfile = await couplesRepository.getProfile(userId);
+    if (joinerProfile.data) {
+      notificationsService.notifyCoupleJoined(
+        couple.user1_id,
+        userId,
+        data.id,
+        joinerProfile.data.nickname,
+      ).catch(() => {}); // 알림 실패해도 연결은 성공
+    }
 
     return data.id;
   },

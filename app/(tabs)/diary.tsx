@@ -17,7 +17,10 @@ import {
   WalkDiaryCard,
 } from '@/components/feature/diary';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
+import { useNudgeMutation } from '@/hooks/services/notification/mutation';
+import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { useToast } from '@/components/composite/toast/ToastProvider';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
@@ -34,7 +37,10 @@ export default function DiaryScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
 
   const { data: me } = useGetMeQuery();
+  const { data: couple } = useGetCoupleQuery();
   const hasCoupleId = !!me?.coupleId;
+  const nudge = useNudgeMutation();
+  const toast = useToast();
 
   const {
     data,
@@ -55,6 +61,24 @@ export default function DiaryScreen() {
   const handleItemPress = useCallback((_diary: WalkDiary) => {
     // TODO: navigate to diary detail
   }, []);
+
+  const handleNudge = useCallback(
+    (diary: WalkDiary) => {
+      if (!me || !couple) return;
+      const isUser1 = couple.user1?.id === me.id;
+      const partnerId = isUser1 ? couple.user2?.id : couple.user1?.id;
+      if (!partnerId || !me.coupleId) return;
+
+      nudge.mutate(
+        { recipientId: partnerId, coupleId: me.coupleId, walkId: diary.id },
+        {
+          onSuccess: () => toast.success('톡톡! 연인에게 알림을 보냈어요'),
+          onError: () => toast.error('알림 보내기에 실패했어요'),
+        },
+      );
+    },
+    [me, couple, nudge, toast],
+  );
 
   const handleAdd = () => {
     router.push('/footprint-create');
@@ -138,6 +162,8 @@ export default function DiaryScreen() {
               <FootprintTimeline
                 diaries={diaries}
                 onItemPress={handleItemPress}
+                onNudge={handleNudge}
+                nudgeLoading={nudge.isPending}
               />
             </>
           )}
@@ -164,7 +190,12 @@ export default function DiaryScreen() {
           data={diaries}
           renderItem={({ item }) => (
             <Box px="xxl" style={styles.feedItem}>
-              <WalkDiaryCard diary={item} onPress={handleItemPress} />
+              <WalkDiaryCard
+                diary={item}
+                onPress={handleItemPress}
+                onNudge={handleNudge}
+                nudgeLoading={nudge.isPending}
+              />
             </Box>
           )}
           keyExtractor={item => item.id}

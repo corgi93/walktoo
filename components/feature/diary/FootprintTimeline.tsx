@@ -12,6 +12,8 @@ import { formatSteps } from '@/utils';
 interface FootprintTimelineProps {
   diaries: WalkDiary[];
   onItemPress?: (diary: WalkDiary) => void;
+  onNudge?: (diary: WalkDiary) => void;
+  nudgeLoading?: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────
@@ -19,6 +21,8 @@ interface FootprintTimelineProps {
 export function FootprintTimeline({
   diaries,
   onItemPress,
+  onNudge,
+  nudgeLoading,
 }: FootprintTimelineProps) {
   return (
     <View style={styles.container}>
@@ -68,6 +72,8 @@ export function FootprintTimeline({
                 diary={diary}
                 formattedDate={formattedDate}
                 weekday={weekday}
+                onNudge={onNudge}
+                nudgeLoading={nudgeLoading}
               />
             )}
           </Pressable>
@@ -83,13 +89,18 @@ function LockedCard({
   diary,
   formattedDate,
   weekday,
+  onNudge,
+  nudgeLoading,
 }: {
   diary: WalkDiary;
   formattedDate: string;
   weekday: string;
+  onNudge?: (diary: WalkDiary) => void;
+  nudgeLoading?: boolean;
 }) {
   const hasMyEntry = !!diary.myEntry;
   const hasPartnerEntry = !!diary.partnerEntry;
+  const canNudge = hasMyEntry && !hasPartnerEntry;
 
   return (
     <View style={[styles.card, styles.cardLocked]}>
@@ -129,6 +140,22 @@ function LockedCard({
           ? '연인의 기록을 기다리는 중...'
           : '나의 하루를 먼저 남겨주세요'}
       </Text>
+
+      {/* 톡톡 버튼 */}
+      {canNudge && onNudge && (
+        <Pressable
+          style={[styles.nudgeBtn, nudgeLoading && styles.nudgeBtnDisabled]}
+          onPress={() => !nudgeLoading && onNudge(diary)}
+          disabled={nudgeLoading}
+        >
+          <Text style={styles.nudgeEmoji}>
+            {nudgeLoading ? '...' : '👆'}
+          </Text>
+          <Text variant="label" color="primary" ml="xs">
+            {nudgeLoading ? '보내는 중' : '톡톡!'}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -299,6 +326,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: 4,
+  },
+  nudgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.md,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.lg,
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
+  },
+  nudgeBtnDisabled: {
+    opacity: 0.6,
+  },
+  nudgeEmoji: {
+    fontSize: 14,
   },
   dualEntries: {
     marginTop: SPACING.md,
