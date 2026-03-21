@@ -25,6 +25,7 @@ export interface Database {
           is_profile_complete: boolean;
           total_walks: number;
           total_steps: number;
+          push_token: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -38,6 +39,7 @@ export interface Database {
           is_profile_complete?: boolean;
           total_walks?: number;
           total_steps?: number;
+          push_token?: string | null;
         };
         Update: {
           nickname?: string;
@@ -48,6 +50,7 @@ export interface Database {
           is_profile_complete?: boolean;
           total_walks?: number;
           total_steps?: number;
+          push_token?: string | null;
         };
         Relationships: [];
       };
@@ -134,6 +137,34 @@ export interface Database {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_id: string;
+          sender_id: string | null;
+          couple_id: string | null;
+          type: string;
+          title: string;
+          body: string;
+          data: Record<string, unknown>;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          recipient_id: string;
+          sender_id?: string | null;
+          couple_id?: string | null;
+          type: string;
+          title: string;
+          body: string;
+          data?: Record<string, unknown>;
+          is_read?: boolean;
+        };
+        Update: {
+          is_read?: boolean;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -150,3 +181,4 @@ export type ProfileRow = Tables['profiles']['Row'];
 export type CoupleRow = Tables['couples']['Row'];
 export type WalkRow = Tables['walks']['Row'];
 export type FootprintEntryRow = Tables['footprint_entries']['Row'];
+export type NotificationRow = Tables['notifications']['Row'];

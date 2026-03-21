@@ -10,6 +10,7 @@ import { GlobalDialog } from '@/components/base/GlobalDialog';
 import { GlobalLoadingBar, LoadingOverlay } from '@/components/base';
 import { PopupProvider } from '@/components/composite/popup/PopupProvider';
 import { ToastProvider } from '@/components/composite/toast/ToastProvider';
+import { useNotificationSetup } from '@/hooks/useNotification';
 import { theme } from '@/styles/theme';
 
 // ─── Config ─────────────────────────────────────────────
@@ -60,6 +61,7 @@ export default function RootLayout() {
       <ThemeProvider value={WarmTheme}>
         <ToastProvider>
           <PopupProvider>
+            <NotificationInitializer />
             <GlobalLoadingBar />
             <GlobalDialog />
             <Suspense fallback={<LoadingOverlay />}>
@@ -75,7 +77,12 @@ export default function RootLayout() {
                   name="footprint-create"
                   options={{ presentation: 'modal' }}
                 />
+                <Stack.Screen name="auth/callback" />
                 <Stack.Screen name="+not-found" options={{ headerShown: true }} />
+                <Stack.Screen
+                  name="notifications"
+                  options={{ presentation: 'modal' }}
+                />
               </Stack>
             </Suspense>
           </PopupProvider>
@@ -83,4 +90,11 @@ export default function RootLayout() {
       </ThemeProvider>
     </QueryClientProvider>
   );
+}
+
+// ─── Notification Initializer ────────────────────────────
+
+function NotificationInitializer() {
+  useNotificationSetup();
+  return null;
 }
