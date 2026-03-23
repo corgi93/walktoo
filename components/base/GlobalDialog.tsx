@@ -1,10 +1,10 @@
 import React from 'react';
-import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 
-import { Text } from './Text';
+import Text from './Text';
 
 // ─── Component ───────────────────────────────────────────
 

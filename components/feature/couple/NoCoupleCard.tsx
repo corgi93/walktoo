@@ -63,19 +63,34 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
   };
 
   const handleJoin = () => {
-    const trimmed = joinCode.trim();
+    const trimmed = joinCode.trim().toUpperCase();
     if (!trimmed) {
       dialog.alert('', '초대코드를 입력해주세요!');
       return;
     }
+    if (trimmed.length < 6) {
+      dialog.alert('', '초대코드는 6자리예요');
+      return;
+    }
     joinCouple.mutate(trimmed, {
       onSuccess: () => {
-        dialog.alert('연결 완료!', '이제 둘만의 산책이 시작돼요');
+        dialog.alert('연결 완료! 🎉', '이제 둘만의 산책이 시작돼요');
         setMode('idle');
         setJoinCode('');
       },
       onError: (err) => {
-        dialog.alert('연결 실패', err.message || '코드를 확인해주세요');
+        const msg = err.message || '';
+        if (msg.includes('유효하지 않은')) {
+          dialog.alert('초대코드 오류', '존재하지 않는 코드예요.\n다시 확인해주세요!');
+        } else if (msg.includes('만료된')) {
+          dialog.alert('코드 만료', '24시간이 지난 코드예요.\n상대방에게 새 코드를 요청해주세요!');
+        } else if (msg.includes('본인의')) {
+          dialog.alert('', '내가 만든 코드엔 연결할 수 없어요 😅');
+        } else if (msg.includes('이미 연결된')) {
+          dialog.alert('', '이미 연결된 커플이 있어요!');
+        } else {
+          dialog.alert('연결 실패', '코드를 확인해주세요');
+        }
       },
     });
   };
@@ -102,7 +117,12 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
 
   return (
     <View style={styles.container}>
-      <Text variant="headingMedium" style={{ textAlign: 'center' }}>
+      {/* 상단 아이콘 */}
+      <View style={styles.headerIcon}>
+        <Icon name="link" size={20} color={theme.colors.primary} />
+      </View>
+
+      <Text variant="headingMedium" mt="md" style={{ textAlign: 'center' }}>
         아직 둘이 아니에요
       </Text>
       <Text
@@ -245,6 +265,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.xxl,
     paddingVertical: SPACING.xl,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primarySurface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
   },
   compactCard: {
     flex: 1,

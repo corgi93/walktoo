@@ -1,12 +1,11 @@
-import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { router } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet, View } from "react-native";
 
-import { Text } from '@/components/base';
-import { authService, couplesService } from '@/server';
-import { usePermissionStore } from '@/stores/permissionStore';
-import { theme } from '@/styles/theme';
-
+import { Text } from "@/components/base";
+import { authService, couplesService } from "@/server";
+import { usePermissionStore } from "@/stores/permissionStore";
+import { theme } from "@/styles/theme";
 
 export default function SplashAuthScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -28,17 +27,17 @@ export default function SplashAuthScreen() {
           if (user) {
             const profile = await couplesService.getMyProfile(user.id);
             if (!profile.isProfileComplete) {
-              router.replace('/profile-setup');
+              router.replace("/profile-setup");
               return;
             }
           }
           const { hasCompletedOnboarding } = usePermissionStore.getState();
-          router.replace(hasCompletedOnboarding ? '/(tabs)' : '/permissions');
+          router.replace(hasCompletedOnboarding ? "/(tabs)" : "/permissions");
         } else {
-          router.replace('/login');
+          router.replace("/login");
         }
       } catch {
-        router.replace('/login');
+        router.replace("/login");
       }
     };
 
@@ -63,11 +62,11 @@ export default function SplashAuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: theme.colors.background,
   },
   content: {
-    alignItems: 'center',
+    alignItems: "center",
   },
 });

@@ -110,6 +110,22 @@ function LockedFeedCard({
             </Text>
           </View>
         </Row>
+        {/* 내가 쓴 내용 미리보기 */}
+        {hasMyEntry && diary.myEntry && (
+          <View style={styles.myEntryPreview}>
+            {diary.myEntry.memo ? (
+              <Text variant="bodySmall" color="text" numberOfLines={3}>
+                {diary.myEntry.memo}
+              </Text>
+            ) : null}
+            {diary.myEntry.photos && diary.myEntry.photos.length > 0 && (
+              <Text variant="caption" color="textMuted" mt="xxs">
+                📷 사진 {diary.myEntry.photos.length}장
+              </Text>
+            )}
+          </View>
+        )}
+
         <Text variant="caption" color="textMuted" mt="sm" align="center">
           {hasMyEntry
             ? '연인의 기록을 기다리는 중...'
@@ -283,6 +299,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: 4,
+  },
+  myEntryPreview: {
+    width: '100%',
+    marginTop: SPACING.md,
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.md,
+    padding: SPACING.md,
   },
   nudgeBtn: {
     flexDirection: 'row',
