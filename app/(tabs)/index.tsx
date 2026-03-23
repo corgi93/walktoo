@@ -1,15 +1,16 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, Icon, PixelBadge, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
-import PixelCharacter from '@/components/feature/PixelCharacter';
+import { WalkIllustration } from '@/components/feature/home/WalkIllustration';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
 import { useGetCoupleQuery, useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useUnreadCountQuery } from '@/hooks/services/notification/query';
-import { useGetMeQuery } from '@/hooks/services/user/query';
+import { useGetMeQuery, useCouplePolling } from '@/hooks/services/user/query';
+import { useRefresh } from '@/hooks/useRefresh';
 import { usePedometer } from '@/hooks/usePedometer';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const updateFirstMetDate = useUpdateFirstMetDateMutation();
+  const { refreshing, onRefresh } = useRefresh();
 
   // 실제 데이터
   const { data: me } = useGetMeQuery();
@@ -39,6 +41,9 @@ export default function HomeScreen() {
   // coupleId가 있어도 user2가 없으면 아직 미연결 (초대코드만 만든 상태)
   const hasCoupleId = !!me?.coupleId;
   const isCoupleConnected = hasCoupleId && !!couple?.user2?.id;
+
+  // 초대 대기 중이면 5초마다 폴링 (상대방 연결 감지)
+  useCouplePolling(me?.coupleId, isCoupleConnected);
 
   // 커플 정보에서 나/상대방 구분
   const isUser1 = couple?.user1?.id === me?.id;
@@ -88,24 +93,27 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+        }
       >
         {/* ── 커플 D+Day ── */}
         {isCoupleConnected && (
           <Box px="xxl" style={styles.section}>
             <Pressable onPress={() => setShowDatePicker(true)}>
-              <Row style={styles.ddayRow}>
-                <PixelBadge
-                  iconName="heart"
-                  iconColor={theme.colors.primary}
-                  label={
-                    couple?.firstMetDate
-                      ? `${myName}과 ${partnerName}이 만난 지 ${formatDday(couple.firstMetDate)}`
-                      : '처음 만난 날을 설정해주세요'
-                  }
-                  size="small"
-                  bg={theme.colors.primarySurface}
-                />
-              </Row>
+              <Text variant="bodySmall" color="textMuted" style={styles.ddayRow}>
+                {couple?.firstMetDate ? (
+                  <>
+                    <Text variant="bodySmall" color="primary">{myName}</Text>
+                    <Text variant="bodySmall" color="textMuted"> </Text>
+                    <Icon name="heart" size={11} color={theme.colors.primaryDark} />
+                    <Text variant="bodySmall" color="textMuted"> </Text>
+                    <Text variant="bodySmall" color="primary">{partnerName}</Text>
+                    <Text variant="bodySmall" color="textMuted"> 만난 지 </Text>
+                    <Text variant="bodySmall" color="primary">{formatDday(couple.firstMetDate)}</Text>
+                  </>
+                ) : '처음 만난 날을 설정해주세요'}
+              </Text>
             </Pressable>
           </Box>
         )}
@@ -153,7 +161,7 @@ export default function HomeScreen() {
               </PixelCard>
 
               <View style={styles.vsDivider}>
-                <Icon name="heart" size={18} color={theme.colors.primary} />
+                <Icon name="heart" size={18} color={theme.colors.primaryDark} />
               </View>
 
               <PixelCard style={styles.stepCard}>
@@ -249,30 +257,24 @@ export default function HomeScreen() {
           </Box>
         )}
 
-        {/* ── 캐릭터 영역 ── */}
-        <View style={styles.characterArea}>
-          <PixelCard style={styles.characterFrame} bg={theme.colors.surfaceWarm}>
-            <PixelCharacter type="male" pixelSize={5} />
-          </PixelCard>
+        {/* ── 일러스트 영역 ── */}
+        <View style={styles.illustrationArea}>
+          <WalkIllustration
+            mode={isCoupleConnected ? 'couple' : 'solo'}
+            myName={myName}
+            partnerName={partnerName}
+          />
 
-          {isCoupleConnected ? (
-            <Text variant="bodySmall" color="textMuted" mt="md">
-              우리의 걸음이 쌓이고 있어요
-            </Text>
-          ) : (
-            <View style={styles.characterMsg}>
-              <Text variant="bodySmall" color="textSecondary" mt="md" style={{ textAlign: 'center' }}>
-                아직 내 사람이 없어요
+          {isCoupleConnected && (
+            <View style={styles.coupleMessage}>
+              <Text variant="bodySmall" color="textMuted" style={{ textAlign: 'center' }}>
+                우리의 걸음이 쌓이고 있어요
               </Text>
-              <Text variant="caption" color="primary" mt="xxs">
-                연결하면 둘만의 산책이 시작돼요
-              </Text>
+              <Row style={styles.badgeRow}>
+                <PixelBadge iconName="star" label={`${totalWalks}회 산책`} size="small" bg={theme.colors.goldLight} />
+              </Row>
             </View>
           )}
-
-          <Row style={styles.badgeRow}>
-            <PixelBadge iconName="star" label={`${totalWalks}회 산책`} size="small" bg={theme.colors.goldLight} />
-          </Row>
         </View>
       </ScrollView>
 
@@ -447,7 +449,7 @@ const styles = StyleSheet.create({
 
   /* ── D+Day ── */
   ddayRow: {
-    alignItems: 'center',
+    textAlign: 'left',
   },
 
   /* ── 커플 걸음 카드 ── */
@@ -518,22 +520,14 @@ const styles = StyleSheet.create({
     marginTop: LAYOUT.itemGapMd,
   },
 
-  /* ── 캐릭터 ── */
-  characterArea: {
-    flex: 1,
-    justifyContent: 'center',
+  /* ── 일러스트 ── */
+  illustrationArea: {
     alignItems: 'center',
-    paddingVertical: LAYOUT.sectionGapLg,
+    paddingVertical: LAYOUT.sectionGap,
   },
-  characterFrame: {
-    width: 110,
-    height: 130,
-    justifyContent: 'center',
+  coupleMessage: {
     alignItems: 'center',
-    padding: LAYOUT.itemGap,
-  },
-  characterMsg: {
-    alignItems: 'center',
+    marginTop: LAYOUT.itemGap,
   },
   badgeRow: {
     marginTop: LAYOUT.itemGap,
