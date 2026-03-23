@@ -58,9 +58,20 @@ export default function DiaryScreen() {
     [data],
   );
 
-  const handleItemPress = useCallback((_diary: WalkDiary) => {
-    // TODO: navigate to diary detail
-  }, []);
+  const handleItemPress = useCallback((diary: WalkDiary) => {
+    router.push({
+      pathname: '/diary-detail',
+      params: {
+        id: diary.id,
+        date: diary.date,
+        locationName: diary.locationName,
+        steps: String(diary.steps),
+        isRevealed: String(diary.isRevealed),
+        myEntry: diary.myEntry ? JSON.stringify(diary.myEntry) : '',
+        partnerEntry: diary.partnerEntry ? JSON.stringify(diary.partnerEntry) : '',
+      },
+    });
+  }, [router]);
 
   const handleNudge = useCallback(
     (diary: WalkDiary) => {
@@ -81,6 +92,13 @@ export default function DiaryScreen() {
   );
 
   const handleAdd = () => {
+    // 오늘 날짜에 이미 기록이 있는지 확인
+    const today = new Date().toISOString().split('T')[0];
+    const hasTodayDiary = diaries.some((d) => d.date === today);
+    if (hasTodayDiary) {
+      toast.error('오늘은 이미 산책 기록을 남겼어요!');
+      return;
+    }
     router.push('/footprint-create');
   };
 

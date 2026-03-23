@@ -88,6 +88,53 @@ export const useAddEntryMutation = () => {
   });
 };
 
+// ─── useUpdateEntryMutation ─────────────────────────────
+// 내 발자취 엔트리 수정
+
+export const useUpdateEntryMutation = () => {
+  const queryClient = useQueryClient();
+  const { data: me } = useGetMeQuery();
+
+  return useMutation({
+    mutationFn: async ({
+      walkId,
+      entryId,
+      memo,
+      photos,
+    }: {
+      walkId: string;
+      entryId: string;
+      memo: string;
+      photos: string[];
+    }) => {
+      if (!me?.coupleId) throw new Error('커플 연결이 필요합니다');
+
+      // 새로 추가된 로컬 사진만 업로드 (이미 URL인 건 스킵)
+      const localPhotos = photos.filter((p) => !p.startsWith('http'));
+      const existingUrls = photos.filter((p) => p.startsWith('http'));
+
+      let newUrls: string[] = [];
+      if (localPhotos.length > 0) {
+        newUrls = await storageService.uploadPhotos(
+          me.coupleId,
+          walkId,
+          localPhotos,
+        );
+      }
+
+      const allPhotos = [...existingUrls, ...newUrls];
+
+      await walksService.updateEntry(entryId, memo, allPhotos);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.diary.list });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.diary.detail(variables.walkId),
+      });
+    },
+  });
+};
+
 // ─── useDeleteDiaryMutation ─────────────────────────────
 
 export const useDeleteDiaryMutation = () => {

@@ -1,6 +1,7 @@
 // ─── Footprint Entry (각 사람의 기록) ───────────────────
 
 export interface FootprintEntry {
+  id: string;
   userId: string;
   nickname: string;
   memo: string;
