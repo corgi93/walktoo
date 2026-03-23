@@ -6,9 +6,10 @@ import { walksRepository, type WalkWithEntries } from './walks.repository';
 
 // ─── Row → Domain Type 변환 ────────────────────────────
 
-const toFootprintEntry = (row: FootprintEntryRow): FootprintEntry => ({
+const toFootprintEntry = (row: FootprintEntryRow & { profiles?: { nickname: string } | null }): FootprintEntry => ({
+  id: row.id,
   userId: row.user_id,
-  nickname: '', // profiles join으로 채움
+  nickname: row.profiles?.nickname ?? '',
   memo: row.memo,
   photos: row.photos,
   writtenAt: row.written_at,
@@ -90,6 +91,12 @@ export const walksService = {
     currentUserId: string,
     input: CreateWalkDiaryInput,
   ) => {
+    // 0. 같은 날짜에 이미 산책 기록이 있는지 확인
+    const { data: existing } = await walksRepository.findByDate(coupleId, input.date);
+    if (existing && existing.length > 0) {
+      throw new Error('하루에 하나의 산책 기록만 남길 수 있어요');
+    }
+
     // 1. 산책 레코드 생성
     const { data: walk, error: walkError } = await walksRepository.create({
       couple_id: coupleId,
@@ -142,6 +149,16 @@ export const walksService = {
       // 양쪽에 reveal 알림 (비동기)
       walksService._notifyWalkRevealed(walkId).catch(() => {});
     }
+  },
+
+  /** 발자취 엔트리 수정 */
+  updateEntry: async (
+    entryId: string,
+    memo: string,
+    photos: string[],
+  ) => {
+    const { error } = await walksRepository.updateEntry(entryId, { memo, photos });
+    if (error) throw error;
   },
 
   /** 산책 삭제 */

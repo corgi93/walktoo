@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Icon, IconName, PixelCard, Row, Text } from '@/components/base';
 import { useLogoutMutation } from '@/hooks/services/auth/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
 import { COMPONENT_SIZE, LAYOUT } from '@/styles/type';
 import { formatSteps } from '@/utils';
@@ -20,6 +21,7 @@ export default function ProfileScreen() {
   const { data: me } = useGetMeQuery();
   const { data: stats } = useCoupleStatsQuery();
   const logout = useLogoutMutation();
+  const { refreshing, onRefresh } = useRefresh();
 
   const hasCoupleId = !!me?.coupleId;
 
@@ -51,6 +53,9 @@ export default function ProfileScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+        }
       >
         {/* ── Profile Card ── */}
         <Box px="xxl">

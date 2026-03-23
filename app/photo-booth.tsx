@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import * as ImagePicker from 'expo-image-picker';
+
 import { Box, Button, Icon, Row, Text } from '@/components/base';
 import FilterPicker from '@/components/feature/photobooth/FilterPicker';
 import FrameColorPicker from '@/components/feature/photobooth/FrameColorPicker';
@@ -39,6 +41,7 @@ export default function PhotoBoothScreen() {
     setFilter,
     setFrameColor,
     setResult,
+    setPhotos,
   } = usePhotoBoothStore();
 
   const template = getTemplate(templateId);
@@ -57,16 +60,37 @@ export default function PhotoBoothScreen() {
     day: '2-digit',
   });
 
+  // 빈 슬롯에 사진 추가
+  const handleAddPhoto = useCallback(async (slotIndex: number) => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newPhotos = [...photos];
+      // 슬롯 위치에 사진 삽입
+      while (newPhotos.length <= slotIndex) {
+        newPhotos.push('');
+      }
+      newPhotos[slotIndex] = result.assets[0].uri;
+      setPhotos(newPhotos.filter(Boolean));
+    }
+  }, [photos, setPhotos]);
+
   const handleSave = useCallback(async () => {
     if (capturing) return;
     setCapturing(true);
     try {
       const uri = await captureTemplate(canvasRef);
-      setResult(uri);
-      router.back();
+      if (uri) {
+        setResult(uri);
+        router.back();
+      }
+      // uri가 null이면 Alert가 이미 표시됨 (Expo Go 미지원)
     } catch {
-      // 캡처 실패 시 그냥 돌아감
-      router.back();
+      // 예상치 못한 에러
     } finally {
       setCapturing(false);
     }
@@ -97,6 +121,7 @@ export default function PhotoBoothScreen() {
             ref={canvasRef}
             canvasWidth={canvasWidth}
             dateLabel={dateLabel}
+            onAddPhoto={handleAddPhoto}
           />
         </View>
 

@@ -10,10 +10,11 @@ import TemplateFrame from './TemplateFrame';
 interface PhotoBoothCanvasProps {
   canvasWidth: number;
   dateLabel: string;
+  onAddPhoto?: (slotIndex: number) => void;
 }
 
 const PhotoBoothCanvas = React.forwardRef<View, PhotoBoothCanvasProps>(
-  ({ canvasWidth, dateLabel }, ref) => {
+  ({ canvasWidth, dateLabel, onAddPhoto }, ref) => {
     const { photos, templateId, filterId, frameColorId, bwCache } =
       usePhotoBoothStore();
     const template = getTemplate(templateId);
@@ -39,6 +40,7 @@ const PhotoBoothCanvas = React.forwardRef<View, PhotoBoothCanvasProps>(
           textColor={fc.isLight ? '#2C2C2E' : '#FFFFFF'}
           canvasWidth={canvasWidth}
           dateLabel={dateLabel}
+          onAddPhoto={onAddPhoto}
         />
       </View>
     );

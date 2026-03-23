@@ -18,6 +18,8 @@ interface TemplateFrameProps {
   /** 캔버스 전체 너비 (px) */
   canvasWidth: number;
   dateLabel: string;
+  /** 빈 슬롯 탭 시 사진 추가 */
+  onAddPhoto?: (slotIndex: number) => void;
 }
 
 const TemplateFrame: React.FC<TemplateFrameProps> = ({
@@ -28,6 +30,7 @@ const TemplateFrame: React.FC<TemplateFrameProps> = ({
   textColor,
   canvasWidth,
   dateLabel,
+  onAddPhoto,
 }) => {
   const filter = getFilter(filterId);
   const canvasHeight = canvasWidth / template.aspectRatio;
@@ -78,6 +81,7 @@ const TemplateFrame: React.FC<TemplateFrameProps> = ({
                 overlayColor={filter.overlayColor}
                 width={slotW}
                 height={slotH}
+                onAddPhoto={onAddPhoto ? () => onAddPhoto(i) : undefined}
               />
             </View>
           );

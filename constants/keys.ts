@@ -13,6 +13,10 @@ export const QUERY_KEYS = {
     list: ['diary'] as const,
     detail: (id: string) => ['diary', id] as const,
   },
+  steps: {
+    today: ['steps', 'today'] as const,
+    partner: ['steps', 'partner'] as const,
+  },
   notification: {
     list: ['notification'] as const,
     unreadCount: ['notification', 'unread'] as const,

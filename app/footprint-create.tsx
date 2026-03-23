@@ -399,10 +399,11 @@ const styles = StyleSheet.create({
   },
   locationInput: {
     flex: 1,
-    fontSize: SPACING.lg - 1, // 15 — bodyMedium(14)과 bodyLarge(16) 사이
+    fontSize: SPACING.lg - 1,
     fontFamily: FONT_FAMILY.pixel,
     color: theme.colors.text,
-    paddingVertical: 0,
+    paddingVertical: 4,
+    lineHeight: 22,
   },
 
   /* ── 사진 ── */
@@ -411,6 +412,8 @@ const styles = StyleSheet.create({
   },
   photoRow: {
     gap: LAYOUT.itemGapMd,
+    paddingTop: 8,
+    paddingRight: 8,
   },
   photoAdd: {
     width: 88,

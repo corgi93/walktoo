@@ -1,32 +1,32 @@
-import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo } from 'react';
+import { useRouter } from "expo-router";
+import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   StyleSheet,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Box, Icon, Row, Text } from '@/components/base';
-import type { IconName } from '@/components/base/Icon';
+import { Box, Icon, Row, Text } from "@/components/base";
+import type { IconName } from "@/components/base/Icon";
 import {
   useMarkAllAsReadMutation,
   useMarkAsReadMutation,
-} from '@/hooks/services/notification/mutation';
-import { useNotificationListQuery } from '@/hooks/services/notification/query';
-import type { AppNotification } from '@/server/notifications';
-import { theme } from '@/styles/theme';
-import { LAYOUT, SPACING } from '@/styles/type';
+} from "@/hooks/services/notification/mutation";
+import { useNotificationListQuery } from "@/hooks/services/notification/query";
+import type { AppNotification } from "@/server/notifications";
+import { theme } from "@/styles/theme";
+import { LAYOUT, SPACING } from "@/styles/type";
 
 // ─── 알림 아이콘 맵 ─────────────────────────────────────
 
 const NOTIFICATION_ICON: Record<string, { name: IconName; color: string }> = {
-  couple_joined: { name: 'heart', color: theme.colors.primary },
-  walk_created: { name: 'footprint', color: theme.colors.secondary },
-  walk_revealed: { name: 'unlock', color: theme.colors.accent },
-  nudge: { name: 'bell-ring', color: theme.colors.primary },
+  couple_joined: { name: "heart", color: theme.colors.primary },
+  walk_created: { name: "footprint", color: theme.colors.secondary },
+  walk_revealed: { name: "unlock", color: theme.colors.accent },
+  nudge: { name: "bell-ring", color: theme.colors.primary },
 };
 
 // ─── Component ──────────────────────────────────────────
@@ -62,9 +62,9 @@ export default function NotificationsScreen() {
 
       // 화면 이동
       if (notification.data?.walkId) {
-        router.push('/(tabs)/diary');
-      } else if (notification.type === 'couple_joined') {
-        router.push('/(tabs)');
+        router.push("/(tabs)/diary");
+      } else if (notification.type === "couple_joined") {
+        router.push("/(tabs)");
       }
     },
     [markAsRead, router],
@@ -77,37 +77,34 @@ export default function NotificationsScreen() {
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const minutes = Math.floor(diff / 60_000);
-    if (minutes < 1) return '방금 전';
+    if (minutes < 1) return "방금 전";
     if (minutes < 60) return `${minutes}분 전`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}시간 전`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}일 전`;
-    return new Date(dateStr).toLocaleDateString('ko-KR', {
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateStr).toLocaleDateString("ko-KR", {
+      month: "short",
+      day: "numeric",
     });
   };
 
   const renderItem = useCallback(
     ({ item }: { item: AppNotification }) => {
       const iconInfo = NOTIFICATION_ICON[item.type] ?? {
-        name: 'bell' as IconName,
+        name: "bell" as IconName,
         color: theme.colors.gray500,
       };
 
       return (
         <Pressable
-          style={[
-            styles.notifItem,
-            !item.isRead && styles.notifItemUnread,
-          ]}
+          style={[styles.notifItem, !item.isRead && styles.notifItemUnread]}
           onPress={() => handlePress(item)}
         >
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: iconInfo.color + '20' },
+              { backgroundColor: iconInfo.color + "20" },
             ]}
           >
             <Icon name={iconInfo.name} size={18} color={iconInfo.color} />
@@ -203,20 +200,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   center: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: LAYOUT.headerPy,
   },
   list: {
     paddingBottom: LAYOUT.bottomSafe,
   },
   notifItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: SPACING.xxl,
     paddingVertical: SPACING.lg,
     borderBottomWidth: 1,
@@ -229,8 +226,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   notifContent: {
     flex: 1,

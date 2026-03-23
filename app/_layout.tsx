@@ -77,6 +77,7 @@ export default function RootLayout() {
                   name="footprint-create"
                   options={{ presentation: 'modal' }}
                 />
+                <Stack.Screen name="diary-detail" />
                 <Stack.Screen name="auth/callback" />
                 <Stack.Screen name="+not-found" options={{ headerShown: true }} />
                 <Stack.Screen

@@ -9,8 +9,12 @@ type EntryInsert = Database['public']['Tables']['footprint_entries']['Insert'];
 
 // ─── Join 결과 타입 ─────────────────────────────────────
 
+type EntryWithProfile = EntryRow & {
+  profiles: { nickname: string } | null;
+};
+
 export type WalkWithEntries = WalkRow & {
-  footprint_entries: EntryRow[];
+  footprint_entries: EntryWithProfile[];
 };
 
 // ─── Walks Repository (walks 테이블 직접 쿼리) ─────────
@@ -20,7 +24,7 @@ export const walksRepository = {
   findByCoupleId: (coupleId: string, page: number, limit = 20) =>
     supabase
       .from('walks')
-      .select('*, footprint_entries(*)')
+      .select('*, footprint_entries(*, profiles:user_id(nickname))')
       .eq('couple_id', coupleId)
       .order('date', { ascending: false })
       .range((page - 1) * limit, page * limit - 1)
@@ -30,7 +34,7 @@ export const walksRepository = {
   findById: (id: string) =>
     supabase
       .from('walks')
-      .select('*, footprint_entries(*)')
+      .select('*, footprint_entries(*, profiles:user_id(nickname))')
       .eq('id', id)
       .single<WalkWithEntries>(),
 
@@ -77,6 +81,15 @@ export const walksRepository = {
       .from('footprint_entries')
       .select('id', { count: 'exact', head: true })
       .eq('walk_id', walkId),
+
+  /** 특정 날짜에 커플의 산책이 있는지 확인 */
+  findByDate: (coupleId: string, date: string) =>
+    supabase
+      .from('walks')
+      .select('id')
+      .eq('couple_id', coupleId)
+      .eq('date', date)
+      .returns<{ id: string }[]>(),
 
   /** 커플의 총 산책 수 */
   countByCoupleId: (coupleId: string) =>

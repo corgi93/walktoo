@@ -74,6 +74,23 @@ export const couplesService = {
 
   /** 초대코드 생성 (커플 만들기) */
   createInvite: async (userId: string) => {
+    // 이미 커플인지 확인
+    const { data: profile } = await couplesRepository.getProfile(userId);
+    if (profile?.couple_id) {
+      // 이미 대기 중인 초대가 있으면 그 코드를 재사용
+      const { data: existingCouple } = await couplesRepository.findById(
+        profile.couple_id,
+      );
+      if (existingCouple && !existingCouple.user2) {
+        return {
+          coupleId: existingCouple.id,
+          inviteCode: existingCouple.invite_code,
+        };
+      }
+      // 이미 연결 완료된 커플이면 에러
+      throw new Error('이미 연결된 커플이 있어요');
+    }
+
     const code = generateInviteCode();
     const { data, error } = await couplesRepository.create(userId, code);
     if (error) throw error;
@@ -86,30 +103,55 @@ export const couplesService = {
 
   /** 초대코드로 커플 연결 */
   joinByCode: async (userId: string, inviteCode: string) => {
-    // 1. 코드로 커플 찾기
+    // 1. 이미 커플인지 확인
+    const { data: myProfile } = await couplesRepository.getProfile(userId);
+    if (myProfile?.couple_id) {
+      // 대기 중인 내 초대가 있으면 → 취소하고 상대방 코드로 연결
+      const { data: myCouple } = await couplesRepository.findById(
+        myProfile.couple_id,
+      );
+      if (myCouple && !myCouple.user2) {
+        // 내 대기 중인 초대 삭제
+        await couplesRepository.updateProfile(userId, { couple_id: null });
+        await couplesRepository.deleteCouple(myCouple.id);
+      } else {
+        // 이미 연결 완료된 커플
+        throw new Error('이미 연결된 커플이 있어요');
+      }
+    }
+
+    // 2. 코드로 커플 찾기
     const { data: couple, error: findError } =
       await couplesRepository.findByInviteCode(inviteCode);
     if (findError) throw new Error('유효하지 않은 초대코드입니다');
 
-    // 2. 본인 커플에 참여 방지
+    // 3. 만료 확인 (24시간)
+    const createdAt = new Date(couple.created_at).getTime();
+    const now = Date.now();
+    const EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
+    if (now - createdAt > EXPIRE_MS) {
+      throw new Error('만료된 초대코드입니다. 새 코드를 요청해주세요');
+    }
+
+    // 4. 본인 커플에 참여 방지
     if (couple.user1_id === userId) {
       throw new Error('본인의 초대코드입니다');
     }
 
-    // 3. 커플 연결
+    // 5. 커플 연결
     const { data, error } = await couplesRepository.join(couple.id, {
       user2_id: userId,
       start_date: new Date().toISOString().split('T')[0],
     });
     if (error) throw error;
 
-    // 4. 양쪽 프로필에 couple_id 연결
+    // 6. 양쪽 프로필에 couple_id 연결
     await couplesRepository.updateProfile(userId, { couple_id: data.id });
     await couplesRepository.updateProfile(couple.user1_id, {
       couple_id: data.id,
     });
 
-    // 5. user1에게 커플 연결 알림
+    // 7. user1에게 커플 연결 알림
     const joinerProfile = await couplesRepository.getProfile(userId);
     if (joinerProfile.data) {
       notificationsService.notifyCoupleJoined(

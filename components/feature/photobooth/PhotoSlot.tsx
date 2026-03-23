@@ -1,6 +1,7 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/base';
 import { theme } from '@/styles/theme';
 
 interface PhotoSlotProps {
@@ -9,17 +10,22 @@ interface PhotoSlotProps {
   overlayColor: string | null;
   width: number;
   height: number;
+  /** 빈 슬롯 탭 시 사진 추가 */
+  onAddPhoto?: () => void;
 }
 
-const PhotoSlot: React.FC<PhotoSlotProps> = ({ uri, overlayColor, width, height }) => {
+const PhotoSlot: React.FC<PhotoSlotProps> = ({ uri, overlayColor, width, height, onAddPhoto }) => {
   if (!uri) {
     return (
-      <View
+      <Pressable
+        onPress={onAddPhoto}
         style={[
           styles.empty,
           { width, height, borderRadius: theme.radius.sm },
         ]}
-      />
+      >
+        <Icon name="image-plus" size={Math.min(width, height) * 0.25} color="#C8C4BE" />
+      </Pressable>
     );
   }
 
@@ -37,6 +43,8 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: '#C8C4BE',
     backgroundColor: '#F0EDE8',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
     width: '100%',
