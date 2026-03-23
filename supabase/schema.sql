@@ -95,15 +95,28 @@ create policy "profiles_select_partner" on public.profiles
     )
   );
 
--- couples: 본인이 속한 커플만
-create policy "couples_select_own" on public.couples
-  for select using (user1_id = auth.uid() or user2_id = auth.uid());
+-- couples: 본인 커플 + 대기 중 초대코드 조회 가능
+create policy "couples_select" on public.couples
+  for select using (
+    user1_id = auth.uid()
+    or user2_id = auth.uid()
+    or (user2_id is null and invite_code is not null)
+  );
 
 create policy "couples_insert_own" on public.couples
   for insert with check (user1_id = auth.uid());
 
-create policy "couples_update_own" on public.couples
-  for update using (user1_id = auth.uid() or user2_id = auth.uid());
+create policy "couples_update" on public.couples
+  for update using (
+    user1_id = auth.uid()
+    or user2_id = auth.uid()
+    or (user2_id is null and invite_code is not null)
+  );
+
+create policy "couples_delete_own" on public.couples
+  for delete using (
+    user1_id = auth.uid() and user2_id is null
+  );
 
 -- walks: 본인 커플의 산책만
 create policy "walks_select_own_couple" on public.walks

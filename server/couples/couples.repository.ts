@@ -65,6 +65,14 @@ export const couplesRepository = {
       .update({ user2_id: null } as never)
       .eq('id', coupleId),
 
+  /** 대기 중인 커플 삭제 (초대 취소) */
+  deleteCouple: (coupleId: string) =>
+    supabase
+      .from('couples')
+      .delete()
+      .eq('id', coupleId)
+      .is('user2_id', null),
+
   /** 프로필 업데이트 */
   updateProfile: (userId: string, data: ProfileUpdate) =>
     supabase
