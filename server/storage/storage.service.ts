@@ -11,10 +11,12 @@ import { storageRepository } from './storage.repository';
 async function readFileAsBase64(uri: string): Promise<string> {
   try {
     // 방법 1: expo-file-system (네이티브, 가장 안정적)
-    const FileSystem = await import('expo-file-system');
-    if (FileSystem?.EncodingType?.Base64) {
-      return await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const FileSystem: any = await import('expo-file-system');
+    const fs = FileSystem?.default ?? FileSystem;
+    if (fs?.EncodingType?.Base64) {
+      return await fs.readAsStringAsync(uri, {
+        encoding: fs.EncodingType.Base64,
       });
     }
   } catch {
