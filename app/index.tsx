@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 
@@ -8,6 +8,7 @@ import { usePermissionStore } from "@/stores/permissionStore";
 import { theme } from "@/styles/theme";
 
 export default function SplashAuthScreen() {
+  const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function SplashAuthScreen() {
 
     const timer = setTimeout(checkAuth, 1200);
     return () => clearTimeout(timer);
-  }, [fadeAnim]);
+  }, [fadeAnim, router]);
 
   return (
     <View style={styles.container}>

@@ -1,27 +1,20 @@
-import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Box, Row, Text } from '@/components/base';
-import { PermissionPrompt } from '@/components/feature/permissions';
-import { PERMISSION_ORDER } from '@/constants/permissions';
-import { usePermission } from '@/hooks/usePermission';
-import { usePermissionStore } from '@/stores/permissionStore';
-import { theme } from '@/styles/theme';
-import { SPACING } from '@/styles/type';
-import { PermissionType } from '@/types/permission';
+import { Box, Row, Text } from "@/components/base";
+import { PermissionPrompt } from "@/components/feature/permissions";
+import { PERMISSION_ORDER } from "@/constants/permissions";
+import { usePermission } from "@/hooks/usePermission";
+import { usePermissionStore } from "@/stores/permissionStore";
+import { theme } from "@/styles/theme";
+import { SPACING } from "@/styles/type";
+import { PermissionType } from "@/types/permission";
 
-
-function ProgressDots({
-  total,
-  current,
-}: {
-  total: number;
-  current: number;
-}) {
+function ProgressDots({ total, current }: { total: number; current: number }) {
   return (
-    <Row gap={8} style={{ justifyContent: 'center' }}>
+    <Row gap={8} style={{ justifyContent: "center" }}>
       {Array.from({ length: total }).map((_, i) => (
         <View
           key={i}
@@ -34,7 +27,6 @@ function ProgressDots({
     </Row>
   );
 }
-
 
 function PermissionStep({
   type,
@@ -63,8 +55,8 @@ function PermissionStep({
   );
 }
 
-
 export default function PermissionsScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const { setOnboardingComplete } = usePermissionStore();
@@ -74,12 +66,12 @@ export default function PermissionsScreen() {
 
   const advance = useCallback(() => {
     if (currentIndex < total - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
     } else {
       setOnboardingComplete();
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     }
-  }, [currentIndex, total, setOnboardingComplete]);
+  }, [currentIndex, total, setOnboardingComplete, router]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
