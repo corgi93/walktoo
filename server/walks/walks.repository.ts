@@ -67,7 +67,15 @@ export const walksRepository = {
       .single<EntryRow>(),
 
   /** 발자취 엔트리 수정 */
-  updateEntry: (entryId: string, data: { memo?: string; photos?: string[] }) =>
+  updateEntry: (
+    entryId: string,
+    data: {
+      memo?: string;
+      photos?: string[];
+      diary_answer?: string;
+      couple_answer?: string;
+    },
+  ) =>
     supabase
       .from('footprint_entries')
       .update(data as never)

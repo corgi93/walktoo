@@ -124,16 +124,26 @@ export interface Database {
           memo: string;
           photos: string[];
           written_at: string;
+          diary_question_id: number | null;
+          diary_answer: string;
+          couple_question_id: number | null;
+          couple_answer: string;
         };
         Insert: {
           walk_id: string;
           user_id: string;
           memo: string;
           photos?: string[];
+          diary_question_id?: number;
+          diary_answer?: string;
+          couple_question_id?: number;
+          couple_answer?: string;
         };
         Update: {
           memo?: string;
           photos?: string[];
+          diary_answer?: string;
+          couple_answer?: string;
         };
         Relationships: [];
       };

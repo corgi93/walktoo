@@ -54,10 +54,18 @@ export const useAddEntryMutation = () => {
       walkId,
       memo,
       photos,
+      diaryQuestionId,
+      diaryAnswer,
+      coupleQuestionId,
+      coupleAnswer,
     }: {
       walkId: string;
       memo: string;
       photos: string[];
+      diaryQuestionId?: number;
+      diaryAnswer?: string;
+      coupleQuestionId?: number;
+      coupleAnswer?: string;
     }) => {
       if (!me?.coupleId) throw new Error('커플 연결이 필요합니다');
 
@@ -77,6 +85,7 @@ export const useAddEntryMutation = () => {
         me.id,
         memo,
         photoUrls.length > 0 ? photoUrls : photos,
+        { diaryQuestionId, diaryAnswer, coupleQuestionId, coupleAnswer },
       );
     },
     onSuccess: (_data, variables) => {
@@ -101,11 +110,15 @@ export const useUpdateEntryMutation = () => {
       entryId,
       memo,
       photos,
+      diaryAnswer,
+      coupleAnswer,
     }: {
       walkId: string;
       entryId: string;
       memo: string;
       photos: string[];
+      diaryAnswer?: string;
+      coupleAnswer?: string;
     }) => {
       if (!me?.coupleId) throw new Error('커플 연결이 필요합니다');
 
@@ -124,7 +137,10 @@ export const useUpdateEntryMutation = () => {
 
       const allPhotos = [...existingUrls, ...newUrls];
 
-      await walksService.updateEntry(entryId, memo, allPhotos);
+      await walksService.updateEntry(entryId, memo, allPhotos, {
+        diaryAnswer,
+        coupleAnswer,
+      });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.diary.list });
