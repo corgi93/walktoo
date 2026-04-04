@@ -12,6 +12,7 @@ import { useUnreadCountQuery } from '@/hooks/services/notification/query';
 import { useGetMeQuery, useCouplePolling } from '@/hooks/services/user/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { usePedometer } from '@/hooks/usePedometer';
+import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { formatDday, formatSteps } from '@/utils';
@@ -58,7 +59,11 @@ export default function HomeScreen() {
   // 오늘의 걸음 (만보기 연동)
   const { steps: pedometerSteps } = usePedometer();
   const mySteps = pedometerSteps;
-  const partnerSteps = 0; // TODO: 실시간 상대방 걸음수
+
+  // 상대방 걸음수 (30초마다 자동 갱신)
+  const partnerId = isUser1 ? couple?.user2?.id : couple?.user1?.id;
+  const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
+  const partnerSteps = partnerStepsData ?? 0;
   const dailyGoal = 10000;
 
   const myProgress = Math.min(mySteps / dailyGoal, 1);

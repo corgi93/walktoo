@@ -89,7 +89,7 @@ export const notificationsService = {
     body: string;
     data?: Record<string, unknown>;
   }) => {
-    // 1. DB에 알림 저장
+    // 1. DB에 알림 저장 (실패해도 Push는 시도)
     const { error } = await notificationsRepository.create({
       recipient_id: recipientId,
       sender_id: senderId ?? null,
@@ -101,7 +101,7 @@ export const notificationsService = {
     });
     if (error) {
       console.warn('[Notification] DB 저장 실패:', error.message);
-      return;
+      // DB 실패해도 Push는 계속 진행
     }
 
     // 2. Push 발송 (Expo Push API)
@@ -110,9 +110,14 @@ export const notificationsService = {
         await notificationsRepository.getPushToken(recipientId);
       const pushToken = tokenData?.push_token;
 
-      if (pushToken) {
-        await sendExpoPush(pushToken, title, body, data);
+      if (!pushToken) {
+        console.warn(
+          `[Notification] 상대방(${recipientId})의 push_token이 없습니다. 알림 권한을 확인하세요.`,
+        );
+        return;
       }
+
+      await sendExpoPush(pushToken, title, body, data);
     } catch (pushError) {
       console.warn('[Notification] Push 발송 실패:', pushError);
     }
@@ -204,7 +209,7 @@ async function sendExpoPush(
   data: Record<string, unknown>,
 ) {
   try {
-    await fetch('https://exp.host/--/api/v2/push/send', {
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -217,8 +222,22 @@ async function sendExpoPush(
         data,
         sound: 'default',
         priority: 'high',
+        channelId: 'default',
       }),
     });
+
+    const result = await response.json();
+
+    // Expo Push API 응답 확인
+    if (result.data?.status === 'error') {
+      console.warn(
+        '[ExpoPush] 발송 에러:',
+        result.data.message,
+        '| details:', result.data.details,
+      );
+    } else {
+      console.log('[ExpoPush] 발송 성공:', result.data?.id);
+    }
   } catch (error) {
     console.warn('[ExpoPush] 발송 실패:', error);
   }
