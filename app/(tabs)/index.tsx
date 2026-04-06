@@ -4,6 +4,7 @@ import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, Icon, PixelBadge, PixelCard, PixelProgressBar, Row, Text } from '@/components/base';
+import { QUERY_KEYS } from '@/constants/keys';
 import { NoCoupleCard } from '@/components/feature/couple';
 import { WalkIllustration } from '@/components/feature/home/WalkIllustration';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
@@ -31,7 +32,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const updateFirstMetDate = useUpdateFirstMetDateMutation();
-  const { refreshing, onRefresh } = useRefresh();
+  const { refreshing, onRefresh } = useRefresh([
+    QUERY_KEYS.steps.partner,
+    QUERY_KEYS.steps.today,
+  ]);
 
   // 실제 데이터
   const { data: me } = useGetMeQuery();
@@ -59,6 +63,12 @@ export default function HomeScreen() {
   // 오늘의 걸음 (만보기 연동)
   const { steps: pedometerSteps } = usePedometer();
   const mySteps = pedometerSteps;
+
+  // 캐릭터 타입
+  const myCharacter = (me?.characterType ?? 'boy') as 'boy' | 'girl';
+  const partnerCharacter = (isUser1
+    ? couple?.user2?.characterType
+    : couple?.user1?.characterType) as 'boy' | 'girl' | undefined ?? 'boy';
 
   // 상대방 걸음수 (30초마다 자동 갱신)
   const partnerId = isUser1 ? couple?.user2?.id : couple?.user1?.id;
@@ -244,16 +254,16 @@ export default function HomeScreen() {
                   <View>
                     <Text variant="headingSmall">오늘의 미션</Text>
                     <Text variant="caption" color="textMuted" mt="xxs">
-                      함께 6,000보 걷기
+                      함께 20,000보 걷기
                     </Text>
                   </View>
                 </Row>
                 <Text variant="label" color="primary">
-                  {formatSteps(mySteps + partnerSteps)} / 6,000
+                  {formatSteps(mySteps + partnerSteps)} / 20,000
                 </Text>
               </Row>
               <PixelProgressBar
-                progress={Math.min((mySteps + partnerSteps) / 6000, 1)}
+                progress={Math.min((mySteps + partnerSteps) / 20000, 1)}
                 segments={12}
                 fillColor={theme.colors.secondary}
                 style={styles.missionProgress}
@@ -268,6 +278,8 @@ export default function HomeScreen() {
             mode={isCoupleConnected ? 'couple' : 'solo'}
             myName={myName}
             partnerName={partnerName}
+            myCharacter={myCharacter}
+            partnerCharacter={partnerCharacter as 'boy' | 'girl'}
           />
 
           {isCoupleConnected && (

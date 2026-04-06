@@ -17,16 +17,18 @@ CREATE TABLE IF NOT EXISTS public.daily_steps (
 ALTER TABLE public.daily_steps ENABLE ROW LEVEL SECURITY;
 
 -- 본인 + 커플 상대방 걸음수 조회 가능
+-- profiles.couple_id 기반으로 같은 커플의 걸음수를 조회
+-- (couples 테이블 RLS 중첩 문제를 피하기 위해 profiles 기반으로 변경)
 CREATE POLICY "daily_steps_select" ON public.daily_steps
   FOR SELECT USING (
     user_id = auth.uid()
     OR user_id IN (
-      SELECT CASE
-        WHEN user1_id = auth.uid() THEN user2_id
-        WHEN user2_id = auth.uid() THEN user1_id
-      END
-      FROM couples
-      WHERE user1_id = auth.uid() OR user2_id = auth.uid()
+      SELECT p.id FROM public.profiles p
+      WHERE p.couple_id IS NOT NULL
+        AND p.couple_id = (
+          SELECT couple_id FROM public.profiles WHERE id = auth.uid()
+        )
+        AND p.id != auth.uid()
     )
   );
 

@@ -29,18 +29,27 @@ export function useStepSync() {
   useEffect(() => {
     if (!me?.id || sensorSteps <= 0) return;
 
-    const interval = setInterval(() => {
+    const doSync = () => {
       if (sensorSteps !== lastSyncedSteps.current) {
-        syncSteps.mutate({ userId: me.id, steps: sensorSteps });
+        syncSteps.mutate(
+          { userId: me.id, steps: sensorSteps },
+          {
+            onSuccess: () => {
+              console.log(`[StepSync] synced ${sensorSteps} steps`);
+            },
+            onError: (err) => {
+              console.warn('[StepSync] sync failed:', err);
+            },
+          },
+        );
         lastSyncedSteps.current = sensorSteps;
       }
-    }, SYNC_INTERVAL);
+    };
+
+    const interval = setInterval(doSync, SYNC_INTERVAL);
 
     // 최초 1회 즉시 동기화
-    if (sensorSteps > 0 && sensorSteps !== lastSyncedSteps.current) {
-      syncSteps.mutate({ userId: me.id, steps: sensorSteps });
-      lastSyncedSteps.current = sensorSteps;
-    }
+    doSync();
 
     return () => clearInterval(interval);
   }, [me?.id, sensorSteps]);

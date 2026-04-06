@@ -26,6 +26,7 @@ export interface Database {
           total_walks: number;
           total_steps: number;
           push_token: string | null;
+          character_type: string;
           created_at: string;
           updated_at: string;
         };
@@ -40,6 +41,7 @@ export interface Database {
           total_walks?: number;
           total_steps?: number;
           push_token?: string | null;
+          character_type?: string;
         };
         Update: {
           nickname?: string;
@@ -51,6 +53,7 @@ export interface Database {
           total_walks?: number;
           total_steps?: number;
           push_token?: string | null;
+          character_type?: string;
         };
         Relationships: [];
       };
@@ -177,7 +180,12 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_partner_steps: {
+        Args: { p_partner_id: string; p_date: string };
+        Returns: number;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
