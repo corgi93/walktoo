@@ -14,4 +14,5 @@ export interface CouplePartner {
   id: string;
   nickname: string;
   profileImageUrl?: string;
+  characterType: string;
 }

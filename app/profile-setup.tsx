@@ -1,7 +1,11 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   FlatList,
+  Image,
+  ImageSourcePropType,
   Pressable,
   StyleSheet,
   TextInput,
@@ -9,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, Text } from '@/components/base';
+import { Box, Row, Text } from '@/components/base';
 import { useCompleteProfileMutation } from '@/hooks/services/user/mutation';
 import { useAuthStore } from '@/stores/authStore';
 import { theme } from '@/styles/theme';
@@ -25,6 +29,22 @@ const getDaysInMonth = (year: number, month: number) =>
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const BOY_FRAMES: ImageSourcePropType[] = [
+  require('@/assets/sprites/boy_walk_1.png'),
+  require('@/assets/sprites/boy_walk_2.png'),
+  require('@/assets/sprites/boy_walk_3.png'),
+  require('@/assets/sprites/boy_walk_4.png'),
+];
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const GIRL_FRAMES: ImageSourcePropType[] = [
+  require('@/assets/sprites/girl_walk_1.png'),
+  require('@/assets/sprites/girl_walk_2.png'),
+  require('@/assets/sprites/girl_walk_3.png'),
+  require('@/assets/sprites/girl_walk_4.png'),
+];
+
 // ─── Screen ──────────────────────────────────────────────
 
 export default function ProfileSetupScreen() {
@@ -36,7 +56,9 @@ export default function ProfileSetupScreen() {
   const [year, setYear] = useState<number | null>(null);
   const [month, setMonth] = useState<number | null>(null);
   const [day, setDay] = useState<number | null>(null);
-  const [step, setStep] = useState<'year' | 'month' | 'day' | null>(null);
+  const [dateStep, setDateStep] = useState<'year' | 'month' | 'day' | null>(null);
+  const [characterType, setCharacterType] = useState<'boy' | 'girl'>('boy');
+  const [page, setPage] = useState<'info' | 'character'>('info');
 
   const days =
     year && month
@@ -48,15 +70,92 @@ export default function ProfileSetupScreen() {
       ? `${year}.${pad(month)}.${pad(day)}`
       : '생년월일을 선택해주세요';
 
-  const isValid = nickname.trim().length > 0 && year && month && day;
+  const isInfoValid = nickname.trim().length > 0 && year && month && day;
+
+  const handleNext = () => {
+    if (!isInfoValid) return;
+    setPage('character');
+  };
 
   const handleSubmit = () => {
-    if (!isValid) return;
+    if (!isInfoValid) return;
     completeProfile.mutate({
       nickname: nickname.trim(),
       birthday: `${year}-${pad(month!)}-${pad(day!)}`,
+      characterType,
     });
   };
+
+  if (page === 'character') {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
+        <Box px="xxl">
+          <Text variant="headingLarge">캐릭터를 선택해주세요</Text>
+          <Text variant="bodySmall" color="textSecondary" mt="xs">
+            홈 화면에 표시될 캐릭터예요
+          </Text>
+        </Box>
+
+        <Row style={styles.characterRow}>
+          <Pressable
+            style={[
+              styles.characterOption,
+              characterType === 'boy' && styles.characterSelected,
+            ]}
+            onPress={() => setCharacterType('boy')}
+          >
+            <CharacterPreview frames={BOY_FRAMES} />
+            <Text
+              variant="bodySmall"
+              color={characterType === 'boy' ? 'primary' : 'textSecondary'}
+              mt="sm"
+            >
+              남자
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.characterOption,
+              characterType === 'girl' && styles.characterSelected,
+            ]}
+            onPress={() => setCharacterType('girl')}
+          >
+            <CharacterPreview frames={GIRL_FRAMES} />
+            <Text
+              variant="bodySmall"
+              color={characterType === 'girl' ? 'primary' : 'textSecondary'}
+              mt="sm"
+            >
+              여자
+            </Text>
+          </Pressable>
+        </Row>
+
+        <View style={styles.bottomContainer}>
+          <Row style={{ gap: 12 }}>
+            <Pressable
+              style={styles.backButton}
+              onPress={() => setPage('info')}
+            >
+              <Text variant="bodyLarge" color="textSecondary">
+                이전
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.button, { flex: 1 }]}
+              onPress={handleSubmit}
+              disabled={completeProfile.isPending}
+            >
+              <Text variant="bodyLarge" color="white">
+                시작하기
+              </Text>
+            </Pressable>
+          </Row>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
@@ -90,7 +189,7 @@ export default function ProfileSetupScreen() {
         </Text>
         <Pressable
           style={styles.input}
-          onPress={() => setStep(step ? null : 'year')}
+          onPress={() => setDateStep(dateStep ? null : 'year')}
         >
           <Text
             variant="bodyLarge"
@@ -101,19 +200,19 @@ export default function ProfileSetupScreen() {
         </Pressable>
 
         {/* 날짜 선택기 */}
-        {step === 'year' && (
+        {dateStep === 'year' && (
           <DateGrid
             items={YEARS}
             columns={4}
             selected={year}
             onSelect={(v) => {
               setYear(v);
-              setStep('month');
+              setDateStep('month');
             }}
             format={(v) => `${v}년`}
           />
         )}
-        {step === 'month' && (
+        {dateStep === 'month' && (
           <DateGrid
             items={MONTHS}
             columns={4}
@@ -121,40 +220,88 @@ export default function ProfileSetupScreen() {
             onSelect={(v) => {
               setMonth(v);
               setDay(null);
-              setStep('day');
+              setDateStep('day');
             }}
             format={(v) => `${v}월`}
           />
         )}
-        {step === 'day' && (
+        {dateStep === 'day' && (
           <DateGrid
             items={days}
             columns={7}
             selected={day}
             onSelect={(v) => {
               setDay(v);
-              setStep(null);
+              setDateStep(null);
             }}
             format={(v) => `${v}`}
           />
         )}
       </Box>
 
-      {/* Submit */}
-      {!step && (
+      {/* Next */}
+      {!dateStep && (
         <View style={styles.bottomContainer}>
           <Pressable
-            style={[styles.button, !isValid && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={!isValid || completeProfile.isPending}
+            style={[styles.button, !isInfoValid && styles.buttonDisabled]}
+            onPress={handleNext}
+            disabled={!isInfoValid}
           >
             <Text variant="bodyLarge" color="white">
-              시작하기
+              다음
             </Text>
           </Pressable>
         </View>
       )}
     </View>
+  );
+}
+
+// ─── CharacterPreview ───────────────────────────────────
+
+function CharacterPreview({ frames }: { frames: ImageSourcePropType[] }) {
+  const [frameIndex, setFrameIndex] = useState(0);
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrameIndex((prev) => (prev + 1) % frames.length);
+    }, 300);
+    return () => clearInterval(interval);
+  }, [frames.length]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, []);
+
+  const translateY = bounce.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -4],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      <Image
+        source={frames[frameIndex]}
+        style={{ width: 80, height: 80 }}
+        resizeMode="contain"
+      />
+    </Animated.View>
   );
 }
 
@@ -253,5 +400,29 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: theme.colors.gray300,
+  },
+  characterRow: {
+    justifyContent: 'center',
+    gap: 32,
+    marginTop: 48,
+    paddingHorizontal: 24,
+  },
+  characterOption: {
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: theme.radius.lg,
+    ...theme.pixel.borderThin,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: theme.colors.surface,
+  },
+  characterSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySurface,
+  },
+  backButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
   },
 });

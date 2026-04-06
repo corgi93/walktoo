@@ -9,6 +9,7 @@ export interface UserResponse {
   partnerNickname?: string;
   totalWalks: number;
   totalSteps: number;
+  characterType: string;
   createdAt: string;
   updatedAt: string;
 }

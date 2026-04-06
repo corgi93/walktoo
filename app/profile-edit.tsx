@@ -1,7 +1,11 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   FlatList,
+  Image,
+  ImageSourcePropType,
   Pressable,
   StyleSheet,
   TextInput,
@@ -15,6 +19,22 @@ import { useGetMeQuery } from '@/hooks/services/user/query';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const BOY_FRAMES: ImageSourcePropType[] = [
+  require('@/assets/sprites/boy_walk_1.png'),
+  require('@/assets/sprites/boy_walk_2.png'),
+  require('@/assets/sprites/boy_walk_3.png'),
+  require('@/assets/sprites/boy_walk_4.png'),
+];
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const GIRL_FRAMES: ImageSourcePropType[] = [
+  require('@/assets/sprites/girl_walk_1.png'),
+  require('@/assets/sprites/girl_walk_2.png'),
+  require('@/assets/sprites/girl_walk_3.png'),
+  require('@/assets/sprites/girl_walk_4.png'),
+];
 
 // ─── Constants ───────────────────────────────────────────
 
@@ -33,6 +53,9 @@ export default function ProfileEditScreen() {
   const dialog = useDialogStore();
 
   const [nickname, setNickname] = useState(me?.nickname ?? '');
+  const [characterType, setCharacterType] = useState<'boy' | 'girl'>(
+    (me?.characterType as 'boy' | 'girl') ?? 'boy',
+  );
 
   // birthday parsing
   const parsed = me?.birthday ? new Date(me.birthday) : null;
@@ -62,10 +85,11 @@ export default function ProfileEditScreen() {
     updateProfile.mutate(
       {
         nickname: nickname.trim(),
+        characterType,
         ...(year && month && day
           ? { birthday: `${year}-${pad(month)}-${pad(day)}` }
           : {}),
-      } as { nickname: string; birthday?: string },
+      },
       {
         onSuccess: () => {
           dialog.showDialog({
@@ -151,8 +175,78 @@ export default function ProfileEditScreen() {
             format={(v) => `${v}`}
           />
         )}
+
+        {/* 캐릭터 */}
+        <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
+          캐릭터
+        </Text>
+        <Row style={styles.characterRow}>
+          <Pressable
+            style={[
+              styles.characterOption,
+              characterType === 'boy' && styles.characterSelected,
+            ]}
+            onPress={() => setCharacterType('boy')}
+          >
+            <CharacterPreview frames={BOY_FRAMES} size={56} />
+            <Text
+              variant="caption"
+              color={characterType === 'boy' ? 'primary' : 'textSecondary'}
+              mt="xxs"
+            >
+              남자
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.characterOption,
+              characterType === 'girl' && styles.characterSelected,
+            ]}
+            onPress={() => setCharacterType('girl')}
+          >
+            <CharacterPreview frames={GIRL_FRAMES} size={56} />
+            <Text
+              variant="caption"
+              color={characterType === 'girl' ? 'primary' : 'textSecondary'}
+              mt="xxs"
+            >
+              여자
+            </Text>
+          </Pressable>
+        </Row>
       </Box>
     </View>
+  );
+}
+
+// ─── CharacterPreview ───────────────────────────────────
+
+function CharacterPreview({ frames, size = 56 }: { frames: ImageSourcePropType[]; size?: number }) {
+  const [frameIndex, setFrameIndex] = useState(0);
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrameIndex((prev) => (prev + 1) % frames.length);
+    }, 300);
+    return () => clearInterval(interval);
+  }, [frames.length]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(bounce, { toValue: 0, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    ).start();
+  }, []);
+
+  const translateY = bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      <Image source={frames[frameIndex]} style={{ width: size, height: size }} resizeMode="contain" />
+    </Animated.View>
   );
 }
 
@@ -232,5 +326,22 @@ const styles = StyleSheet.create({
   },
   gridItemSelected: {
     backgroundColor: theme.colors.primary,
+  },
+  characterRow: {
+    gap: 16,
+  },
+  characterOption: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: theme.radius.md,
+    ...theme.pixel.borderThin,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: theme.colors.surface,
+  },
+  characterSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySurface,
   },
 });

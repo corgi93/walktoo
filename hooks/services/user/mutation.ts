@@ -17,6 +17,7 @@ export const useUpdateProfileMutation = () => {
       phone?: string;
       profileImageUrl?: string;
       birthday?: string;
+      characterType?: string;
     }) => {
       const user = await authService.getCurrentUser();
       if (!user) throw new Error('로그인이 필요합니다');
@@ -36,13 +37,14 @@ export const useCompleteProfileMutation = () => {
   const { showLoading, hideLoading } = useLoadingStore();
 
   return useMutation({
-    mutationFn: async (data: { nickname: string; birthday: string }) => {
+    mutationFn: async (data: { nickname: string; birthday: string; characterType?: string }) => {
       showLoading();
       const user = await authService.getCurrentUser();
       if (!user) throw new Error('로그인이 필요합니다');
       return couplesService.updateProfile(user.id, {
         nickname: data.nickname,
         birthday: data.birthday,
+        characterType: data.characterType,
         isProfileComplete: true,
       });
     },

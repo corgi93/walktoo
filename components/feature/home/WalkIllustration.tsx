@@ -6,10 +6,14 @@ import { theme } from '@/styles/theme';
 
 // ─── Types ──────────────────────────────────────────────
 
+type CharacterType = 'boy' | 'girl';
+
 interface WalkIllustrationProps {
   mode: 'solo' | 'couple';
   myName?: string;
   partnerName?: string;
+  myCharacter?: CharacterType;
+  partnerCharacter?: CharacterType;
 }
 
 // ─── Sprite Frames ──────────────────────────────────────
@@ -140,10 +144,17 @@ function FloatingHearts() {
 
 // ─── Main Component ─────────────────────────────────────
 
+const FRAMES_MAP: Record<CharacterType, ImageSourcePropType[]> = {
+  boy: BOY_FRAMES,
+  girl: GIRL_FRAMES,
+};
+
 export function WalkIllustration({
   mode,
   myName = '나',
   partnerName = '상대방',
+  myCharacter = 'boy',
+  partnerCharacter = 'girl',
 }: WalkIllustrationProps) {
   if (mode === 'couple') {
     return (
@@ -151,9 +162,9 @@ export function WalkIllustration({
         <View style={styles.bgCircle} />
 
         <View style={styles.coupleArea}>
-          {/* 남자 (왼쪽) */}
+          {/* 나 (왼쪽) */}
           <View style={styles.figureWrapper}>
-            <WalkingSprite frames={BOY_FRAMES} size={80} delay={0} />
+            <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={80} delay={0} />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
               {myName}
             </Text>
@@ -167,9 +178,9 @@ export function WalkIllustration({
             </View>
           </View>
 
-          {/* 여자 (오른쪽) */}
+          {/* 상대방 (오른쪽) */}
           <View style={styles.figureWrapper}>
-            <WalkingSprite frames={GIRL_FRAMES} size={80} delay={150} />
+            <WalkingSprite frames={FRAMES_MAP[partnerCharacter]} size={80} delay={150} />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
               {partnerName}
             </Text>
@@ -194,7 +205,7 @@ export function WalkIllustration({
     <View style={styles.container}>
       <View style={styles.bgCircle} />
       <View style={styles.soloArea}>
-        <WalkingSprite frames={BOY_FRAMES} size={80} />
+        <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={80} />
       </View>
       <Row style={styles.footprints}>
         {['·', '🐾', '·'].map((c, i) => (
