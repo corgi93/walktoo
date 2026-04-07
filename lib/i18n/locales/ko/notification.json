@@ -1,0 +1,28 @@
+{
+  "title": "알림",
+  "empty": "알림이 없어요",
+  "mark-all-read": "모두 읽음",
+  "loading": "불러오는 중...",
+  "push": {
+    "couple-joined": {
+      "title": "커플 연결 완료!",
+      "body": "{{name}}님이 초대를 수락했어요. 이제 함께 걸어볼까요?"
+    },
+    "walk-created": {
+      "title": "새 산책 기록이 도착했어요!",
+      "body": "{{name}}님이 {{location}}에서의 하루를 남겼어요. 나도 기록해볼까요?"
+    },
+    "walk-revealed": {
+      "title": "서로의 하루가 공개됐어요!",
+      "body": "{{location}}에서의 둘의 이야기를 확인해보세요"
+    },
+    "nudge": {
+      "title": "톡톡! 두드림이 왔어요",
+      "body": "{{name}}님이 오늘의 기록을 기다리고 있어요"
+    },
+    "stamp-claimed": {
+      "title": "추억의 발자국이 늘었어요!",
+      "body": "{{name}}님과 함께 오늘의 미션을 완료했어요. 발자국 {{count}}개 획득!"
+    }
+  }
+}

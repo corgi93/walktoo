@@ -1,0 +1,41 @@
+{
+  "list": {
+    "title": "산책 기록",
+    "view-mode-timeline": "타임라인",
+    "view-mode-feed": "피드",
+    "empty-title": "아직 산책 기록이 없어요",
+    "empty-description": "함께한 첫 발걸음을 남겨보세요"
+  },
+  "create": {
+    "title": "오늘의 산책",
+    "location-label": "장소",
+    "location-placeholder": "어디였어?",
+    "memo-label": "오늘의 한마디",
+    "memo-placeholder": "오늘 산책은 어땠어?",
+    "date-label": "날짜",
+    "photo-label": "사진",
+    "submit": "기록 남기기",
+    "submitting": "저장 중...",
+    "today-already": "오늘은 이미 산책 기록을 남겼어요!",
+    "save-success": "산책 기록이 저장되었어요",
+    "save-failed": "저장에 실패했어요"
+  },
+  "detail": {
+    "title": "산책 기록",
+    "my-entry": "내 기록",
+    "partner-entry": "연인의 기록",
+    "memo-empty": "메모가 없어요",
+    "no-photos": "사진이 없어요"
+  },
+  "timeline": {
+    "year-label": "{{year}}년",
+    "locked-waiting-mine": "나의 하루를 먼저 남겨주세요",
+    "locked-waiting-partner": "연인의 기록을 기다리는 중...",
+    "status-mine": "나",
+    "status-partner": "연인",
+    "nudge-button": "톡톡!",
+    "nudge-sending": "보내는 중",
+    "nudge-success": "톡톡! 연인에게 알림을 보냈어요",
+    "nudge-failed": "알림 보내기에 실패했어요"
+  }
+}

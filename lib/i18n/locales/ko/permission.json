@@ -1,0 +1,27 @@
+{
+  "title": "권한 관리",
+  "pedometer": {
+    "title": "걸음수 권한",
+    "description": "걸음수를 측정하기 위해 걸음 권한이 필요해요",
+    "denied": "걸음수 권한이 거부되었어요"
+  },
+  "location": {
+    "title": "위치 권한",
+    "description": "산책 장소를 자동으로 기록하기 위해 위치 권한이 필요해요",
+    "denied": "위치 권한이 거부되었어요"
+  },
+  "notification": {
+    "title": "알림 권한",
+    "description": "연인의 산책 기록과 톡톡 알림을 받기 위해 알림 권한이 필요해요",
+    "denied": "알림 권한이 거부되었어요"
+  },
+  "settings-guide": {
+    "title": "설정에서 권한을 켜주세요",
+    "description": "{{permission}} 권한이 필요해요. 설정에서 직접 켜주세요.",
+    "open-settings": "설정 열기"
+  },
+  "prompt": {
+    "allow": "허용",
+    "later": "나중에"
+  }
+}

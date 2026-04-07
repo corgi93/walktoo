@@ -1,0 +1,37 @@
+{
+  "no-couple": {
+    "title": "함께 걸을 사람이 없어요",
+    "description": "초대코드를 만들어 연인과 연결해보세요",
+    "create-code": "초대코드 만들기",
+    "enter-code": "초대코드 입력하기"
+  },
+  "header": {
+    "with": "함께",
+    "days-together": "함께한 지 {{days}}일"
+  },
+  "manage": {
+    "title": "커플 관리",
+    "code-label": "초대코드",
+    "code-share": "초대코드 공유하기",
+    "code-copied": "초대코드를 복사했어요",
+    "code-expired": "코드가 만료되었어요",
+    "code-input-label": "초대코드 입력",
+    "code-input-placeholder": "6자리 코드를 입력해주세요",
+    "code-submit": "연결하기",
+    "code-success": "연결되었어요",
+    "code-failed": "연결에 실패했어요",
+    "first-met-label": "처음 만난 날",
+    "first-met-empty": "설정해주세요",
+    "first-met-updated": "처음 만난 날을 변경했어요",
+    "unlink-button": "커플 연결 해제",
+    "unlink-confirm-title": "정말 해제할까요?",
+    "unlink-confirm-message": "함께한 기록은 그대로 남아요",
+    "unlink-success": "연결을 해제했어요",
+    "unlink-failed": "해제에 실패했어요",
+    "regenerate-code": "코드 새로 만들기"
+  },
+  "joined-notification": {
+    "title": "💞 연인과 연결되었어요",
+    "body": "{{name}}님과 함께 산책을 시작해보세요"
+  }
+}

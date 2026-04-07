@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -172,11 +173,15 @@ const FRAMES_MAP: Record<CharacterType, ImageSourcePropType[]> = {
 
 export function WalkIllustration({
   mode,
-  myName = '나',
-  partnerName = '상대방',
+  myName,
+  partnerName,
   myCharacter = 'boy',
   partnerCharacter = 'girl',
 }: WalkIllustrationProps) {
+  const { t } = useTranslation(['common', 'home']);
+  const displayMyName = myName ?? t('common:labels.me');
+  const displayPartnerName = partnerName ?? t('common:fallback.partner-nickname');
+
   if (mode === 'couple') {
     return (
       <View style={styles.container}>
@@ -189,7 +194,7 @@ export function WalkIllustration({
               delay={0}
             />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
-              {myName}
+              {displayMyName}
             </Text>
           </View>
 
@@ -209,7 +214,7 @@ export function WalkIllustration({
               delay={150}
             />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
-              {partnerName}
+              {displayPartnerName}
             </Text>
           </View>
         </View>
@@ -225,10 +230,10 @@ export function WalkIllustration({
         <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={80} />
       </View>
       <Text variant="bodySmall" color="textSecondary" mt="md" style={styles.nameText}>
-        아직 내 사람이 없어요
+        {t('home:solo.no-partner')}
       </Text>
       <Text variant="caption" color="primary" mt="xxs">
-        연결하면 둘만의 산책이 시작돼요
+        {t('home:solo.connect-prompt')}
       </Text>
     </View>
   );

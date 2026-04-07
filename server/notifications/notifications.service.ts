@@ -1,3 +1,5 @@
+import i18n from '@/lib/i18n';
+
 import type { NotificationRow } from '../types/database.types';
 import { notificationsRepository } from './notifications.repository';
 
@@ -126,7 +128,11 @@ export const notificationsService = {
 
   // ─── 시나리오별 편의 메서드 ─────────────────────────────
 
-  /** 커플 연결 완료 알림 (user1에게) */
+  /**
+   * 커플 연결 완료 알림 (user1에게)
+   * 푸시 본문은 발신자 클라이언트 로케일로 생성됨.
+   * (백엔드 푸시로 옮길 때 수신자 로케일 기반 재생성 예정)
+   */
   notifyCoupleJoined: async (
     recipientId: string,
     senderId: string,
@@ -138,8 +144,8 @@ export const notificationsService = {
       senderId,
       coupleId,
       type: 'couple_joined',
-      title: '커플 연결 완료!',
-      body: `${partnerName}님이 초대를 수락했어요. 이제 함께 걸어볼까요?`,
+      title: i18n.t('notification:push.couple-joined.title'),
+      body: i18n.t('notification:push.couple-joined.body', { name: partnerName }),
       data: { coupleId },
     });
   },
@@ -158,8 +164,11 @@ export const notificationsService = {
       senderId,
       coupleId,
       type: 'walk_created',
-      title: '새 산책 기록이 도착했어요!',
-      body: `${senderName}님이 ${locationName}에서의 하루를 남겼어요. 나도 기록해볼까요?`,
+      title: i18n.t('notification:push.walk-created.title'),
+      body: i18n.t('notification:push.walk-created.body', {
+        name: senderName,
+        location: locationName,
+      }),
       data: { walkId, coupleId, locationName },
     });
   },
@@ -175,8 +184,8 @@ export const notificationsService = {
       recipientId,
       coupleId,
       type: 'walk_revealed',
-      title: '서로의 하루가 공개됐어요!',
-      body: `${locationName}에서의 둘의 이야기를 확인해보세요`,
+      title: i18n.t('notification:push.walk-revealed.title'),
+      body: i18n.t('notification:push.walk-revealed.body', { location: locationName }),
       data: { walkId, coupleId, locationName },
     });
   },
@@ -194,8 +203,8 @@ export const notificationsService = {
       senderId,
       coupleId,
       type: 'nudge',
-      title: '톡톡! 두드림이 왔어요',
-      body: `${senderName}님이 오늘의 기록을 기다리고 있어요`,
+      title: i18n.t('notification:push.nudge.title'),
+      body: i18n.t('notification:push.nudge.body', { name: senderName }),
       data: { walkId, coupleId },
     });
   },
@@ -203,16 +212,21 @@ export const notificationsService = {
   /** 추억의 발자국 획득 알림 (커플 양쪽에게) */
   notifyStampClaimed: async (
     recipientId: string,
+    senderId: string,
     coupleId: string,
     count: number,
     senderName: string,
   ) => {
     await notificationsService.send({
       recipientId,
+      senderId,
       coupleId,
       type: 'stamp_claimed',
-      title: '추억의 발자국이 늘었어요!',
-      body: `${senderName}님과 함께 오늘의 미션을 완료했어요. 발자국 ${count}개 획득!`,
+      title: i18n.t('notification:push.stamp-claimed.title'),
+      body: i18n.t('notification:push.stamp-claimed.body', {
+        name: senderName,
+        count,
+      }),
       data: { coupleId, count },
     });
   },

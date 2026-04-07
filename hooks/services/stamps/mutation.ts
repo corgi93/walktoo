@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { QUERY_KEYS } from '@/constants/keys';
+import { STAMP } from '@/constants/game-config';
 import { memoryStampsService } from '@/server/memory-stamps';
 import { notificationsService } from '@/server/notifications';
 
@@ -25,7 +26,7 @@ export const useClaimStampMutation = () => {
 
       // 성공 시 양쪽 알림센터에 기록 (실패해도 무시)
       if (result.success && params.coupleId && params.myId && params.myName) {
-        const stampCount = result.count ?? params.count ?? 30;
+        const stampCount = result.count ?? params.count ?? STAMP.DAILY_REWARD;
         const recipients = [params.myId, params.partnerId].filter(
           (id): id is string => !!id,
         );
@@ -34,6 +35,7 @@ export const useClaimStampMutation = () => {
             notificationsService
               .notifyStampClaimed(
                 recipientId,
+                params.myId!,
                 params.coupleId!,
                 stampCount,
                 params.myName!,

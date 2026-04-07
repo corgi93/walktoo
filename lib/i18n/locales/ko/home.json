@@ -1,0 +1,39 @@
+{
+  "app-name": "walkToo",
+  "dday": {
+    "set-prompt": "처음 만난 날을 설정해주세요",
+    "met-text": "만난 지",
+    "format": "D+{{days}}",
+    "picker-title": "처음 만난 날이 언제인가요?"
+  },
+  "steps": {
+    "today": "오늘의 걸음",
+    "goal-suffix": "/ {{goal}}"
+  },
+  "mission": {
+    "title": "오늘의 미션",
+    "progress-percent": "{{percent}}%",
+    "claim-button": "추억의 발자국 받기 (+{{count}})",
+    "claim-done": "오늘의 발자국 수집 완료"
+  },
+  "stamp": {
+    "claim-success": "추억의 발자국 {{count}}개를 받았어요! 🐾",
+    "claim-already": "오늘의 발자국은 이미 받았어요",
+    "claim-failed": "발자국을 받지 못했어요"
+  },
+  "recent-walks": {
+    "title": "최근 산책",
+    "status-revealed": "공개됨",
+    "status-pending": "대기중"
+  },
+  "recent-notifications": {
+    "title": "최근 알림"
+  },
+  "cta": {
+    "create-walk": "오늘의 산책 기록하기"
+  },
+  "solo": {
+    "no-partner": "아직 내 사람이 없어요",
+    "connect-prompt": "연결하면 둘만의 산책이 시작돼요"
+  }
+}

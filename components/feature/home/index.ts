@@ -1,1 +1,9 @@
+export { DdaySection } from './DdaySection';
+export { FirstMetDatePicker } from './FirstMetDatePicker';
 export { HeroStatCard } from './HeroStatCard';
+export { HomeTopBar } from './HomeTopBar';
+export { MissionCard } from './MissionCard';
+export { RecentNotificationsWidget } from './RecentNotificationsWidget';
+export { RecentWalksWidget } from './RecentWalksWidget';
+export { StepsSection } from './StepsSection';
+export { WalkIllustration } from './WalkIllustration';

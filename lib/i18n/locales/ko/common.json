@@ -1,0 +1,39 @@
+{
+  "actions": {
+    "save": "저장",
+    "cancel": "취소",
+    "close": "닫기",
+    "confirm": "확인",
+    "delete": "삭제",
+    "edit": "수정",
+    "back": "뒤로",
+    "next": "다음",
+    "done": "완료",
+    "retry": "다시 시도",
+    "ok": "확인",
+    "loading": "불러오는 중",
+    "see-all": "전체 보기"
+  },
+  "labels": {
+    "me": "나",
+    "partner": "상대방",
+    "lover": "연인",
+    "today": "오늘",
+    "tomorrow": "내일",
+    "yesterday": "어제",
+    "year-suffix": "년",
+    "month-suffix": "월",
+    "day-suffix": "일",
+    "weeks": "주",
+    "days": "일"
+  },
+  "units": {
+    "steps": "걸음",
+    "kcal": "kcal",
+    "stamps": "발자국",
+    "photos-count": "사진 {{count}}장"
+  },
+  "fallback": {
+    "partner-nickname": "상대방"
+  }
+}

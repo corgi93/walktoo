@@ -13,6 +13,7 @@ import { ToastProvider } from "@/components/composite/toast/ToastProvider";
 import { useNotificationSetup } from "@/hooks/useNotification";
 import { useStepSync } from "@/hooks/useStepSync";
 import { useBackgroundStepSync } from "@/hooks/useBackgroundStepSync";
+import "@/lib/i18n"; // i18next 초기화 (side-effect import)
 import { theme } from "@/styles/theme";
 
 // ─── Config ─────────────────────────────────────────────

@@ -150,26 +150,44 @@ export const REFLECTION_QUESTIONS: ReflectionQuestion[] = [
 ];
 
 /**
- * 해당 년/월에 배정된 질문 3개를 결정론적으로 선택
- * (같은 커플/월이면 항상 같은 3개 반환)
+ * 해당 년/월에 배정된 질문 3개를 결정론적으로 선택.
+ * 같은 커플/월이면 항상 같은 3개를 반환한다.
+ *
+ * - 시드: hashCode(coupleId) ⊕ (year, month)
+ * - PRNG: mulberry32 (32비트 결정적, 분포 균일)
+ * - 셔플: Fisher-Yates 부분 셔플 (중복 없음 보장)
  */
 export function pickReflectionQuestions(
   coupleId: string,
   year: number,
   month: number,
 ): ReflectionQuestion[] {
-  // 간단한 해싱: coupleId + year*12 + month
-  const seed = hashCode(coupleId) + year * 12 + month;
+  const seed = (hashCode(coupleId) ^ (year * 12 + month)) >>> 0;
+  const rng = mulberry32(seed);
   const pool = [...REFLECTION_QUESTIONS];
-  const picked: ReflectionQuestion[] = [];
 
-  for (let i = 0; i < 3; i++) {
-    const idx = Math.abs((seed * (i + 1) * 31) % pool.length);
-    picked.push(pool[idx]);
-    pool.splice(idx, 1);
+  // Fisher-Yates 부분 셔플: 앞 3개만 결정
+  const pickCount = Math.min(3, pool.length);
+  for (let i = 0; i < pickCount; i++) {
+    const j = i + Math.floor(rng() * (pool.length - i));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
+  return pool.slice(0, pickCount);
+}
 
-  return picked;
+/**
+ * mulberry32 — 32비트 결정적 PRNG.
+ * 시드만 같으면 항상 같은 시퀀스를 반환한다. 분포가 균일.
+ */
+function mulberry32(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+  };
 }
 
 function hashCode(str: string): number {
