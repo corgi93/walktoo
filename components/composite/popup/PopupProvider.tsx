@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Column, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -32,6 +33,7 @@ export const usePopup = () => {
 // ─── Provider ───────────────────────────────────────────
 
 export const PopupProvider = ({ children }: { children: React.ReactNode }) => {
+  const { t } = useTranslation('common');
   const [state, setState] = useState<PopupOptions & { visible: boolean }>({
     visible: false,
     content: '',
@@ -78,7 +80,7 @@ export const PopupProvider = ({ children }: { children: React.ReactNode }) => {
                   onPress={async () => { await state.onConfirm?.(); hide(); }}
                 >
                   <Text variant="label" color="white">
-                    {state.confirmText ?? '확인'}
+                    {state.confirmText ?? t('actions.confirm')}
                   </Text>
                 </TouchableOpacity>
               </Row>

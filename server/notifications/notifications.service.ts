@@ -1,3 +1,5 @@
+import i18n from '@/lib/i18n';
+
 import type { NotificationRow } from '../types/database.types';
 import { notificationsRepository } from './notifications.repository';
 
@@ -7,7 +9,8 @@ export type NotificationType =
   | 'couple_joined'    // 커플 연결 완료
   | 'walk_created'     // 상대방이 산책 기록 생성
   | 'walk_revealed'    // 둘 다 작성 → 공개
-  | 'nudge';           // 톡톡 (기록 요청)
+  | 'nudge'            // 톡톡 (기록 요청)
+  | 'stamp_claimed';   // 추억의 발자국 획득
 
 export interface AppNotification {
   id: string;
@@ -89,7 +92,7 @@ export const notificationsService = {
     body: string;
     data?: Record<string, unknown>;
   }) => {
-    // 1. DB에 알림 저장
+    // 1. DB에 알림 저장 (실패해도 Push는 시도)
     const { error } = await notificationsRepository.create({
       recipient_id: recipientId,
       sender_id: senderId ?? null,
@@ -101,7 +104,7 @@ export const notificationsService = {
     });
     if (error) {
       console.warn('[Notification] DB 저장 실패:', error.message);
-      return;
+      // DB 실패해도 Push는 계속 진행
     }
 
     // 2. Push 발송 (Expo Push API)
@@ -110,9 +113,14 @@ export const notificationsService = {
         await notificationsRepository.getPushToken(recipientId);
       const pushToken = tokenData?.push_token;
 
-      if (pushToken) {
-        await sendExpoPush(pushToken, title, body, data);
+      if (!pushToken) {
+        console.warn(
+          `[Notification] 상대방(${recipientId})의 push_token이 없습니다. 알림 권한을 확인하세요.`,
+        );
+        return;
       }
+
+      await sendExpoPush(pushToken, title, body, data);
     } catch (pushError) {
       console.warn('[Notification] Push 발송 실패:', pushError);
     }
@@ -120,7 +128,11 @@ export const notificationsService = {
 
   // ─── 시나리오별 편의 메서드 ─────────────────────────────
 
-  /** 커플 연결 완료 알림 (user1에게) */
+  /**
+   * 커플 연결 완료 알림 (user1에게)
+   * 푸시 본문은 발신자 클라이언트 로케일로 생성됨.
+   * (백엔드 푸시로 옮길 때 수신자 로케일 기반 재생성 예정)
+   */
   notifyCoupleJoined: async (
     recipientId: string,
     senderId: string,
@@ -132,8 +144,8 @@ export const notificationsService = {
       senderId,
       coupleId,
       type: 'couple_joined',
-      title: '커플 연결 완료!',
-      body: `${partnerName}님이 초대를 수락했어요. 이제 함께 걸어볼까요?`,
+      title: i18n.t('notification:push.couple-joined.title'),
+      body: i18n.t('notification:push.couple-joined.body', { name: partnerName }),
       data: { coupleId },
     });
   },
@@ -152,8 +164,11 @@ export const notificationsService = {
       senderId,
       coupleId,
       type: 'walk_created',
-      title: '새 산책 기록이 도착했어요!',
-      body: `${senderName}님이 ${locationName}에서의 하루를 남겼어요. 나도 기록해볼까요?`,
+      title: i18n.t('notification:push.walk-created.title'),
+      body: i18n.t('notification:push.walk-created.body', {
+        name: senderName,
+        location: locationName,
+      }),
       data: { walkId, coupleId, locationName },
     });
   },
@@ -169,8 +184,8 @@ export const notificationsService = {
       recipientId,
       coupleId,
       type: 'walk_revealed',
-      title: '서로의 하루가 공개됐어요!',
-      body: `${locationName}에서의 둘의 이야기를 확인해보세요`,
+      title: i18n.t('notification:push.walk-revealed.title'),
+      body: i18n.t('notification:push.walk-revealed.body', { location: locationName }),
       data: { walkId, coupleId, locationName },
     });
   },
@@ -188,9 +203,31 @@ export const notificationsService = {
       senderId,
       coupleId,
       type: 'nudge',
-      title: '톡톡! 두드림이 왔어요',
-      body: `${senderName}님이 오늘의 기록을 기다리고 있어요`,
+      title: i18n.t('notification:push.nudge.title'),
+      body: i18n.t('notification:push.nudge.body', { name: senderName }),
       data: { walkId, coupleId },
+    });
+  },
+
+  /** 추억의 발자국 획득 알림 (커플 양쪽에게) */
+  notifyStampClaimed: async (
+    recipientId: string,
+    senderId: string,
+    coupleId: string,
+    count: number,
+    senderName: string,
+  ) => {
+    await notificationsService.send({
+      recipientId,
+      senderId,
+      coupleId,
+      type: 'stamp_claimed',
+      title: i18n.t('notification:push.stamp-claimed.title'),
+      body: i18n.t('notification:push.stamp-claimed.body', {
+        name: senderName,
+        count,
+      }),
+      data: { coupleId, count },
     });
   },
 };
@@ -204,7 +241,7 @@ async function sendExpoPush(
   data: Record<string, unknown>,
 ) {
   try {
-    await fetch('https://exp.host/--/api/v2/push/send', {
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -217,8 +254,22 @@ async function sendExpoPush(
         data,
         sound: 'default',
         priority: 'high',
+        channelId: 'default',
       }),
     });
+
+    const result = await response.json();
+
+    // Expo Push API 응답 확인
+    if (result.data?.status === 'error') {
+      console.warn(
+        '[ExpoPush] 발송 에러:',
+        result.data.message,
+        '| details:', result.data.details,
+      );
+    } else {
+      console.log('[ExpoPush] 발송 성공:', result.data?.id);
+    }
   } catch (error) {
     console.warn('[ExpoPush] 발송 실패:', error);
   }

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
-import { formatSteps } from '@/utils';
+import { formatDate, parseLocalDate } from '@/utils/date';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ export function WalkDiaryCard({
   onNudge,
   nudgeLoading,
 }: WalkDiaryCardProps) {
-  const formattedDate = new Date(diary.date).toLocaleDateString('ko-KR', {
+  const formattedDate = formatDate(parseLocalDate(diary.date), {
     month: 'long',
     day: 'numeric',
     weekday: 'short',
@@ -60,6 +61,7 @@ function LockedFeedCard({
   onNudge?: (diary: WalkDiary) => void;
   nudgeLoading?: boolean;
 }) {
+  const { t } = useTranslation(['diary', 'common']);
   const hasMyEntry = !!diary.myEntry;
   const hasPartnerEntry = !!diary.partnerEntry;
   // 내가 기록했고, 상대방은 아직 → 톡톡 가능
@@ -96,7 +98,7 @@ function LockedFeedCard({
               color={hasMyEntry ? theme.colors.secondary : theme.colors.gray400}
             />
             <Text variant="caption" color="textSecondary" ml="xs">
-              나
+              {t('diary:timeline.status-mine')}
             </Text>
           </View>
           <View style={styles.lockChip}>
@@ -106,7 +108,7 @@ function LockedFeedCard({
               color={hasPartnerEntry ? theme.colors.secondary : theme.colors.gray400}
             />
             <Text variant="caption" color="textSecondary" ml="xs">
-              연인
+              {t('diary:timeline.status-partner')}
             </Text>
           </View>
         </Row>
@@ -120,7 +122,7 @@ function LockedFeedCard({
             ) : null}
             {diary.myEntry.photos && diary.myEntry.photos.length > 0 && (
               <Text variant="caption" color="textMuted" mt="xxs">
-                📷 사진 {diary.myEntry.photos.length}장
+                📷 {t('common:units.photos-count', { count: diary.myEntry.photos.length })}
               </Text>
             )}
           </View>
@@ -128,8 +130,8 @@ function LockedFeedCard({
 
         <Text variant="caption" color="textMuted" mt="sm" align="center">
           {hasMyEntry
-            ? '연인의 기록을 기다리는 중...'
-            : '나의 하루를 먼저 남겨주세요'}
+            ? t('diary:timeline.locked-waiting-partner')
+            : t('diary:timeline.locked-waiting-mine')}
         </Text>
 
         {/* ── 톡톡 버튼 ── */}
@@ -143,7 +145,7 @@ function LockedFeedCard({
               {nudgeLoading ? '...' : '👆'}
             </Text>
             <Text variant="label" color="primary" ml="xs">
-              {nudgeLoading ? '보내는 중' : '톡톡! 두드리기'}
+              {nudgeLoading ? t('diary:timeline.nudge-sending') : t('diary:timeline.nudge-button')}
             </Text>
           </Pressable>
         )}
@@ -238,18 +240,6 @@ function RevealedFeedCard({
         )}
       </Row>
 
-      {/* 걸음수 */}
-      {diary.steps > 0 && (
-        <Row style={styles.statsRow}>
-          <Icon name="shoe-sneaker" size={14} color={theme.colors.primary} />
-          <Text variant="label" color="text" ml="xs">
-            {formatSteps(diary.steps)}
-          </Text>
-          <Text variant="caption" color="textMuted" ml="xxs">
-            걸음
-          </Text>
-        </Row>
-      )}
     </Pressable>
   );
 }
@@ -344,12 +334,5 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.gray100,
-  },
-  statsRow: {
-    marginTop: SPACING.md,
-    paddingTop: SPACING.md,
-    borderTopWidth: 2,
-    borderTopColor: theme.colors.gray200,
-    alignItems: 'center',
   },
 });

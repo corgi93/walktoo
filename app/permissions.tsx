@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 import { Box, Row, Text } from "@/components/base";
 import { PermissionPrompt } from "@/components/feature/permissions";
@@ -58,6 +59,7 @@ function PermissionStep({
 export default function PermissionsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('permission');
   const [currentIndex, setCurrentIndex] = useState(0);
   const { setOnboardingComplete } = usePermissionStore();
 
@@ -77,9 +79,9 @@ export default function PermissionsScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
       {/* Header */}
       <Box px="xxl" py="lg">
-        <Text variant="headingLarge">시작하기 전에</Text>
+        <Text variant="headingLarge">{t('onboarding.title')}</Text>
         <Text variant="bodySmall" color="textSecondary" mt="xs">
-          walkToo를 위해 몇 가지 권한이 필요해요
+          {t('onboarding.subtitle')}
         </Text>
       </Box>
 

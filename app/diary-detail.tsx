@@ -13,8 +13,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
-import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
+import { Box, Button, Icon, Row, Text } from '@/components/base';
 import {
   COUPLE_QUESTIONS,
   DIARY_QUESTIONS,
@@ -29,7 +30,7 @@ import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
 import { FootprintEntry } from '@/types/diary';
-import { formatSteps } from '@/utils';
+import { formatDate, parseLocalDate } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -37,18 +38,17 @@ export default function DiaryDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const dialog = useDialogStore();
+  const { t } = useTranslation(['diary', 'common']);
   const params = useLocalSearchParams<{
     id: string;
     date: string;
     locationName: string;
-    steps: string;
     isRevealed: string;
     myEntry: string;
     partnerEntry: string;
   }>();
 
   const walkId = params.id;
-  const steps = Number(params.steps) || 0;
   const isRevealed = params.isRevealed === 'true';
   const myEntry: FootprintEntry | undefined = params.myEntry
     ? JSON.parse(params.myEntry)
@@ -58,7 +58,6 @@ export default function DiaryDetailScreen() {
     : undefined;
 
   const hasMyEntry = !!myEntry;
-  const hasPartnerEntry = !!partnerEntry;
 
   // 질문 데이터
   const { data: couple } = useGetCoupleQuery();
@@ -79,7 +78,7 @@ export default function DiaryDetailScreen() {
   const isSaving = addEntry.isPending || updateEntry.isPending;
 
   const formattedDate = params.date
-    ? new Date(params.date).toLocaleDateString('ko-KR', {
+    ? formatDate(parseLocalDate(params.date), {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -94,13 +93,17 @@ export default function DiaryDetailScreen() {
     setCoupleAnswer(myEntry?.coupleAnswer ?? '');
     setIsEditing(true);
   };
+  void memo; // memo 상태는 폼 초기화에 사용 (편집 시 photos/answers와 같이 reset)
 
   const handleCancelEdit = () => setIsEditing(false);
 
   const handleAddPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      dialog.alert('권한 필요', '사진을 업로드하려면 갤러리 접근 권한이 필요해요.');
+      dialog.alert(
+        t('diary:create.photo-permission-title'),
+        t('diary:create.photo-permission-message'),
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -132,7 +135,11 @@ export default function DiaryDetailScreen() {
         },
         {
           onSuccess: () => router.back(),
-          onError: (e) => dialog.alert('수정 실패', e.message || '다시 시도해주세요.'),
+          onError: (e) =>
+            dialog.alert(
+              t('diary:detail.form.edit-failed-title'),
+              e.message || t('diary:detail.form.save-retry'),
+            ),
         },
       );
     } else {
@@ -148,7 +155,11 @@ export default function DiaryDetailScreen() {
         },
         {
           onSuccess: () => router.back(),
-          onError: (e) => dialog.alert('저장 실패', e.message || '다시 시도해주세요.'),
+          onError: (e) =>
+            dialog.alert(
+              t('diary:detail.form.save-failed-title'),
+              e.message || t('diary:detail.form.save-retry'),
+            ),
         },
       );
     }
@@ -164,7 +175,7 @@ export default function DiaryDetailScreen() {
           <Icon name="arrow-left" size={22} color={theme.colors.text} />
         </Pressable>
         <Text variant="headingMedium" ml="md">
-          산책 일기
+          {t('diary:detail.title')}
         </Text>
         <View style={{ flex: 1 }} />
       </Row>
@@ -178,12 +189,8 @@ export default function DiaryDetailScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ══════════════════════════════════════════════════
-              다이어리 페이지 — 노트 스타일
-             ══════════════════════════════════════════════════ */}
           <Box px="xxl">
             <View style={styles.diaryPage}>
-              {/* 날짜 스탬프 */}
               <View style={styles.dateStamp}>
                 <Icon name="calendar" size={13} color={theme.colors.primary} />
                 <Text variant="caption" color="primary" ml="xxs">
@@ -191,7 +198,6 @@ export default function DiaryDetailScreen() {
                 </Text>
               </View>
 
-              {/* 장소 */}
               <Row style={styles.locationRow}>
                 <Icon name="map-pin" size={18} color={theme.colors.primary} />
                 <Text variant="headingLarge" ml="xs">
@@ -199,52 +205,40 @@ export default function DiaryDetailScreen() {
                 </Text>
               </Row>
 
-              {/* 걸음수 */}
-              {steps > 0 && (
-                <View style={styles.stepsBadge}>
-                  <Icon name="shoe-sneaker" size={13} color={theme.colors.secondary} />
-                  <Text variant="caption" color="secondary" ml="xxs">
-                    {formatSteps(steps)} 걸음
-                  </Text>
-                </View>
-              )}
-
-              {/* 점선 구분 */}
               <View style={styles.dashedDivider} />
 
               {/* ── 내 기록 ── */}
               <EntrySection
-                label={myEntry?.nickname ?? '나'}
+                label={myEntry?.nickname ?? t('common:labels.me')}
                 color={theme.colors.primary}
                 accentBg={theme.colors.primarySurface}
                 borderColor={theme.colors.primaryLight}
               >
                 {hasMyEntry && !isEditing ? (
-                  /* 읽기 모드 */
                   <>
                     {myEntry.photos.length > 0 && (
                       <PhotoStrip photos={myEntry.photos} />
                     )}
-                    {/* 다이어리 질문 Q&A */}
                     {myEntry.diaryQuestionId != null ? (
                       <QABlock
                         label="📝"
                         question={DIARY_QUESTIONS[myEntry.diaryQuestionId]?.content ?? ''}
                         answer={myEntry.diaryAnswer ?? ''}
                         bgColor={theme.colors.surfaceWarm}
+                        emptyText={t('diary:detail.answer-empty')}
                       />
                     ) : myEntry.memo ? (
                       <View style={styles.memoReadBubble}>
                         <Text variant="bodyMedium" color="text">{myEntry.memo}</Text>
                       </View>
                     ) : null}
-                    {/* 커플 질문 Q&A */}
                     {myEntry.coupleQuestionId != null && (
                       <QABlock
                         label="💌"
                         question={COUPLE_QUESTIONS[myEntry.coupleQuestionId]?.content ?? ''}
                         answer={myEntry.coupleAnswer ?? ''}
                         bgColor={theme.colors.primarySurface}
+                        emptyText={t('diary:detail.answer-empty')}
                       />
                     )}
                     <Pressable
@@ -254,12 +248,11 @@ export default function DiaryDetailScreen() {
                     >
                       <Icon name="edit" size={12} color={theme.colors.primary} />
                       <Text variant="caption" color="primary" ml="xxs">
-                        수정하기
+                        {t('diary:detail.edit')}
                       </Text>
                     </Pressable>
                   </>
                 ) : showForm ? (
-                  /* 입력/수정 폼 */
                   <>
                     {isEditing && (
                       <Pressable
@@ -268,7 +261,7 @@ export default function DiaryDetailScreen() {
                         hitSlop={8}
                       >
                         <Text variant="caption" color="textMuted">
-                          취소
+                          {t('diary:detail.edit-cancel')}
                         </Text>
                       </Pressable>
                     )}
@@ -289,49 +282,46 @@ export default function DiaryDetailScreen() {
                 ) : null}
               </EntrySection>
 
-              {/* 작은 장식 */}
               <View style={styles.heartDivider}>
                 <Text style={styles.heartText}>{'~ ~ ~'}</Text>
               </View>
 
               {/* ── 연인 기록 ── */}
               <EntrySection
-                label={partnerEntry?.nickname ?? '연인'}
+                label={partnerEntry?.nickname ?? t('common:labels.lover')}
                 color="#6A9E85"
                 accentBg="#EDF7F1"
                 borderColor="#C5E4D2"
               >
                 {isRevealed && partnerEntry ? (
-                  /* 공개됨 */
                   <>
                     {partnerEntry.photos.length > 0 && (
                       <PhotoStrip photos={partnerEntry.photos} />
                     )}
-                    {/* 다이어리 질문 Q&A */}
                     {partnerEntry.diaryQuestionId != null ? (
                       <QABlock
                         label="📝"
                         question={DIARY_QUESTIONS[partnerEntry.diaryQuestionId]?.content ?? ''}
                         answer={partnerEntry.diaryAnswer ?? ''}
                         bgColor="#EDF7F1"
+                        emptyText={t('diary:detail.answer-empty')}
                       />
                     ) : partnerEntry.memo ? (
                       <View style={[styles.memoReadBubble, { backgroundColor: '#EDF7F1' }]}>
                         <Text variant="bodyMedium" color="text">{partnerEntry.memo}</Text>
                       </View>
                     ) : null}
-                    {/* 커플 질문 Q&A */}
                     {partnerEntry.coupleQuestionId != null && (
                       <QABlock
                         label="💌"
                         question={COUPLE_QUESTIONS[partnerEntry.coupleQuestionId]?.content ?? ''}
                         answer={partnerEntry.coupleAnswer ?? ''}
                         bgColor="#EDF7F1"
+                        emptyText={t('diary:detail.answer-empty')}
                       />
                     )}
                   </>
                 ) : (
-                  /* 잠금 상태 */
                   <View style={styles.lockedArea}>
                     <View style={styles.lockedSticker}>
                       <Text style={styles.lockedStickerEmoji}>
@@ -345,8 +335,8 @@ export default function DiaryDetailScreen() {
                       align="center"
                     >
                       {hasMyEntry
-                        ? '비밀 편지가 도착할 거예요'
-                        : '아직 잠겨있어요'}
+                        ? t('diary:detail.locked.waiting-letter-title')
+                        : t('diary:detail.locked.still-locked-title')}
                     </Text>
                     <Text
                       variant="caption"
@@ -356,25 +346,23 @@ export default function DiaryDetailScreen() {
                       style={{ lineHeight: 18 }}
                     >
                       {hasMyEntry
-                        ? '연인이 기록하면 함께 열어볼 수 있어요'
-                        : '나도 기록을 남기면 서로의 하루가 열려요'}
+                        ? t('diary:detail.locked.waiting-letter-description')
+                        : t('diary:detail.locked.still-locked-description')}
                     </Text>
                   </View>
                 )}
               </EntrySection>
 
-              {/* 하단 장식 */}
               <View style={styles.pageFooter}>
                 <Text style={styles.pageFooterEmoji}>🐾</Text>
                 <Text variant="caption" color="textMuted" ml="xxs">
-                  우리의 발자국
+                  {t('diary:detail.page-footer')}
                 </Text>
               </View>
             </View>
           </Box>
         </ScrollView>
 
-        {/* ── 하단 저장 버튼 ── */}
         {showForm && (
           <Box
             px="xxl"
@@ -393,13 +381,13 @@ export default function DiaryDetailScreen() {
                 <Row style={styles.savingRow}>
                   <ActivityIndicator size="small" color={theme.colors.white} />
                   <Text variant="bodyMedium" color="white">
-                    저장 중...
+                    {t('diary:create.submitting')}
                   </Text>
                 </Row>
               ) : isEditing ? (
-                '수정 완료'
+                t('diary:detail.save-edit')
               ) : (
-                '나의 기록 남기기'
+                t('diary:detail.save-add')
               )}
             </Button>
           </Box>
@@ -409,7 +397,7 @@ export default function DiaryDetailScreen() {
   );
 }
 
-// ─── Entry Section (각 사람의 영역) ─────────────────────
+// ─── Entry Section ──────────────────────────────────────
 
 function EntrySection({
   label,
@@ -424,21 +412,17 @@ function EntrySection({
   borderColor: string;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation('diary');
   return (
     <View style={styles.entrySection}>
-      {/* 이름 태그 */}
       <View style={[styles.nameTag, { backgroundColor: accentBg, borderColor }]}>
         <Text variant="caption" style={{ color: theme.colors.textMuted }}>
-          by.
+          {t('detail.by')}
         </Text>
-        <Text
-          variant="label"
-          style={{ color, marginLeft: SPACING.xxs }}
-        >
+        <Text variant="label" style={{ color, marginLeft: SPACING.xxs }}>
           {label}
         </Text>
       </View>
-      {/* 내용 영역 */}
       <View style={[styles.entryContent, { borderLeftColor: borderColor }]}>
         {children}
       </View>
@@ -446,7 +430,7 @@ function EntrySection({
   );
 }
 
-// ─── Photo Strip (사진 가로 스크롤) ─────────────────────
+// ─── Photo Strip ────────────────────────────────────────
 
 function PhotoStrip({ photos }: { photos: string[] }) {
   if (photos.length === 0) return null;
@@ -465,7 +449,7 @@ function PhotoStrip({ photos }: { photos: string[] }) {
   );
 }
 
-// ─── Entry Form (입력/수정 폼) ──────────────────────────
+// ─── Entry Form ─────────────────────────────────────────
 
 function EntryForm({
   photos,
@@ -492,13 +476,14 @@ function EntryForm({
   onChangeDiaryAnswer: (t: string) => void;
   onChangeCoupleAnswer: (t: string) => void;
 }) {
+  const { t } = useTranslation(['diary']);
   return (
     <View style={styles.formArea}>
       {/* 사진 */}
       <Row style={styles.formLabel}>
         <Text style={{ fontSize: 12 }}>📷</Text>
         <Text variant="caption" color="textSecondary" ml="xxs">
-          사진
+          {t('diary:create.photo-label')}
         </Text>
         <Text variant="caption" color="textMuted" style={{ marginLeft: 'auto' }}>
           {photos.length}/5
@@ -534,18 +519,18 @@ function EntryForm({
       <Row style={[styles.formLabel, { marginTop: SPACING.md }]}>
         <Text style={{ fontSize: 12 }}>📝</Text>
         <Text variant="caption" color="textSecondary" ml="xxs">
-          오늘의 다이어리
+          {t('diary:detail.form.diary-section')}
         </Text>
       </Row>
       <View style={styles.formQuestionPrompt}>
         <Text variant="bodySmall" color="primary">
-          Q. {diaryQuestionContent}
+          {t('diary:create.diary-prompt-prefix')} {diaryQuestionContent}
         </Text>
       </View>
       <View style={styles.formMemoCard}>
         <TextInput
           style={styles.formMemoInput}
-          placeholder="오늘의 이야기를 적어봐 :)"
+          placeholder={t('diary:detail.form.diary-placeholder')}
           placeholderTextColor={theme.colors.gray400}
           value={diaryAnswer}
           onChangeText={onChangeDiaryAnswer}
@@ -559,7 +544,7 @@ function EntryForm({
       <Row style={[styles.formLabel, { marginTop: SPACING.lg }]}>
         <Text style={{ fontSize: 12 }}>💌</Text>
         <Text variant="caption" color="textSecondary" ml="xxs">
-          오늘의 질문
+          {t('diary:detail.form.couple-section')}
         </Text>
         <View style={styles.formCategoryChip}>
           <Text style={{ fontSize: 10 }}>{coupleQuestionEmoji}</Text>
@@ -570,13 +555,13 @@ function EntryForm({
       </Row>
       <View style={styles.formQuestionPrompt}>
         <Text variant="bodySmall" color="primary">
-          Q. {coupleQuestionContent}
+          {t('diary:create.diary-prompt-prefix')} {coupleQuestionContent}
         </Text>
       </View>
       <View style={styles.formMemoCard}>
         <TextInput
           style={styles.formMemoInput}
-          placeholder="솔직하게 적어봐, 연인만 볼 수 있어"
+          placeholder={t('diary:detail.form.couple-placeholder')}
           placeholderTextColor={theme.colors.gray400}
           value={coupleAnswer}
           onChangeText={onChangeCoupleAnswer}
@@ -589,18 +574,20 @@ function EntryForm({
   );
 }
 
-// ─── Q&A Block (읽기 모드) ──────────────────────────────
+// ─── Q&A Block ──────────────────────────────────────────
 
 function QABlock({
   label,
   question,
   answer,
   bgColor,
+  emptyText,
 }: {
   label: string;
   question: string;
   answer: string;
   bgColor: string;
+  emptyText: string;
 }) {
   return (
     <View style={[styles.qaBlock, { backgroundColor: bgColor }]}>
@@ -608,7 +595,7 @@ function QABlock({
         {label} Q. {question}
       </Text>
       <Text variant="bodyMedium" color="text" mt="xs">
-        {answer || '(아직 답변이 없어요)'}
+        {answer || emptyText}
       </Text>
     </View>
   );
@@ -628,15 +615,12 @@ const styles = StyleSheet.create({
   scroll: {
     paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap,
   },
-
-  /* ── 다이어리 페이지 ── */
   diaryPage: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     borderWidth: 2,
     borderColor: theme.colors.border,
     padding: SPACING.lg,
-    // 픽셀 솔리드 그림자
     shadowColor: theme.colors.border,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
@@ -658,24 +642,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACING.md,
   },
-  stepsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: SPACING.sm,
-    backgroundColor: theme.colors.secondaryLight,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xxs,
-    borderRadius: theme.radius.sm,
-  },
   dashedDivider: {
     marginVertical: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray300,
     borderStyle: 'dashed',
   },
-
-  /* ── Entry Section ── */
   entrySection: {
     marginBottom: SPACING.sm,
   },
@@ -695,15 +667,11 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
     paddingBottom: SPACING.xs,
   },
-
-  /* ── Q&A 블록 ── */
   qaBlock: {
     borderRadius: theme.radius.md,
     padding: SPACING.md,
     marginTop: SPACING.sm,
   },
-
-  /* ── 읽기 모드 ── */
   memoReadBubble: {
     backgroundColor: theme.colors.surfaceWarm,
     borderRadius: theme.radius.md,
@@ -726,8 +694,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xxs,
     marginBottom: SPACING.xs,
   },
-
-  /* ── 사진 스트립 ── */
   photoStrip: {
     gap: SPACING.sm,
   },
@@ -736,7 +702,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.gray200,
     overflow: 'hidden',
-    // 테이프 스티커 느낌
     backgroundColor: theme.colors.gray100,
   },
   photoImage: {
@@ -744,8 +709,6 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: theme.radius.sm,
   },
-
-  /* ── 잠금 영역 ── */
   lockedArea: {
     alignItems: 'center',
     paddingVertical: SPACING.xl,
@@ -764,8 +727,6 @@ const styles = StyleSheet.create({
   lockedStickerEmoji: {
     fontSize: 22,
   },
-
-  /* ── 하트 구분선 ── */
   heartDivider: {
     alignItems: 'center',
     marginVertical: SPACING.xs,
@@ -776,8 +737,6 @@ const styles = StyleSheet.create({
     color: theme.colors.gray300,
     letterSpacing: 4,
   },
-
-  /* ── 페이지 하단 장식 ── */
   pageFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -791,8 +750,6 @@ const styles = StyleSheet.create({
   pageFooterEmoji: {
     fontSize: 14,
   },
-
-  /* ── 입력 폼 ── */
   formArea: {
     marginTop: SPACING.xs,
   },
@@ -868,8 +825,6 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     flex: 1,
   },
-
-  /* ── 하단 저장 ── */
   bottomBar: {
     paddingTop: LAYOUT.headerPy,
     borderTopWidth: 2,

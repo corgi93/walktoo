@@ -24,7 +24,11 @@
       "infoPlist": {
         "NSMotionUsageDescription": "걸음수를 측정하기 위해 모션 데이터 접근이 필요합니다.",
         "NSLocationWhenInUseUsageDescription": "함께 걷는 경로를 기록하기 위해 위치 접근이 필요합니다.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 걷기 경로를 기록하기 위해 위치 접근이 필요합니다."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 걷기 경로를 기록하기 위해 위치 접근이 필요합니다.",
+        "UIBackgroundModes": [
+          "fetch",
+          "processing"
+        ]
       }
     },
     "android": {
@@ -44,7 +48,8 @@
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.RECORD_AUDIO",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION"
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {
@@ -79,7 +84,8 @@
         }
       ],
       "@react-native-google-signin/google-signin",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

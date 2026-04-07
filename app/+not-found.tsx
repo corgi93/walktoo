@@ -1,5 +1,6 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -7,17 +8,18 @@ import { theme } from '@/styles/theme';
 // ─── Component ──────────────────────────────────────────
 
 export default function NotFoundScreen() {
+  const { t } = useTranslation('error');
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
       <View style={styles.container}>
         <Icon name="search" size={48} color={theme.colors.gray400} />
         <Text variant="headingMedium" mt="lg">
-          페이지를 찾을 수 없습니다
+          {t('not-found')}
         </Text>
         <Link href="/" style={styles.link}>
           <Text variant="label" color="primary">
-            홈으로 돌아가기 →
+            {t('go-home')} →
           </Text>
         </Link>
       </View>

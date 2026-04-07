@@ -1,0 +1,101 @@
+{
+  "title": "이달의 우리",
+  "subtitle": "이번 달, 우리에 대해 적어봐",
+  "month-title": "{{year}}년 {{month}}월",
+  "section": {
+    "current": "이달의 회고",
+    "past": "지난 회고"
+  },
+  "answer-placeholder": "답변을 적어줘",
+  "save": "답변 저장하기",
+  "saving": "저장 중...",
+  "save-success": "답변을 저장했어요",
+  "save-failed": "저장에 실패했어요",
+  "reveal-locked": "둘 다 답변하면 공개돼요",
+  "reveal-just-now": "💞 답변이 공개되었어요!",
+  "my-answer": "내 답변",
+  "partner-answer": "연인의 답변",
+  "empty-past": "아직 지난 회고가 없어요",
+  "questions": {
+    "1": {
+      "question": "이번 달 가장 고마웠던 순간은?",
+      "placeholder": "작은 것도 괜찮아"
+    },
+    "2": {
+      "question": "너에게 더 고맙다고 말하고 싶은 건?",
+      "placeholder": "평소엔 말하기 쑥스러운 것도"
+    },
+    "3": {
+      "question": "이번 달 가장 많이 웃었던 날은?",
+      "placeholder": "언제, 왜 웃었지?"
+    },
+    "4": {
+      "question": "이번 달 우리의 주제가가 있다면?",
+      "placeholder": "많이 들었던 노래도 좋아"
+    },
+    "5": {
+      "question": "이번 달 함께 본 것 중 최애는?",
+      "placeholder": "드라마, 영화, 유튜브 뭐든"
+    },
+    "6": {
+      "question": "이번 달 기억에 남는 사진 한 장이 있다면?",
+      "placeholder": "어떤 순간이었어?"
+    },
+    "7": {
+      "question": "이번 달 가장 좋았던 산책은?",
+      "placeholder": "어디, 어떤 기분"
+    },
+    "8": {
+      "question": "이번 달 우리만의 아지트가 있다면?",
+      "placeholder": "단골 카페도 좋아"
+    },
+    "9": {
+      "question": "이번 달 가장 맛있었던 음식은?",
+      "placeholder": "같이 먹었던 거면 더 좋고"
+    },
+    "10": {
+      "question": "이번 달 네가 가장 예뻤던 순간은?",
+      "placeholder": "표정이든, 말투든, 행동이든"
+    },
+    "11": {
+      "question": "이번 달 너의 새로 발견한 모습이 있다면?",
+      "placeholder": "이런 면도 있었구나 싶은 것"
+    },
+    "12": {
+      "question": "이번 달 우리를 한 단어로 표현한다면?",
+      "placeholder": "한 단어면 충분해"
+    },
+    "13": {
+      "question": "다음 달 꼭 같이 해보고 싶은 건?",
+      "placeholder": "작은 것부터 큰 것까지"
+    },
+    "14": {
+      "question": "다음 달 너에게 해주고 싶은 게 있다면?",
+      "placeholder": "약속 같은 느낌으로"
+    },
+    "15": {
+      "question": "이번 달 서로에게 해주고 싶은 응원은?",
+      "placeholder": "한 마디면 돼"
+    },
+    "16": {
+      "question": "이번 달 미안했던 순간이 있다면?",
+      "placeholder": "용기 내서 말해도 괜찮아"
+    },
+    "17": {
+      "question": "이번 달 전하지 못한 말이 있다면?",
+      "placeholder": "지금이라도 늦지 않았어"
+    },
+    "18": {
+      "question": "이번 달 우리가 함께 이룬 건?",
+      "placeholder": "작은 성취도 좋아"
+    },
+    "19": {
+      "question": "이번 달 인상적이었던 우리 대화는?",
+      "placeholder": "무슨 얘기였지?"
+    },
+    "20": {
+      "question": "이번 달 가장 기뻤던 선물은?",
+      "placeholder": "마음도 선물이야"
+    }
+  }
+}

@@ -20,13 +20,14 @@ export type WalkWithEntries = WalkRow & {
 // ─── Walks Repository (walks 테이블 직접 쿼리) ─────────
 
 export const walksRepository = {
-  /** 커플의 산책 목록 조회 (페이지네이션) */
+  /** 커플의 산책 목록 조회 (페이지네이션, 산책 날짜 최신순) */
   findByCoupleId: (coupleId: string, page: number, limit = 20) =>
     supabase
       .from('walks')
       .select('*, footprint_entries(*, profiles:user_id(nickname))')
       .eq('couple_id', coupleId)
       .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1)
       .returns<WalkWithEntries[]>(),
 

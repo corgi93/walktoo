@@ -21,6 +21,7 @@ const toUserResponse = (row: ProfileRow): UserResponse => ({
   isProfileComplete: row.is_profile_complete,
   totalWalks: row.total_walks,
   totalSteps: row.total_steps,
+  characterType: row.character_type ?? 'boy',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -59,6 +60,7 @@ export const couplesService = {
       profileImageUrl?: string;
       birthday?: string;
       isProfileComplete?: boolean;
+      characterType?: string;
     },
   ): Promise<UserResponse> => {
     const { data, error } = await couplesRepository.updateProfile(userId, {
@@ -67,6 +69,7 @@ export const couplesService = {
       profile_image_url: updates.profileImageUrl,
       birthday: updates.birthday,
       is_profile_complete: updates.isProfileComplete,
+      character_type: updates.characterType,
     });
     if (error) throw error;
     return toUserResponse(data);
@@ -179,11 +182,13 @@ export const couplesService = {
         id: data.user1.id,
         nickname: data.user1.nickname,
         profileImageUrl: data.user1.profile_image_url ?? undefined,
+        characterType: data.user1.character_type ?? 'boy',
       },
       user2: {
         id: data.user2?.id ?? '',
         nickname: data.user2?.nickname ?? '',
         profileImageUrl: data.user2?.profile_image_url ?? undefined,
+        characterType: data.user2?.character_type ?? 'boy',
       },
       startDate: data.start_date,
       firstMetDate: data.first_met_date ?? undefined,

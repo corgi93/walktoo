@@ -9,7 +9,7 @@ import { dailyStepsService } from '@/server/daily-steps';
  */
 export const useMyStepsTodayQuery = (userId: string | undefined) => {
   return useQuery({
-    queryKey: QUERY_KEYS.steps.today,
+    queryKey: [...QUERY_KEYS.steps.today, userId],
     queryFn: () => dailyStepsService.getMyStepsToday(userId!),
     enabled: !!userId,
     staleTime: 30_000,
@@ -22,10 +22,11 @@ export const useMyStepsTodayQuery = (userId: string | undefined) => {
  */
 export const usePartnerStepsQuery = (partnerId: string | undefined) => {
   return useQuery({
-    queryKey: QUERY_KEYS.steps.partner,
+    queryKey: [...QUERY_KEYS.steps.partner, partnerId],
     queryFn: () => dailyStepsService.getPartnerSteps(partnerId!),
     enabled: !!partnerId,
     refetchInterval: 30_000,
     staleTime: 10_000,
+    retry: 2,
   });
 };

@@ -2,21 +2,25 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
-import { Box, Icon, IconName, PixelCard, Row, Text } from '@/components/base';
+import { Icon, IconName, PixelCard, Row, Text } from '@/components/base';
+import { Box } from '@/components/base';
 import { useLogoutMutation } from '@/hooks/services/auth/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
+import { useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
 import { COMPONENT_SIZE, LAYOUT } from '@/styles/type';
-import { formatSteps } from '@/utils';
+import { formatNumber } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation('profile');
 
   const { data: me } = useGetMeQuery();
   const { data: stats } = useCoupleStatsQuery();
@@ -24,16 +28,16 @@ export default function ProfileScreen() {
   const { refreshing, onRefresh } = useRefresh();
 
   const hasCoupleId = !!me?.coupleId;
+  const { data: totalStamps = 0 } = useTotalStampsQuery(hasCoupleId);
 
   const totalWalks = stats?.totalWalks ?? 0;
-  const totalSteps = stats?.totalSteps ?? 0;
   const currentStreak = stats?.currentStreak ?? 0;
 
   const handleLogout = () => {
-    Alert.alert('로그아웃', '정말 로그아웃 하시겠어요?', [
-      { text: '취소', style: 'cancel' },
+    Alert.alert(t('logout-confirm.title'), t('logout-confirm.message'), [
+      { text: t('logout-confirm.cancel'), style: 'cancel' },
       {
-        text: '로그아웃',
+        text: t('logout-confirm.confirm'),
         style: 'destructive',
         onPress: () => logout.mutate(),
       },
@@ -44,10 +48,7 @@ export default function ProfileScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* ── Header ── */}
       <Row px="xxl" style={styles.header}>
-        <Text variant="headingLarge">마이</Text>
-        <Pressable hitSlop={8}>
-          <Icon name="settings" size={22} color={theme.colors.gray600} />
-        </Pressable>
+        <Text variant="headingLarge">{t('tab-title')}</Text>
       </Row>
 
       <ScrollView
@@ -65,21 +66,21 @@ export default function ProfileScreen() {
             </View>
 
             <Text variant="headingMedium" mt="md">
-              {me?.nickname ?? '사용자'}
+              {me?.nickname ?? t('fallback-name')}
             </Text>
 
             {hasCoupleId ? (
               <View style={styles.coupleStatus}>
                 <Icon name="heart" size={12} color={theme.colors.primary} />
                 <Text variant="caption" color="primary" ml="xs">
-                  연인과 함께 걷는 중
+                  {t('status.with-partner')}
                 </Text>
               </View>
             ) : (
               <View style={styles.soloStatus}>
                 <Icon name="user" size={12} color={theme.colors.gray500} />
                 <Text variant="caption" color="textMuted" ml="xs">
-                  아직 짝이 없어요
+                  {t('status.solo')}
                 </Text>
               </View>
             )}
@@ -87,40 +88,38 @@ export default function ProfileScreen() {
         </Box>
 
         {hasCoupleId ? (
-          /* ─── 커플 연결됨: Stats Grid ─── */
           <Box px="xxl" style={styles.section}>
             <Row gap={LAYOUT.itemGapMd}>
               <PixelCard style={styles.statCard} bg={theme.colors.primarySurface}>
                 <Icon name="footprint" size={22} color={theme.colors.primary} />
                 <Text variant="displaySmall" color="primary" mt="sm">
-                  {totalWalks}회
+                  {t('stats.total-walks-count', { count: totalWalks })}
                 </Text>
                 <Text variant="caption" color="textSecondary" mt="xs">
-                  총 산책
+                  {t('stats.total-walks')}
                 </Text>
               </PixelCard>
               <PixelCard style={styles.statCard}>
-                <Icon name="shoe-sneaker" size={22} color={theme.colors.primary} />
+                <Icon name="footprint" size={22} color={theme.colors.primary} />
                 <Text variant="displaySmall" color="primary" mt="sm">
-                  {formatSteps(totalSteps)}
+                  {formatNumber(totalStamps)}
                 </Text>
                 <Text variant="caption" color="textSecondary" mt="xs">
-                  총 걸음
+                  {t('stats.total-stamps')}
                 </Text>
               </PixelCard>
               <PixelCard style={styles.statCard} bg={theme.colors.goldLight}>
                 <Icon name="fire" size={22} color={theme.colors.accent} />
                 <Text variant="displaySmall" color="primary" mt="sm">
-                  {currentStreak}일
+                  {t('stats.current-streak-days', { count: currentStreak })}
                 </Text>
                 <Text variant="caption" color="textSecondary" mt="xs">
-                  연속 산책
+                  {t('stats.current-streak')}
                 </Text>
               </PixelCard>
             </Row>
           </Box>
         ) : (
-          /* ─── 커플 미연결: 연결 안내 ─── */
           <Box px="xxl" style={styles.section}>
             <PixelCard style={styles.noCoupleStatsCard} bg={theme.colors.surfaceWarm}>
               <Row style={styles.noCoupleHeader}>
@@ -128,19 +127,18 @@ export default function ProfileScreen() {
                   <Icon name="mail" size={24} color={theme.colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text variant="headingSmall">내 사람을 초대해보세요</Text>
+                  <Text variant="headingSmall">{t('no-couple.title')}</Text>
                   <Text variant="caption" color="textSecondary" mt="xxs">
-                    연결하면 둘만의 기록이 시작돼요
+                    {t('no-couple.subtitle')}
                   </Text>
                 </View>
               </Row>
 
-              {/* 가림 처리된 미리보기 stats */}
               <Row gap={LAYOUT.itemGapMd} style={styles.ghostRow}>
                 <View style={styles.ghostStat}>
                   <Icon name="footprint" size={18} color={theme.colors.gray400} />
                   <Text variant="bodyMedium" color="textMuted" mt="xs">
-                    ??회
+                    ?
                   </Text>
                 </View>
                 <View style={styles.ghostStat}>
@@ -152,7 +150,7 @@ export default function ProfileScreen() {
                 <View style={styles.ghostStat}>
                   <Icon name="fire" size={18} color={theme.colors.gray400} />
                   <Text variant="bodyMedium" color="textMuted" mt="xs">
-                    ??일
+                    ?
                   </Text>
                 </View>
               </Row>
@@ -165,23 +163,23 @@ export default function ProfileScreen() {
           <PixelCard style={styles.menuCard}>
             <MenuItem
               iconName="edit"
-              label="프로필 수정"
+              label={t('menu.edit-profile')}
               onPress={() => router.push('/profile-edit')}
             />
             {hasCoupleId ? (
               <MenuItem
                 iconName="heart"
-                label="커플 관리"
+                label={t('menu.couple-manage')}
                 iconColor={theme.colors.primary}
                 onPress={() => router.push('/couple-manage')}
               />
             ) : (
-              <MenuItem iconName="link" label="커플 연결하기" />
+              <MenuItem iconName="link" label={t('menu.couple-connect')} />
             )}
-            <MenuItem iconName="bar-chart" label="산책 통계" />
+            <MenuItem iconName="bar-chart" label={t('menu.stats')} />
             <MenuItem
               iconName="log-out"
-              label="로그아웃"
+              label={t('menu.logout')}
               isDestructive
               isLast
               onPress={handleLogout}
@@ -237,7 +235,6 @@ function MenuItem({
 // ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  /* ── 전체 ── */
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -251,13 +248,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap,
   },
-
-  /* ── 공통 섹션 간격 ── */
   section: {
     marginTop: LAYOUT.sectionGap,
   },
-
-  /* ── 프로필 ── */
   profileCard: {
     alignItems: 'center',
     padding: LAYOUT.bottomSafe,
@@ -288,8 +281,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: theme.radius.full,
   },
-
-  /* ── 통계 ── */
   statCard: {
     flex: 1,
     alignItems: 'center',
@@ -319,8 +310,6 @@ const styles = StyleSheet.create({
     paddingVertical: LAYOUT.itemGap,
     opacity: 0.5,
   },
-
-  /* ── 메뉴 ── */
   menuSection: {
     marginTop: LAYOUT.sectionGapLg,
   },

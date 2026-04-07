@@ -96,11 +96,17 @@ export const LAYOUT = {
   /** 화면 좌우 여백 — Box px="xxl" 과 동일 */
   screenPx: SPACING.xxl,           // 24
 
+  /** 섹션(카드) 사이 작은 간격 — 관련도 높은 그룹 */
+  sectionGapSm: SPACING.sm,        // 8
+
   /** 섹션(카드) 사이 기본 간격 */
   sectionGap: SPACING.lg,          // 16
 
-  /** 큰 섹션 간격 (미션, CTA 위 등) */
+  /** 큰 섹션 간격 (폼 필드, 미션, CTA 위 등) */
   sectionGapLg: SPACING.xl,        // 20
+
+  /** 맥락 전환 간격 (주제 바뀔 때) */
+  sectionGapXl: SPACING.xxl,       // 24
 
   /** 카드 내부 패딩 */
   cardPx: SPACING.lg,              // 16

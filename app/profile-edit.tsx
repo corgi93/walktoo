@@ -1,13 +1,18 @@
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   FlatList,
+  Image,
+  ImageSourcePropType,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, Row, Text } from '@/components/base';
 import { useUpdateProfileMutation } from '@/hooks/services/user/mutation';
@@ -15,6 +20,22 @@ import { useGetMeQuery } from '@/hooks/services/user/query';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const BOY_FRAMES: ImageSourcePropType[] = [
+  require('@/assets/sprites/boy_walk_1.png'),
+  require('@/assets/sprites/boy_walk_2.png'),
+  require('@/assets/sprites/boy_walk_3.png'),
+  require('@/assets/sprites/boy_walk_4.png'),
+];
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const GIRL_FRAMES: ImageSourcePropType[] = [
+  require('@/assets/sprites/girl_walk_1.png'),
+  require('@/assets/sprites/girl_walk_2.png'),
+  require('@/assets/sprites/girl_walk_3.png'),
+  require('@/assets/sprites/girl_walk_4.png'),
+];
 
 // ─── Constants ───────────────────────────────────────────
 
@@ -28,11 +49,16 @@ const getDaysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
 
 export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { t } = useTranslation(['profile', 'common']);
   const { data: me } = useGetMeQuery();
   const updateProfile = useUpdateProfileMutation();
   const dialog = useDialogStore();
 
   const [nickname, setNickname] = useState(me?.nickname ?? '');
+  const [characterType, setCharacterType] = useState<'boy' | 'girl'>(
+    (me?.characterType as 'boy' | 'girl') ?? 'boy',
+  );
 
   // birthday parsing
   const parsed = me?.birthday ? new Date(me.birthday) : null;
@@ -51,27 +77,28 @@ export default function ProfileEditScreen() {
   const birthdayText =
     year && month && day
       ? `${year}.${pad(month)}.${pad(day)}`
-      : '생년월일을 선택해주세요';
+      : t('profile:edit.birthday-placeholder');
 
   const handleSave = () => {
     if (!nickname.trim()) {
-      dialog.alert('', '닉네임을 입력해주세요');
+      dialog.alert('', t('profile:edit.nickname-required'));
       return;
     }
 
     updateProfile.mutate(
       {
         nickname: nickname.trim(),
+        characterType,
         ...(year && month && day
           ? { birthday: `${year}-${pad(month)}-${pad(day)}` }
           : {}),
-      } as { nickname: string; birthday?: string },
+      },
       {
         onSuccess: () => {
           dialog.showDialog({
-            title: '프로필이 수정되었어요',
+            title: t('profile:edit.save-success'),
             buttons: [
-              { label: '확인', variant: 'primary', onPress: () => router.back() },
+              { label: t('common:actions.ok'), variant: 'primary', onPress: () => router.back() },
             ],
           });
         },
@@ -86,10 +113,10 @@ export default function ProfileEditScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="arrow-left" size={22} color={theme.colors.text} />
         </Pressable>
-        <Text variant="headingMedium">프로필 수정</Text>
+        <Text variant="headingMedium">{t('profile:edit.title')}</Text>
         <Pressable onPress={handleSave} disabled={updateProfile.isPending}>
           <Text variant="bodyMedium" color="primary">
-            저장
+            {t('profile:edit.save')}
           </Text>
         </Pressable>
       </Row>
@@ -97,20 +124,20 @@ export default function ProfileEditScreen() {
       <Box px="xxl" style={{ marginTop: 32 }}>
         {/* 닉네임 */}
         <Text variant="bodySmall" color="textSecondary" mb="xs">
-          닉네임
+          {t('profile:edit.nickname-label')}
         </Text>
         <TextInput
           style={styles.input}
           value={nickname}
           onChangeText={setNickname}
-          placeholder="닉네임"
+          placeholder={t('profile:edit.nickname-placeholder')}
           placeholderTextColor={theme.colors.textMuted}
           maxLength={10}
         />
 
         {/* 생년월일 */}
         <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          생년월일
+          {t('profile:edit.birthday-label')}
         </Text>
         <Pressable
           style={styles.input}
@@ -130,7 +157,7 @@ export default function ProfileEditScreen() {
             columns={4}
             selected={year}
             onSelect={(v) => { setYear(v); setDateStep('month'); }}
-            format={(v) => `${v}년`}
+            format={(v) => `${v}${t('common:labels.year-suffix')}`}
           />
         )}
         {dateStep === 'month' && (
@@ -139,7 +166,7 @@ export default function ProfileEditScreen() {
             columns={4}
             selected={month}
             onSelect={(v) => { setMonth(v); setDay(null); setDateStep('day'); }}
-            format={(v) => `${v}월`}
+            format={(v) => `${v}${t('common:labels.month-suffix')}`}
           />
         )}
         {dateStep === 'day' && (
@@ -151,8 +178,78 @@ export default function ProfileEditScreen() {
             format={(v) => `${v}`}
           />
         )}
+
+        {/* 캐릭터 */}
+        <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
+          {t('profile:edit.character-label')}
+        </Text>
+        <Row style={styles.characterRow}>
+          <Pressable
+            style={[
+              styles.characterOption,
+              characterType === 'boy' && styles.characterSelected,
+            ]}
+            onPress={() => setCharacterType('boy')}
+          >
+            <CharacterPreview frames={BOY_FRAMES} size={56} />
+            <Text
+              variant="caption"
+              color={characterType === 'boy' ? 'primary' : 'textSecondary'}
+              mt="xxs"
+            >
+              {t('profile:edit.character-boy')}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.characterOption,
+              characterType === 'girl' && styles.characterSelected,
+            ]}
+            onPress={() => setCharacterType('girl')}
+          >
+            <CharacterPreview frames={GIRL_FRAMES} size={56} />
+            <Text
+              variant="caption"
+              color={characterType === 'girl' ? 'primary' : 'textSecondary'}
+              mt="xxs"
+            >
+              {t('profile:edit.character-girl')}
+            </Text>
+          </Pressable>
+        </Row>
       </Box>
     </View>
+  );
+}
+
+// ─── CharacterPreview ───────────────────────────────────
+
+function CharacterPreview({ frames, size = 56 }: { frames: ImageSourcePropType[]; size?: number }) {
+  const [frameIndex, setFrameIndex] = useState(0);
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrameIndex((prev) => (prev + 1) % frames.length);
+    }, 300);
+    return () => clearInterval(interval);
+  }, [frames.length]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(bounce, { toValue: 0, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    ).start();
+  }, []);
+
+  const translateY = bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      <Image source={frames[frameIndex]} style={{ width: size, height: size }} resizeMode="contain" />
+    </Animated.View>
   );
 }
 
@@ -232,5 +329,22 @@ const styles = StyleSheet.create({
   },
   gridItemSelected: {
     backgroundColor: theme.colors.primary,
+  },
+  characterRow: {
+    gap: 16,
+  },
+  characterOption: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: theme.radius.md,
+    ...theme.pixel.borderThin,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: theme.colors.surface,
+  },
+  characterSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySurface,
   },
 });
