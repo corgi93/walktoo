@@ -24,7 +24,6 @@ export interface WalkDiary {
   coupleId: string;
   date: string;
   locationName: string;
-  steps: number;
   /** 내 기록 */
   myEntry?: FootprintEntry;
   /** 상대방 기록 */
@@ -41,7 +40,6 @@ export interface CreateWalkDiaryInput {
   locationName: string;
   memo: string;
   photos: string[];
-  steps: number;
   /** 다이어리 질문 */
   diaryQuestionId: number;
   diaryAnswer: string;

@@ -33,7 +33,6 @@ const toWalkDiary = (
     coupleId: row.couple_id,
     date: row.date,
     locationName: row.location_name,
-    steps: row.steps,
     myEntry: myEntry ? toFootprintEntry(myEntry) : undefined,
     partnerEntry: partnerEntry ? toFootprintEntry(partnerEntry) : undefined,
     isRevealed: row.is_revealed,
@@ -106,7 +105,7 @@ export const walksService = {
       couple_id: coupleId,
       date: input.date,
       location_name: input.locationName,
-      steps: input.steps,
+      steps: 0, // legacy 컬럼 (더 이상 사용하지 않음)
     });
     if (walkError) throw walkError;
 

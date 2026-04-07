@@ -15,7 +15,7 @@ import { theme } from '@/styles/theme';
 const ICON_MAP = {
   // Navigation
   home: { set: 'feather', name: 'home' },
-  footprint: { set: 'material', name: 'shoe-print' },
+  footprint: { set: 'material', name: 'paw' },
   user: { set: 'feather', name: 'user' },
 
   // Actions

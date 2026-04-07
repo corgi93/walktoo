@@ -27,6 +27,7 @@ const NOTIFICATION_ICON: Record<string, { name: IconName; color: string }> = {
   walk_created: { name: "footprint", color: theme.colors.secondary },
   walk_revealed: { name: "unlock", color: theme.colors.accent },
   nudge: { name: "bell-ring", color: theme.colors.primary },
+  stamp_claimed: { name: "footprint", color: theme.colors.primary },
 };
 
 // ─── Component ──────────────────────────────────────────
@@ -60,11 +61,21 @@ export default function NotificationsScreen() {
         markAsRead.mutate(notification.id);
       }
 
-      // 화면 이동
-      if (notification.data?.walkId) {
-        router.push("/(tabs)/diary");
-      } else if (notification.type === "couple_joined") {
-        router.push("/(tabs)");
+      // 화면 이동 (타입별 분기)
+      switch (notification.type) {
+        case "walk_created":
+        case "walk_revealed":
+        case "nudge":
+          // 산책 관련 → 산책 기록 페이지
+          router.push("/diary-list");
+          break;
+        case "couple_joined":
+        case "stamp_claimed":
+          // 커플/발자국 → 홈
+          router.push("/(tabs)");
+          break;
+        default:
+          router.push("/(tabs)");
       }
     },
     [markAsRead, router],

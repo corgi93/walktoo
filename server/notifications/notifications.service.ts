@@ -7,7 +7,8 @@ export type NotificationType =
   | 'couple_joined'    // 커플 연결 완료
   | 'walk_created'     // 상대방이 산책 기록 생성
   | 'walk_revealed'    // 둘 다 작성 → 공개
-  | 'nudge';           // 톡톡 (기록 요청)
+  | 'nudge'            // 톡톡 (기록 요청)
+  | 'stamp_claimed';   // 추억의 발자국 획득
 
 export interface AppNotification {
   id: string;
@@ -196,6 +197,23 @@ export const notificationsService = {
       title: '톡톡! 두드림이 왔어요',
       body: `${senderName}님이 오늘의 기록을 기다리고 있어요`,
       data: { walkId, coupleId },
+    });
+  },
+
+  /** 추억의 발자국 획득 알림 (커플 양쪽에게) */
+  notifyStampClaimed: async (
+    recipientId: string,
+    coupleId: string,
+    count: number,
+    senderName: string,
+  ) => {
+    await notificationsService.send({
+      recipientId,
+      coupleId,
+      type: 'stamp_claimed',
+      title: '추억의 발자국이 늘었어요!',
+      body: `${senderName}님과 함께 오늘의 미션을 완료했어요. 발자국 ${count}개 획득!`,
+      data: { coupleId, count },
     });
   },
 };

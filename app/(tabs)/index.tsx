@@ -14,6 +14,11 @@ import { useGetMeQuery, useCouplePolling } from '@/hooks/services/user/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { usePedometer } from '@/hooks/usePedometer';
 import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
+import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
+import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
+import { useToast } from '@/components/composite/toast/ToastProvider';
+import { useDiaryListQuery } from '@/hooks/services/diary/query';
+import { useNotificationListQuery } from '@/hooks/services/notification/query';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { formatDday, formatSteps } from '@/utils';
@@ -35,6 +40,8 @@ export default function HomeScreen() {
   const { refreshing, onRefresh } = useRefresh([
     QUERY_KEYS.steps.partner,
     QUERY_KEYS.steps.today,
+    QUERY_KEYS.stamps.today,
+    QUERY_KEYS.stamps.total,
   ]);
 
   // 실제 데이터
@@ -59,7 +66,23 @@ export default function HomeScreen() {
 
   // 통계
   const totalWalks = stats?.totalWalks ?? 0;
-  const currentStreak = stats?.currentStreak ?? 0;
+
+  // 추억의 발자국 (스탬프)
+  const toast = useToast();
+  const { data: totalStamps = 0 } = useTotalStampsQuery(isCoupleConnected);
+  const { data: hasTodayStamp = false } = useTodayStampQuery(
+    isCoupleConnected ? couple?.id : undefined,
+  );
+  const claimStamp = useClaimStampMutation();
+
+  // 최근 산책 기록 (홈 위젯용)
+  const { data: diaryData } = useDiaryListQuery();
+  const recentDiaries = (diaryData?.pages.flatMap(page => page) ?? []).slice(0, 3);
+
+  // 최근 알림 (홈 위젯용)
+  const { data: notifData } = useNotificationListQuery();
+  const recentNotifications = (notifData?.pages.flatMap(page => page) ?? []).slice(0, 3);
+
   // 오늘의 걸음 (만보기 연동)
   const { steps: pedometerSteps } = usePedometer();
   const mySteps = pedometerSteps;
@@ -76,8 +99,42 @@ export default function HomeScreen() {
   const partnerSteps = partnerStepsData ?? 0;
   const dailyGoal = 10000;
 
+
   const myProgress = Math.min(mySteps / dailyGoal, 1);
   const partnerProgress = Math.min(partnerSteps / dailyGoal, 1);
+
+  // 오늘의 미션 달성 여부 (합산 20,000보)
+  const MISSION_GOAL = 20000;
+  const totalMissionSteps = mySteps + partnerSteps;
+  const isMissionCompleted = totalMissionSteps >= MISSION_GOAL;
+
+  // 스탬프 Claim 핸들러
+  const handleClaimStamp = () => {
+    if (claimStamp.isPending || hasTodayStamp) return;
+    claimStamp.mutate(
+      {
+        count: 30,
+        coupleId: couple?.id,
+        myId: me?.id,
+        partnerId,
+        myName,
+      },
+      {
+        onSuccess: (result) => {
+          if (result.success) {
+            toast.success('추억의 발자국 30개를 받았어요! 🐾');
+          } else if (result.reason === 'already_claimed') {
+            toast.info('오늘의 발자국은 이미 받았어요');
+          } else {
+            toast.error('발자국을 받지 못했어요');
+          }
+        },
+        onError: () => {
+          toast.error('발자국을 받지 못했어요');
+        },
+      },
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -88,7 +145,13 @@ export default function HomeScreen() {
         </Text>
         <Row style={styles.topBarRight}>
           {isCoupleConnected && (
-            <PixelBadge iconName="zap" label={`${currentStreak}일`} size="small" />
+            <PixelBadge
+              iconName="footprint"
+              label={`${totalStamps.toLocaleString()}`}
+              size="small"
+              bg={theme.colors.primarySurface}
+              iconColor={theme.colors.primaryDark}
+            />
           )}
           <Pressable hitSlop={8} onPress={() => router.push('/notifications')}>
             <View>
@@ -114,7 +177,7 @@ export default function HomeScreen() {
       >
         {/* ── 커플 D+Day ── */}
         {isCoupleConnected && (
-          <Box px="xxl" style={styles.section}>
+          <Box px="xxl" style={styles.sectionTight}>
             <Pressable onPress={() => setShowDatePicker(true)}>
               <Text variant="bodySmall" color="textMuted" style={styles.ddayRow}>
                 {couple?.firstMetDate ? (
@@ -147,60 +210,48 @@ export default function HomeScreen() {
         )}
 
         {/* ── 오늘의 걸음 카드 ── */}
-        <Box px="xxl" style={styles.section}>
+        <Box px="xxl" style={styles.sectionTight}>
           {isCoupleConnected ? (
-            /* ─── 커플 모드: 나 | ♥ | 상대방 ─── */
+            /* ─── 커플 모드: 나 | ♥ | 상대방 (컴팩트) ─── */
             <Row style={styles.stepsRow}>
               <PixelCard style={styles.stepCard} bg={theme.colors.primarySurface}>
                 <Text variant="caption" color="textSecondary">
                   {myName}
                 </Text>
-                <Text variant="displaySmall" color="primary" mt="xs">
+                <Text variant="displaySmall" color="primary" mt="xxs">
                   {formatSteps(mySteps)}
                 </Text>
                 <Text variant="caption" color="textMuted">
                   걸음
                 </Text>
-                <PixelProgressBar
-                  progress={myProgress}
-                  segments={8}
-                  fillColor={theme.colors.primary}
-                  style={styles.stepProgress}
-                />
-                <Row style={styles.calorieBadge}>
-                  <Icon name="fire" size={12} color={theme.colors.accent} />
-                  <Text variant="caption" color="textSecondary" ml="xxs">
+                <View style={styles.kcalChip}>
+                  <Icon name="fire" size={10} color={theme.colors.accent} />
+                  <Text variant="caption" color="textSecondary" style={styles.kcalText}>
                     {calcCalories(mySteps)} kcal
                   </Text>
-                </Row>
+                </View>
               </PixelCard>
 
               <View style={styles.vsDivider}>
-                <Icon name="heart" size={18} color={theme.colors.primaryDark} />
+                <Icon name="heart" size={16} color={theme.colors.primaryDark} />
               </View>
 
               <PixelCard style={styles.stepCard}>
                 <Text variant="caption" color="textSecondary">
                   {partnerName}
                 </Text>
-                <Text variant="displaySmall" color="primary" mt="xs">
+                <Text variant="displaySmall" color="primary" mt="xxs">
                   {formatSteps(partnerSteps)}
                 </Text>
                 <Text variant="caption" color="textMuted">
                   걸음
                 </Text>
-                <PixelProgressBar
-                  progress={partnerProgress}
-                  segments={8}
-                  fillColor={theme.colors.accent}
-                  style={styles.stepProgress}
-                />
-                <Row style={styles.calorieBadge}>
-                  <Icon name="fire" size={12} color={theme.colors.accent} />
-                  <Text variant="caption" color="textSecondary" ml="xxs">
+                <View style={styles.kcalChip}>
+                  <Icon name="fire" size={10} color={theme.colors.accent} />
+                  <Text variant="caption" color="textSecondary" style={styles.kcalText}>
                     {calcCalories(partnerSteps)} kcal
                   </Text>
-                </Row>
+                </View>
               </PixelCard>
             </Row>
           ) : (
@@ -244,35 +295,61 @@ export default function HomeScreen() {
           </Box>
         )}
 
-        {/* ── 커플 연결 시 — 미션 카드 ── */}
+        {/* ── 커플 연결 시 — 미션 카드 (컴팩트) ── */}
         {isCoupleConnected && (
-          <Box px="xxl" style={styles.section}>
+          <Box px="xxl" style={styles.sectionTight}>
             <PixelCard style={styles.missionCard}>
-              <Row style={styles.missionHeader}>
+              <Row style={styles.missionRow}>
                 <Row style={styles.missionTitle}>
-                  <Icon name="target" size={22} color={theme.colors.secondary} />
-                  <View>
-                    <Text variant="headingSmall">오늘의 미션</Text>
-                    <Text variant="caption" color="textMuted" mt="xxs">
-                      함께 20,000보 걷기
-                    </Text>
-                  </View>
+                  <Icon name="target" size={18} color={theme.colors.secondary} />
+                  <Text variant="label" color="textSecondary" ml="xs">
+                    오늘의 미션
+                  </Text>
                 </Row>
-                <Text variant="label" color="primary">
-                  {formatSteps(mySteps + partnerSteps)} / 20,000
+                <Text variant="caption" color="textMuted">
+                  {Math.min(Math.round((totalMissionSteps / MISSION_GOAL) * 100), 100)}%
                 </Text>
               </Row>
-              <PixelProgressBar
-                progress={Math.min((mySteps + partnerSteps) / 20000, 1)}
-                segments={12}
-                fillColor={theme.colors.secondary}
-                style={styles.missionProgress}
-              />
+              <Row style={styles.missionNumberRow}>
+                <Text variant="headingLarge" color="primary">
+                  {formatSteps(totalMissionSteps)}
+                </Text>
+                <Text variant="bodySmall" color="textMuted" ml="xs">
+                  / {formatSteps(MISSION_GOAL)}
+                </Text>
+              </Row>
+
+              {/* ── 발자국 획득 버튼 ── */}
+              {isMissionCompleted && (
+                <Pressable
+                  style={[
+                    styles.stampClaimButton,
+                    hasTodayStamp && styles.stampClaimButtonDone,
+                  ]}
+                  onPress={handleClaimStamp}
+                  disabled={hasTodayStamp || claimStamp.isPending}
+                >
+                  <Icon
+                    name="footprint"
+                    size={14}
+                    color={hasTodayStamp ? theme.colors.textMuted : theme.colors.white}
+                  />
+                  <Text
+                    variant="bodySmall"
+                    color={hasTodayStamp ? 'textMuted' : 'white'}
+                    ml="xs"
+                  >
+                    {hasTodayStamp
+                      ? '오늘의 발자국 수집 완료'
+                      : '추억의 발자국 받기 (+30)'}
+                  </Text>
+                </Pressable>
+              )}
             </PixelCard>
           </Box>
         )}
 
-        {/* ── 일러스트 영역 ── */}
+        {/* ── 일러스트 영역 (컴팩트) ── */}
         <View style={styles.illustrationArea}>
           <WalkIllustration
             mode={isCoupleConnected ? 'couple' : 'solo'}
@@ -281,18 +358,134 @@ export default function HomeScreen() {
             myCharacter={myCharacter}
             partnerCharacter={partnerCharacter as 'boy' | 'girl'}
           />
-
-          {isCoupleConnected && (
-            <View style={styles.coupleMessage}>
-              <Text variant="bodySmall" color="textMuted" style={{ textAlign: 'center' }}>
-                우리의 걸음이 쌓이고 있어요
-              </Text>
-              <Row style={styles.badgeRow}>
-                <PixelBadge iconName="star" label={`${totalWalks}회 산책`} size="small" bg={theme.colors.goldLight} />
-              </Row>
-            </View>
-          )}
         </View>
+
+        {/* ── 최근 산책 기록 위젯 ── */}
+        {isCoupleConnected && recentDiaries.length > 0 && (
+          <Box px="xxl" style={styles.sectionWide}>
+            <Row style={styles.widgetHeader}>
+              <Row style={styles.widgetTitle}>
+                <Icon name="footprint" size={18} color={theme.colors.primary} />
+                <Text variant="headingSmall" ml="xs">
+                  최근 산책
+                </Text>
+              </Row>
+              <Pressable onPress={() => router.push('/diary-list')} hitSlop={8}>
+                <Row>
+                  <Text variant="caption" color="textMuted">
+                    전체 보기
+                  </Text>
+                  <Icon name="chevron-right" size={14} color={theme.colors.gray500} />
+                </Row>
+              </Pressable>
+            </Row>
+
+            <View style={styles.recentWalksRow}>
+              {recentDiaries.map((diary) => {
+                const d = new Date(diary.date);
+                const month = d.getMonth() + 1;
+                const day = d.getDate();
+                return (
+                  <Pressable
+                    key={diary.id}
+                    style={styles.recentWalkCard}
+                    onPress={() => {
+                      router.push({
+                        pathname: '/diary-detail',
+                        params: {
+                          id: diary.id,
+                          date: diary.date,
+                          locationName: diary.locationName,
+                          isRevealed: String(diary.isRevealed),
+                          myEntry: diary.myEntry ? JSON.stringify(diary.myEntry) : '',
+                          partnerEntry: diary.partnerEntry ? JSON.stringify(diary.partnerEntry) : '',
+                        },
+                      });
+                    }}
+                  >
+                    <View style={styles.recentWalkDate}>
+                      <Text variant="caption" color="textMuted">
+                        {month}.{day}
+                      </Text>
+                    </View>
+                    <Text
+                      variant="label"
+                      color="text"
+                      numberOfLines={1}
+                      style={styles.recentWalkLocation}
+                    >
+                      {diary.locationName}
+                    </Text>
+                    <Row style={styles.recentWalkStatus}>
+                      <Icon
+                        name={diary.isRevealed ? 'unlock' : 'lock'}
+                        size={10}
+                        color={diary.isRevealed ? theme.colors.primary : theme.colors.gray500}
+                      />
+                      <Text
+                        variant="caption"
+                        color={diary.isRevealed ? 'primary' : 'textMuted'}
+                        ml="xxs"
+                      >
+                        {diary.isRevealed ? '공개됨' : '대기중'}
+                      </Text>
+                    </Row>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Box>
+        )}
+
+        {/* ── 최근 알림 위젯 ── */}
+        {isCoupleConnected && recentNotifications.length > 0 && (
+          <Box px="xxl" style={styles.section}>
+            <Row style={styles.widgetHeader}>
+              <Row style={styles.widgetTitle}>
+                <Icon name="bell" size={18} color={theme.colors.primary} />
+                <Text variant="headingSmall" ml="xs">
+                  최근 알림
+                </Text>
+              </Row>
+              <Pressable onPress={() => router.push('/notifications')} hitSlop={8}>
+                <Row>
+                  <Text variant="caption" color="textMuted">
+                    전체 보기
+                  </Text>
+                  <Icon name="chevron-right" size={14} color={theme.colors.gray500} />
+                </Row>
+              </Pressable>
+            </Row>
+
+            <PixelCard style={styles.notifCard}>
+              {recentNotifications.map((notif, idx) => (
+                <Pressable
+                  key={notif.id}
+                  style={[
+                    styles.notifItem,
+                    idx < recentNotifications.length - 1 && styles.notifItemBorder,
+                  ]}
+                  onPress={() => router.push('/notifications')}
+                >
+                  <View
+                    style={[
+                      styles.notifDot,
+                      !notif.isRead && styles.notifDotUnread,
+                    ]}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="label" color="text" numberOfLines={1}>
+                      {notif.title}
+                    </Text>
+                    <Text variant="caption" color="textMuted" numberOfLines={1} mt="xxs">
+                      {notif.body}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </PixelCard>
+          </Box>
+        )}
       </ScrollView>
 
       {/* ── 하단 CTA — 커플 연결 시에만 ── */}
@@ -459,9 +652,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  /* ── 공통 섹션 간격 ── */
+  /* ── 섹션 간격 ── */
   section: {
-    marginTop: LAYOUT.sectionGap,
+    marginTop: LAYOUT.sectionGap,      // 16 — 기본
+  },
+  sectionTight: {
+    marginTop: LAYOUT.sectionGapSm,    // 8 — 관련 높은 그룹
+  },
+  sectionWide: {
+    marginTop: LAYOUT.sectionGapXl,    // 24 — 맥락 전환
   },
 
   /* ── D+Day ── */
@@ -469,29 +668,31 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
 
-  /* ── 커플 걸음 카드 ── */
+  /* ── 커플 걸음 카드 (컴팩트) ── */
   stepsRow: {
     alignItems: 'center',
   },
   stepCard: {
     flex: 1,
     alignItems: 'center',
-    padding: LAYOUT.cardPx,
+    paddingHorizontal: LAYOUT.cardPx,
+    paddingVertical: 12,
   },
-  stepProgress: {
-    marginTop: LAYOUT.itemGap,
-  },
-  vsDivider: {
-    width: 36,
+  kcalChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  calorieBadge: {
-    alignItems: 'center',
-    marginTop: LAYOUT.itemGap,
-    backgroundColor: theme.colors.gray100,
-    paddingHorizontal: LAYOUT.itemGap,
+    marginTop: 6,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    backgroundColor: theme.colors.gray100,
+  },
+  kcalText: {
+    marginLeft: 3,
+  },
+  vsDivider: {
+    width: 28,
+    alignItems: 'center',
   },
 
   /* ── 솔로 걸음 카드 ── */
@@ -521,39 +722,105 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  /* ── 미션 카드 ── */
+  /* ── 미션 카드 (컴팩트) ── */
   missionCard: {
-    padding: LAYOUT.cardPx,
+    paddingHorizontal: LAYOUT.cardPx,
+    paddingVertical: 14,
   },
-  missionHeader: {
+  missionRow: {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   missionTitle: {
     alignItems: 'center',
-    gap: LAYOUT.itemGap,
   },
-  missionProgress: {
-    marginTop: LAYOUT.itemGapMd,
+  missionNumberRow: {
+    alignItems: 'baseline',
+    marginTop: 4,
+  },
+  stampClaimButton: {
+    marginTop: LAYOUT.itemGap,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.primary,
+    ...theme.pixel.borderThin,
+  },
+  stampClaimButtonDone: {
+    backgroundColor: theme.colors.gray100,
   },
 
-  /* ── 일러스트 ── */
+  /* ── 일러스트 (컴팩트) ── */
   illustrationArea: {
     alignItems: 'center',
-    paddingVertical: LAYOUT.sectionGap,
-  },
-  coupleMessage: {
-    alignItems: 'center',
-    marginTop: LAYOUT.itemGap,
-  },
-  badgeRow: {
-    marginTop: LAYOUT.itemGap,
-    gap: 4,
+    marginTop: LAYOUT.sectionGap,    // 16 — 미션과 자연스럽게 연결
   },
 
   /* ── 하단 CTA ── */
   bottomCta: {
     paddingBottom: LAYOUT.bottomSafe,
+  },
+
+  /* ── 위젯 공통 ── */
+  widgetHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: LAYOUT.itemGap,
+  },
+  widgetTitle: {
+    alignItems: 'center',
+  },
+
+  /* ── 최근 산책 위젯 ── */
+  recentWalksRow: {
+    flexDirection: 'row',
+    gap: LAYOUT.itemGap,
+  },
+  recentWalkCard: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    padding: LAYOUT.itemGap,
+    ...theme.pixel.borderThin,
+    minHeight: 90,
+  },
+  recentWalkDate: {
+    marginBottom: 4,
+  },
+  recentWalkLocation: {
+    marginBottom: 6,
+  },
+  recentWalkStatus: {
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+
+  /* ── 최근 알림 위젯 ── */
+  notifCard: {
+    padding: 0,
+  },
+  notifItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: LAYOUT.itemGap,
+    paddingHorizontal: LAYOUT.cardPx,
+    gap: LAYOUT.itemGap,
+  },
+  notifItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray100,
+  },
+  notifDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.gray300,
+  },
+  notifDotUnread: {
+    backgroundColor: theme.colors.primary,
   },
 
   /* ── 날짜 선택 모달 ── */

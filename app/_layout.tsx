@@ -85,6 +85,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="profile-edit" />
                 <Stack.Screen name="couple-manage" />
+                <Stack.Screen name="diary-list" />
                 <Stack.Screen
                   name="footprint-create"
                   options={{ presentation: "modal" }}

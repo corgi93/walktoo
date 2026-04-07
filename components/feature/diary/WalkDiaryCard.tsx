@@ -5,7 +5,6 @@ import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
-import { formatSteps } from '@/utils';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -238,18 +237,6 @@ function RevealedFeedCard({
         )}
       </Row>
 
-      {/* 걸음수 */}
-      {diary.steps > 0 && (
-        <Row style={styles.statsRow}>
-          <Icon name="shoe-sneaker" size={14} color={theme.colors.primary} />
-          <Text variant="label" color="text" ml="xs">
-            {formatSteps(diary.steps)}
-          </Text>
-          <Text variant="caption" color="textMuted" ml="xxs">
-            걸음
-          </Text>
-        </Row>
-      )}
     </Pressable>
   );
 }
@@ -344,12 +331,5 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.gray100,
-  },
-  statsRow: {
-    marginTop: SPACING.md,
-    paddingTop: SPACING.md,
-    borderTopWidth: 2,
-    borderTopColor: theme.colors.gray200,
-    alignItems: 'center',
   },
 });

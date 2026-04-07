@@ -65,7 +65,6 @@ export default function DiaryScreen() {
         id: diary.id,
         date: diary.date,
         locationName: diary.locationName,
-        steps: String(diary.steps),
         isRevealed: String(diary.isRevealed),
         myEntry: diary.myEntry ? JSON.stringify(diary.myEntry) : '',
         partnerEntry: diary.partnerEntry ? JSON.stringify(diary.partnerEntry) : '',
@@ -118,7 +117,11 @@ export default function DiaryScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <Row px="xxl" style={styles.header}>
-          <Text variant="headingLarge">산책 기록</Text>
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Icon name="arrow-left" size={22} color={theme.colors.text} />
+          </Pressable>
+          <Text variant="headingMedium">산책 기록</Text>
+          <View style={{ width: 32 }} />
         </Row>
         <View style={styles.noCoupleWrapper}>
           <NoCoupleCard />
@@ -144,7 +147,10 @@ export default function DiaryScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <Row px="xxl" style={styles.header}>
-        <Text variant="headingLarge">산책 기록</Text>
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Icon name="arrow-left" size={22} color={theme.colors.text} />
+        </Pressable>
+        <Text variant="headingMedium">산책 기록</Text>
         <Row style={styles.headerActions}>
           <Pressable onPress={toggleView} hitSlop={8}>
             <Icon

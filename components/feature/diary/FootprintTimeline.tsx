@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { WalkDiary } from '@/types/diary';
-import { formatSteps } from '@/utils';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -16,6 +15,11 @@ interface FootprintTimelineProps {
   nudgeLoading?: boolean;
 }
 
+interface YearGroup {
+  year: number;
+  items: WalkDiary[];
+}
+
 // ─── Component ──────────────────────────────────────────
 
 export function FootprintTimeline({
@@ -24,61 +28,93 @@ export function FootprintTimeline({
   onNudge,
   nudgeLoading,
 }: FootprintTimelineProps) {
+  // 연도별로 그룹화 (이미 최신순으로 정렬되어 있다고 가정)
+  const yearGroups = useMemo<YearGroup[]>(() => {
+    const groups: YearGroup[] = [];
+    for (const diary of diaries) {
+      const year = new Date(diary.date).getFullYear();
+      const last = groups[groups.length - 1];
+      if (last && last.year === year) {
+        last.items.push(diary);
+      } else {
+        groups.push({ year, items: [diary] });
+      }
+    }
+    return groups;
+  }, [diaries]);
+
   return (
     <View style={styles.container}>
-      {diaries.map((diary, index) => {
-        const isLast = index === diaries.length - 1;
-
-        const formattedDate = new Date(diary.date).toLocaleDateString(
-          'ko-KR',
-          { month: 'short', day: 'numeric' },
-        );
-        const weekday = new Date(diary.date).toLocaleDateString('ko-KR', {
-          weekday: 'short',
-        });
-
-        return (
-          <Pressable
-            key={diary.id}
-            style={styles.item}
-            onPress={() => onItemPress?.(diary)}
+      {yearGroups.map((group, groupIdx) => (
+        <View key={group.year}>
+          {/* 연도 섹션 헤더 */}
+          <View
+            style={[
+              styles.yearHeader,
+              groupIdx > 0 && styles.yearHeaderSpaced,
+            ]}
           >
-            {/* 타임라인 선 + 발자국 */}
-            <View style={styles.timeline}>
-              <View
-                style={[
-                  styles.dot,
-                  diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
-                ]}
-              >
-                <Icon
-                  name={diary.isRevealed ? 'footprint' : 'lock'}
-                  size={13}
-                  color={diary.isRevealed ? theme.colors.primary : theme.colors.gray500}
-                />
-              </View>
-              {!isLast && <View style={styles.line} />}
-            </View>
+            <View style={styles.yearLine} />
+            <Text variant="label" color="textMuted" style={styles.yearLabel}>
+              {group.year}년
+            </Text>
+            <View style={styles.yearLine} />
+          </View>
 
-            {/* 카드 */}
-            {diary.isRevealed ? (
-              <RevealedCard
-                diary={diary}
-                formattedDate={formattedDate}
-                weekday={weekday}
-              />
-            ) : (
-              <LockedCard
-                diary={diary}
-                formattedDate={formattedDate}
-                weekday={weekday}
-                onNudge={onNudge}
-                nudgeLoading={nudgeLoading}
-              />
-            )}
-          </Pressable>
-        );
-      })}
+          {group.items.map((diary, index) => {
+            const isLastInGroup = index === group.items.length - 1;
+            const isLastGroup = groupIdx === yearGroups.length - 1;
+            const isLast = isLastInGroup && isLastGroup;
+            const d = new Date(diary.date);
+            const month = d.getMonth() + 1;
+            const day = d.getDate();
+            const weekday = d.toLocaleDateString('ko-KR', { weekday: 'short' });
+
+            return (
+              <Pressable
+                key={diary.id}
+                style={styles.item}
+                onPress={() => onItemPress?.(diary)}
+              >
+                {/* 좌측 날짜 태그 */}
+                <View style={styles.dateTag}>
+                  <Text style={styles.dateMonth}>{month}월</Text>
+                  <Text style={styles.dateDay}>{day}</Text>
+                  <Text style={styles.dateWeekday}>{weekday}</Text>
+                </View>
+
+                {/* 타임라인 선 + 발자국 */}
+                <View style={styles.timeline}>
+                  <View
+                    style={[
+                      styles.dot,
+                      diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
+                    ]}
+                  >
+                    <Icon
+                      name={diary.isRevealed ? 'footprint' : 'lock'}
+                      size={12}
+                      color={diary.isRevealed ? theme.colors.primary : theme.colors.gray500}
+                    />
+                  </View>
+                  {!isLast && <View style={styles.line} />}
+                </View>
+
+                {/* 카드 */}
+                {diary.isRevealed ? (
+                  <RevealedCard diary={diary} />
+                ) : (
+                  <LockedCard
+                    diary={diary}
+                    onNudge={onNudge}
+                    nudgeLoading={nudgeLoading}
+                  />
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
@@ -87,14 +123,10 @@ export function FootprintTimeline({
 
 function LockedCard({
   diary,
-  formattedDate,
-  weekday,
   onNudge,
   nudgeLoading,
 }: {
   diary: WalkDiary;
-  formattedDate: string;
-  weekday: string;
   onNudge?: (diary: WalkDiary) => void;
   nudgeLoading?: boolean;
 }) {
@@ -104,10 +136,7 @@ function LockedCard({
 
   return (
     <View style={[styles.card, styles.cardLocked]}>
-      <Text variant="caption" color="textMuted">
-        {formattedDate} ({weekday})
-      </Text>
-      <Text variant="headingSmall" mt="xxs">
+      <Text variant="headingSmall">
         {diary.locationName}
       </Text>
 
@@ -180,30 +209,12 @@ function LockedCard({
 
 function RevealedCard({
   diary,
-  formattedDate,
-  weekday,
 }: {
   diary: WalkDiary;
-  formattedDate: string;
-  weekday: string;
 }) {
   return (
     <View style={styles.card}>
-      <Row style={styles.cardHeader}>
-        <Text variant="caption" color="textMuted">
-          {formattedDate} ({weekday})
-        </Text>
-        {diary.steps > 0 && (
-          <View style={styles.stepsBadge}>
-            <Icon name="shoe-sneaker" size={12} color={theme.colors.primary} />
-            <Text variant="caption" color="primary" ml="xxs">
-              {formatSteps(diary.steps)}
-            </Text>
-          </View>
-        )}
-      </Row>
-
-      <Text variant="headingSmall" mt="xxs">
+      <Text variant="headingSmall">
         {diary.locationName}
       </Text>
 
@@ -264,13 +275,61 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: SPACING.xxl,
   },
+  yearHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  yearHeaderSpaced: {
+    marginTop: SPACING.xl,
+  },
+  yearLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: theme.colors.gray200,
+  },
+  yearLabel: {
+    fontSize: 12,
+    letterSpacing: 1,
+    color: theme.colors.gray500,
+  },
   item: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     minHeight: 80,
   },
-  timeline: {
-    width: 40,
+  dateTag: {
+    width: 30,
     alignItems: 'center',
+    paddingTop: 2,
+    marginRight: 4,
+  },
+  dateMonth: {
+    fontSize: 10,
+    lineHeight: 12,
+    color: theme.colors.gray500,
+    fontFamily: 'NeoDunggeunmo',
+  },
+  dateDay: {
+    fontSize: 20,
+    lineHeight: 22,
+    marginTop: 1,
+    color: theme.colors.text,
+    fontFamily: 'NeoDunggeunmo',
+    fontWeight: '600',
+  },
+  dateWeekday: {
+    fontSize: 10,
+    lineHeight: 12,
+    marginTop: 1,
+    color: theme.colors.gray500,
+    fontFamily: 'NeoDunggeunmo',
+  },
+  timeline: {
+    width: 28,
+    alignItems: 'center',
+    paddingTop: 4,
   },
   dot: {
     width: 28,
@@ -317,18 +376,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowOpacity: 0,
     elevation: 0,
-  },
-  cardHeader: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  stepsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primarySurface,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xxs,
-    borderRadius: 4,
   },
   lockStatus: {
     flexDirection: 'row',

@@ -29,7 +29,6 @@ import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
 import { FootprintEntry } from '@/types/diary';
-import { formatSteps } from '@/utils';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -41,14 +40,12 @@ export default function DiaryDetailScreen() {
     id: string;
     date: string;
     locationName: string;
-    steps: string;
     isRevealed: string;
     myEntry: string;
     partnerEntry: string;
   }>();
 
   const walkId = params.id;
-  const steps = Number(params.steps) || 0;
   const isRevealed = params.isRevealed === 'true';
   const myEntry: FootprintEntry | undefined = params.myEntry
     ? JSON.parse(params.myEntry)
@@ -198,16 +195,6 @@ export default function DiaryDetailScreen() {
                   {params.locationName}
                 </Text>
               </Row>
-
-              {/* 걸음수 */}
-              {steps > 0 && (
-                <View style={styles.stepsBadge}>
-                  <Icon name="shoe-sneaker" size={13} color={theme.colors.secondary} />
-                  <Text variant="caption" color="secondary" ml="xxs">
-                    {formatSteps(steps)} 걸음
-                  </Text>
-                </View>
-              )}
 
               {/* 점선 구분 */}
               <View style={styles.dashedDivider} />
@@ -657,16 +644,6 @@ const styles = StyleSheet.create({
   locationRow: {
     alignItems: 'center',
     marginTop: SPACING.md,
-  },
-  stepsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: SPACING.sm,
-    backgroundColor: theme.colors.secondaryLight,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xxs,
-    borderRadius: theme.radius.sm,
   },
   dashedDivider: {
     marginVertical: SPACING.lg,

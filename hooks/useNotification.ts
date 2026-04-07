@@ -57,7 +57,7 @@ export function useNotificationSetup() {
           const data = response.notification.request.content.data;
 
           if (data?.walkId) {
-            router.push('/(tabs)/diary');
+            router.push('/diary-list');
           } else if (data?.coupleId) {
             router.push('/(tabs)');
           }

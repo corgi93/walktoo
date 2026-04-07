@@ -6,11 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box, Icon, IconName, PixelCard, Row, Text } from '@/components/base';
 import { useLogoutMutation } from '@/hooks/services/auth/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
+import { useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
 import { COMPONENT_SIZE, LAYOUT } from '@/styles/type';
-import { formatSteps } from '@/utils';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -24,9 +24,9 @@ export default function ProfileScreen() {
   const { refreshing, onRefresh } = useRefresh();
 
   const hasCoupleId = !!me?.coupleId;
+  const { data: totalStamps = 0 } = useTotalStampsQuery(hasCoupleId);
 
   const totalWalks = stats?.totalWalks ?? 0;
-  const totalSteps = stats?.totalSteps ?? 0;
   const currentStreak = stats?.currentStreak ?? 0;
 
   const handleLogout = () => {
@@ -45,9 +45,6 @@ export default function ProfileScreen() {
       {/* ── Header ── */}
       <Row px="xxl" style={styles.header}>
         <Text variant="headingLarge">마이</Text>
-        <Pressable hitSlop={8}>
-          <Icon name="settings" size={22} color={theme.colors.gray600} />
-        </Pressable>
       </Row>
 
       <ScrollView
@@ -100,12 +97,12 @@ export default function ProfileScreen() {
                 </Text>
               </PixelCard>
               <PixelCard style={styles.statCard}>
-                <Icon name="shoe-sneaker" size={22} color={theme.colors.primary} />
+                <Icon name="footprint" size={22} color={theme.colors.primary} />
                 <Text variant="displaySmall" color="primary" mt="sm">
-                  {formatSteps(totalSteps)}
+                  {totalStamps.toLocaleString()}
                 </Text>
                 <Text variant="caption" color="textSecondary" mt="xs">
-                  총 걸음
+                  추억의 발자국
                 </Text>
               </PixelCard>
               <PixelCard style={styles.statCard} bg={theme.colors.goldLight}>

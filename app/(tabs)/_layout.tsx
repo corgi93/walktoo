@@ -47,13 +47,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="diary"
-        options={{
-          title: '산책 기록',
-          tabBarIcon: ({ color }) => <TabIcon name="footprint" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: '마이',

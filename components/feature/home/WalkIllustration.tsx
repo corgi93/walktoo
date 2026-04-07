@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
 
-import { Icon, Row, Text } from '@/components/base';
+import { Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 
 // ─── Types ──────────────────────────────────────────────
@@ -41,29 +41,45 @@ function WalkingSprite({
   size = 100,
   delay = 0,
   frameInterval = 300,
+  walking = true,
 }: {
   frames: ImageSourcePropType[];
   size?: number;
   delay?: number;
   frameInterval?: number;
+  walking?: boolean;
 }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const bounce = useRef(new Animated.Value(0)).current;
 
-  // 프레임 순환 (1→2→3→4→1→...)
+  // 프레임 순환 (걷는 중일 때만)
   useEffect(() => {
+    if (!walking) {
+      setFrameIndex(0); // 정지 시 기본 포즈로
+      return;
+    }
+
+    let interval: ReturnType<typeof setInterval> | null = null;
     const delayTimer = setTimeout(() => {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setFrameIndex((prev) => (prev + 1) % frames.length);
       }, frameInterval);
-      return () => clearInterval(interval);
     }, delay);
-    return () => clearTimeout(delayTimer);
-  }, [frames.length, frameInterval, delay]);
 
-  // 부드러운 바운스
+    return () => {
+      clearTimeout(delayTimer);
+      if (interval) clearInterval(interval);
+    };
+  }, [frames.length, frameInterval, delay, walking]);
+
+  // 부드러운 바운스 (걷는 중일 때만)
   useEffect(() => {
-    Animated.loop(
+    if (!walking) {
+      bounce.setValue(0);
+      return;
+    }
+
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
         Animated.timing(bounce, {
@@ -79,8 +95,13 @@ function WalkingSprite({
           useNativeDriver: true,
         }),
       ]),
-    ).start();
-  }, []);
+    );
+    loop.start();
+
+    return () => {
+      loop.stop();
+    };
+  }, [walking, delay]);
 
   const translateY = bounce.interpolate({
     inputRange: [0, 1],
@@ -159,12 +180,14 @@ export function WalkIllustration({
   if (mode === 'couple') {
     return (
       <View style={styles.container}>
-        <View style={styles.bgCircle} />
-
         <View style={styles.coupleArea}>
           {/* 나 (왼쪽) */}
           <View style={styles.figureWrapper}>
-            <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={80} delay={0} />
+            <WalkingSprite
+              frames={FRAMES_MAP[myCharacter]}
+              size={80}
+              delay={0}
+            />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
               {myName}
             </Text>
@@ -180,21 +203,16 @@ export function WalkIllustration({
 
           {/* 상대방 (오른쪽) */}
           <View style={styles.figureWrapper}>
-            <WalkingSprite frames={FRAMES_MAP[partnerCharacter]} size={80} delay={150} />
+            <WalkingSprite
+              frames={FRAMES_MAP[partnerCharacter]}
+              size={80}
+              delay={150}
+            />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
               {partnerName}
             </Text>
           </View>
         </View>
-
-        {/* 발자국 */}
-        <Row style={styles.footprints}>
-          {['·', '🐾', '·', '🐾', '·'].map((c, i) => (
-            <Text key={i} style={[styles.footprintEmoji, { opacity: 0.15 + i * 0.08 }]}>
-              {c}
-            </Text>
-          ))}
-        </Row>
       </View>
     );
   }
@@ -203,15 +221,9 @@ export function WalkIllustration({
 
   return (
     <View style={styles.container}>
-      <View style={styles.bgCircle} />
       <View style={styles.soloArea}>
         <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={80} />
       </View>
-      <Row style={styles.footprints}>
-        {['·', '🐾', '·'].map((c, i) => (
-          <Text key={i} style={[styles.footprintEmoji, { opacity: 0.2 + i * 0.1 }]}>{c}</Text>
-        ))}
-      </Row>
       <Text variant="bodySmall" color="textSecondary" mt="md" style={styles.nameText}>
         아직 내 사람이 없어요
       </Text>
@@ -227,23 +239,15 @@ export function WalkIllustration({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 16,
-    minHeight: 200,
-  },
-  bgCircle: {
-    position: 'absolute',
-    top: 8,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: theme.colors.accentLight,
-    opacity: 0.2,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    minHeight: 140,
   },
   coupleArea: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 0,
-    marginTop: 8,
+    marginTop: 4,
     zIndex: 2,
   },
   figureWrapper: {
@@ -272,16 +276,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   soloArea: {
-    marginTop: 16,
+    marginTop: 8,
     zIndex: 2,
-  },
-  footprints: {
-    gap: 8,
-    marginTop: 6,
-    zIndex: 1,
-  },
-  footprintEmoji: {
-    fontSize: 11,
-    color: theme.colors.accent,
   },
 });

@@ -21,7 +21,6 @@ import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
-import { usePedometer } from '@/hooks/usePedometer';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
 import { theme } from '@/styles/theme';
@@ -35,7 +34,6 @@ export default function FootprintCreateScreen() {
 
   const { data: me } = useGetMeQuery();
   const { data: couple } = useGetCoupleQuery();
-  const { steps: pedometerSteps } = usePedometer();
   const dialog = useDialogStore();
   const photoBooth = usePhotoBoothStore();
   const isCoupleConnected = !!me?.coupleId && !!couple?.user2?.id;
@@ -118,7 +116,6 @@ export default function FootprintCreateScreen() {
         locationName: locationName.trim(),
         memo: diaryAnswer.trim(), // 하위호환: memo에도 저장
         photos,
-        steps: pedometerSteps,
         diaryQuestionId: diaryQuestion.id,
         diaryAnswer: diaryAnswer.trim(),
         coupleQuestionId: coupleQuestion.id,
@@ -210,16 +207,6 @@ export default function FootprintCreateScreen() {
                   </View>
                 </Pressable>
               </Box>
-
-              {showDatePicker && (
-                <SimpleDatePicker
-                  currentDate={date}
-                  onSave={(d) => { setDate(d); setShowDatePicker(false); }}
-                  onClose={() => setShowDatePicker(false)}
-                  title="날짜 선택"
-                  maxDate={new Date()}
-                />
-              )}
 
               {/* ── 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>
@@ -382,6 +369,17 @@ export default function FootprintCreateScreen() {
             </Box>
           </KeyboardAvoidingView>
         </>
+      )}
+
+      {/* ── 날짜 선택 모달 (최상위 레벨로 렌더링) ── */}
+      {showDatePicker && (
+        <SimpleDatePicker
+          currentDate={date}
+          onSave={(d) => { setDate(d); setShowDatePicker(false); }}
+          onClose={() => setShowDatePicker(false)}
+          title="날짜 선택"
+          maxDate={new Date()}
+        />
       )}
     </View>
   );
