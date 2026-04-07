@@ -100,6 +100,18 @@ export const walksRepository = {
       .eq('date', date)
       .returns<{ id: string }[]>(),
 
+  /** 커플의 특정 월 산책 목록 (entries 포함, 최신순) */
+  findByCoupleIdAndMonth: (coupleId: string, startDate: string, endDate: string) =>
+    supabase
+      .from('walks')
+      .select('*, footprint_entries(*, profiles:user_id(nickname))')
+      .eq('couple_id', coupleId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .returns<WalkWithEntries[]>(),
+
   /** 커플의 총 산책 수 */
   countByCoupleId: (coupleId: string) =>
     supabase

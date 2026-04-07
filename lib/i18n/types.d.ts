@@ -7,6 +7,7 @@
 import 'react-i18next';
 
 import type auth from './locales/ko/auth.json';
+import type calendar from './locales/ko/calendar.json';
 import type common from './locales/ko/common.json';
 import type couple from './locales/ko/couple.json';
 import type diary from './locales/ko/diary.json';
@@ -35,6 +36,7 @@ declare module 'react-i18next' {
       question: typeof question;
       error: typeof error;
       premium: typeof premium;
+      calendar: typeof calendar;
     };
   }
 }

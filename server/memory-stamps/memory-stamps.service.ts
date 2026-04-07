@@ -45,6 +45,31 @@ export async function getTotalStamps(): Promise<number> {
   return typeof data === 'number' ? data : 0;
 }
 
+// ─── 특정 월의 스탬프 날짜 목록 ─────────────────────────
+// 캘린더 뷰에서 "이 달 어느 날에 발자국 받았는지" 표시용.
+// 반환: 'YYYY-MM-DD' 배열 (중복 없음, 정렬 없음)
+
+export async function listStampDatesByMonth(
+  coupleId: string,
+  startDate: string,
+  endDate: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('memory_stamps')
+    .select('date')
+    .eq('couple_id', coupleId)
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .returns<{ date: string }[]>();
+
+  if (error) {
+    console.warn('[listStampDatesByMonth] error:', error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => row.date);
+}
+
 // ─── 스탬프 획득 (하루 1회) ─────────────────────────────
 
 export async function claimTodayStamp(
@@ -80,5 +105,6 @@ export async function claimTodayStamp(
 export const memoryStampsService = {
   getTodayStamp,
   getTotalStamps,
+  listStampDatesByMonth,
   claimTodayStamp,
 };

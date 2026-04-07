@@ -1,11 +1,13 @@
 {
   "title": "이달의 우리",
   "subtitle": "이번 달, 우리에 대해 적어봐",
+  "past-detail-title": "지난 회고",
   "month-title": "{{year}}년 {{month}}월",
   "section": {
     "current": "이달의 회고",
     "past": "지난 회고"
   },
+  "loading": "불러오는 중...",
   "answer-placeholder": "답변을 적어줘",
   "save": "답변 저장하기",
   "saving": "저장 중...",
@@ -14,8 +16,15 @@
   "reveal-locked": "둘 다 답변하면 공개돼요",
   "reveal-just-now": "💞 답변이 공개되었어요!",
   "my-answer": "내 답변",
+  "partner-answer-label": "{{name}}의 답변",
   "partner-answer": "연인의 답변",
   "empty-past": "아직 지난 회고가 없어요",
+  "reveal-status-pending": "대기중",
+  "reveal-status-revealed": "공개됨",
+  "no-couple-title": "회고는 둘이 함께 쓰는 거예요",
+  "no-couple-description": "먼저 연인과 연결해주세요",
+  "current-month-empty": "이번 달 회고를 시작해보세요",
+  "question-prefix": "Q.",
   "questions": {
     "1": {
       "question": "이번 달 가장 고마웠던 순간은?",

@@ -91,6 +91,8 @@ export default function RootLayout() {
                 <Stack.Screen name="profile-edit" />
                 <Stack.Screen name="couple-manage" />
                 <Stack.Screen name="diary-list" />
+                <Stack.Screen name="reflection" />
+                <Stack.Screen name="calendar" />
                 <Stack.Screen
                   name="paywall"
                   options={{ presentation: "modal" }}

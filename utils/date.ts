@@ -82,3 +82,63 @@ export const formatDday = (startDate: string): string => {
 export const formatSteps = (steps: number): string => {
   return formatNumber(steps);
 };
+
+// ─── 월 네비게이션 / 그리드 헬퍼 ─────────────────────────
+
+/**
+ * 해당 연/월의 일수. month는 1-based (1~12).
+ */
+export const getDaysInMonth = (year: number, month: number): number => {
+  return new Date(year, month, 0).getDate();
+};
+
+/**
+ * 해당 월 1일의 요일. 0=일요일, 6=토요일.
+ */
+export const getFirstDayOfMonth = (year: number, month: number): number => {
+  return new Date(year, month - 1, 1).getDay();
+};
+
+/**
+ * "2026-04" 형태의 월 키. 캐시/비교 용도.
+ */
+export const getMonthKey = (year: number, month: number): string => {
+  return `${year}-${String(month).padStart(2, '0')}`;
+};
+
+/**
+ * 현재 연/월 (디바이스 로컬).
+ */
+export const getCurrentYearMonth = (): { year: number; month: number } => {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+};
+
+/**
+ * 주어진 연/월에 delta 만큼 월을 더한다. 음수 delta도 OK.
+ * 반환된 month는 1-based.
+ */
+export const addMonths = (
+  year: number,
+  month: number,
+  delta: number,
+): { year: number; month: number } => {
+  const base = new Date(year, month - 1 + delta, 1);
+  return { year: base.getFullYear(), month: base.getMonth() + 1 };
+};
+
+/**
+ * 월의 첫날 / 마지막날을 "YYYY-MM-DD" 문자열로 반환.
+ * Supabase `date BETWEEN` 쿼리에 사용.
+ */
+export const getMonthRange = (
+  year: number,
+  month: number,
+): { start: string; end: string } => {
+  const lastDay = getDaysInMonth(year, month);
+  const mm = String(month).padStart(2, '0');
+  return {
+    start: `${year}-${mm}-01`,
+    end: `${year}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  };
+};

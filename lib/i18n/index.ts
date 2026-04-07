@@ -19,6 +19,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import koAuth from './locales/ko/auth.json';
+import koCalendar from './locales/ko/calendar.json';
 import koCommon from './locales/ko/common.json';
 import koCouple from './locales/ko/couple.json';
 import koDiary from './locales/ko/diary.json';
@@ -83,6 +84,7 @@ export const NAMESPACES = [
   'question',
   'error',
   'premium',
+  'calendar',
 ] as const;
 
 const resources = {
@@ -99,6 +101,7 @@ const resources = {
     question: koQuestion,
     error: koError,
     premium: koPremium,
+    calendar: koCalendar,
   },
 };
 

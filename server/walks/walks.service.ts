@@ -81,6 +81,22 @@ export const walksService = {
     return (data ?? []).map((row) => toWalkDiary(row, currentUserId));
   },
 
+  /** 특정 월(연/월)의 산책 목록 — 캘린더 뷰용 */
+  listByMonth: async (
+    coupleId: string,
+    currentUserId: string,
+    startDate: string,
+    endDate: string,
+  ) => {
+    const { data, error } = await walksRepository.findByCoupleIdAndMonth(
+      coupleId,
+      startDate,
+      endDate,
+    );
+    if (error) throw error;
+    return (data ?? []).map((row) => toWalkDiary(row, currentUserId));
+  },
+
   /** 산책 상세 조회 */
   getDetail: async (id: string, currentUserId: string) => {
     const { data, error } = await walksRepository.findById(id);

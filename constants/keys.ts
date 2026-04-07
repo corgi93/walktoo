@@ -12,6 +12,8 @@ export const QUERY_KEYS = {
   diary: {
     list: ['diary'] as const,
     detail: (id: string) => ['diary', id] as const,
+    byMonth: (year: number, month: number) =>
+      ['diary', 'month', year, month] as const,
   },
   steps: {
     today: ['steps', 'today'] as const,
@@ -20,6 +22,8 @@ export const QUERY_KEYS = {
   stamps: {
     today: ['stamps', 'today'] as const,
     total: ['stamps', 'total'] as const,
+    byMonth: (year: number, month: number) =>
+      ['stamps', 'month', year, month] as const,
   },
   reflection: {
     current: ['reflection', 'current'] as const,
