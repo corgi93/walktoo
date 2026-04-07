@@ -6,18 +6,21 @@ import { useTranslation } from 'react-i18next';
 import { Box, Icon, PixelCard, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
-import type { ReflectionWithAnswers } from '@/types/reflection';
+import type { MonthlyReflection, ReflectionWithAnswers } from '@/types/reflection';
 import { formatDate } from '@/utils/date';
 
 interface ReflectionWidgetProps {
-  /** 이달의 reflection (없으면 자동 생성된다는 가정) */
-  detail: ReflectionWithAnswers | null | undefined;
+  /** 이달의 reflection 메타 (year, month, isRevealed). 없으면 fallback */
+  reflection: MonthlyReflection | null | undefined;
+  /** 답변 detail. 없어도 OK (그러면 myAnsweredCount = 0) */
+  detail?: ReflectionWithAnswers | null;
+  /** 진짜 첫 fetch 중일 때만 true */
   isLoading?: boolean;
-  /** 월말 강조 (디바이스 오늘 날짜의 일자) — 25일 이후면 더 강조 */
+  /** 월말 강조 — 25일 이후면 더 강조 */
   todayDayOfMonth: number;
-  /** 이달 (year, month 1-based) — 라벨 표시용 */
-  year: number;
-  month: number;
+  /** 라벨 표시용 (현재 달) */
+  fallbackYear: number;
+  fallbackMonth: number;
 }
 
 const REFLECTION_QUESTION_COUNT = 3;
@@ -25,47 +28,64 @@ const REFLECTION_QUESTION_COUNT = 3;
 /**
  * 홈 화면 — "이달의 우리" 회고 카드.
  *
- * 상태별 표시:
- * - 답변 0/3 → "이달의 회고를 시작해보세요" + 버튼
- * - 진행 중 (1~2/3) → "내 답변 N/3" 진행도 + "이어 쓰기"
- * - 내 답변 완료 + 미공개 → "연인의 답변을 기다리는 중" 잠금 톤
- * - 공개됨 → "💞 함께 공개됨" + "보러 가기"
+ * 항상 클릭 가능 (어떤 상태든 탭하면 /reflection으로 이동).
  *
- * 25일 이후이면서 답변 미완료라면 살짝 강조 (월말 알림 톤).
+ * 상태별 표시:
+ * - loading           → "준비하는 중" placeholder (탭 시 진입)
+ * - empty (0/3)       → "이달의 회고를 시작해보세요" + 쓰러 가기
+ * - in-progress (n/3) → "내 답변 N/3" + 이어 쓰기
+ * - waiting-partner   → "연인의 답변을 기다리는 중" + 보러 가기
+ * - revealed          → "💞 이달의 회고가 공개되었어요" + 보러 가기
+ *
+ * 25일 이후이고 미공개면 살짝 강조 (월말 알림 톤).
  */
 export function ReflectionWidget({
+  reflection,
   detail,
   isLoading,
   todayDayOfMonth,
-  year,
-  month,
+  fallbackYear,
+  fallbackMonth,
 }: ReflectionWidgetProps) {
   const { t } = useTranslation('home');
   const router = useRouter();
 
-  if (isLoading || !detail) {
+  const handlePress = () => router.push('/reflection');
+
+  // ─── Loading placeholder (단, 항상 클릭 가능) ──────────
+  if (isLoading) {
     return (
       <Box px="xxl" style={styles.section}>
-        <PixelCard style={styles.card} bg={theme.colors.surfaceWarm}>
-          <Text variant="label" color="textMuted">
-            {t('reflection-widget.title')}
-          </Text>
-          <Text variant="bodySmall" color="textMuted" mt="xs">
-            {t('reflection-widget.loading')}
-          </Text>
-        </PixelCard>
+        <Pressable onPress={handlePress}>
+          <PixelCard style={styles.card} bg={theme.colors.surfaceWarm}>
+            <Row style={styles.header}>
+              <Row style={styles.titleRow}>
+                <Icon name="book-open" size={16} color={theme.colors.gray400} />
+                <Text variant="label" color="textMuted" ml="xs">
+                  {t('reflection-widget.title')}
+                </Text>
+              </Row>
+            </Row>
+            <Text variant="bodySmall" color="textMuted" mt="sm">
+              {t('reflection-widget.loading')}
+            </Text>
+          </PixelCard>
+        </Pressable>
       </Box>
     );
   }
 
-  const myAnsweredCount = detail.myAnswers.filter(
-    (a) => a.answer.trim().length > 0,
-  ).length;
+  // ─── 실제 상태 계산 (detail이 없어도 안전) ─────────────
+  const year = reflection?.year ?? fallbackYear;
+  const month = reflection?.month ?? fallbackMonth;
+  const isRevealed = reflection?.isRevealed ?? false;
+
+  const myAnsweredCount = detail
+    ? detail.myAnswers.filter((a) => a.answer.trim().length > 0).length
+    : 0;
   const isMyComplete = myAnsweredCount === REFLECTION_QUESTION_COUNT;
-  const isRevealed = detail.reflection.isRevealed;
   const isMonthEnd = todayDayOfMonth >= 25;
 
-  // 상태 결정
   type State = 'empty' | 'in-progress' | 'waiting-partner' | 'revealed';
   const state: State = isRevealed
     ? 'revealed'
@@ -76,13 +96,11 @@ export function ReflectionWidget({
         : 'empty';
 
   // 상태별 톤
-  const accent = isRevealed
-    ? theme.colors.primary
-    : isMonthEnd && state !== 'revealed'
+  const accent =
+    isRevealed || (isMonthEnd && state !== 'revealed')
       ? theme.colors.primary
       : theme.colors.secondary;
 
-  // 상태별 텍스트 키
   const stateLabel = (() => {
     switch (state) {
       case 'empty':
@@ -106,13 +124,11 @@ export function ReflectionWidget({
       case 'in-progress':
         return t('reflection-widget.cta-continue');
       case 'waiting-partner':
-        return t('reflection-widget.cta-view');
       case 'revealed':
         return t('reflection-widget.cta-view');
     }
   })();
 
-  // 진행도 점 (3개)
   const dots = Array.from({ length: REFLECTION_QUESTION_COUNT }, (_, i) => i);
 
   const monthLabel = formatDate(new Date(year, month - 1, 1), {
@@ -122,7 +138,7 @@ export function ReflectionWidget({
 
   return (
     <Box px="xxl" style={styles.section}>
-      <Pressable onPress={() => router.push('/reflection')}>
+      <Pressable onPress={handlePress}>
         <PixelCard
           style={
             isMonthEnd && state !== 'revealed'
@@ -130,11 +146,9 @@ export function ReflectionWidget({
               : styles.card
           }
           bg={
-            isRevealed
+            isRevealed || isMonthEnd
               ? theme.colors.primarySurface
-              : isMonthEnd
-                ? theme.colors.primarySurface
-                : theme.colors.surfaceWarm
+              : theme.colors.surfaceWarm
           }
         >
           {/* 헤더: 타이틀 + 월 */}
@@ -179,7 +193,10 @@ export function ReflectionWidget({
               })}
             </Row>
             <Row>
-              <Text variant="caption" color={isRevealed ? 'primary' : 'textSecondary'}>
+              <Text
+                variant="caption"
+                color={isRevealed ? 'primary' : 'textSecondary'}
+              >
                 {ctaLabel}
               </Text>
               <Icon

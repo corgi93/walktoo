@@ -76,8 +76,10 @@ export default function HomeScreen() {
   // 이달의 회고 (홈 위젯용) ─────────────────────────────
   const { data: currentReflection, isLoading: isReflectionLoading } =
     useCurrentReflectionQuery(isCoupleConnected ? couple?.id : undefined);
-  const { data: reflectionDetail, isLoading: isReflectionDetailLoading } =
-    useReflectionDetailQuery(currentReflection?.id, me?.id);
+  const { data: reflectionDetail } = useReflectionDetailQuery(
+    currentReflection?.id,
+    me?.id,
+  );
   const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
   const todayDayOfMonth = new Date().getDate();
 
@@ -200,11 +202,12 @@ export default function HomeScreen() {
         {/* 이달의 우리 — 회고 카드 */}
         {isCoupleConnected && (
           <ReflectionWidget
+            reflection={currentReflection}
             detail={reflectionDetail}
-            isLoading={isReflectionLoading || isReflectionDetailLoading}
+            isLoading={isReflectionLoading}
             todayDayOfMonth={todayDayOfMonth}
-            year={currentYear}
-            month={currentMonth}
+            fallbackYear={currentYear}
+            fallbackMonth={currentMonth}
           />
         )}
 

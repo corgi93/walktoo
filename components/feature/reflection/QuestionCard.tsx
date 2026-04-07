@@ -3,9 +3,34 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, PixelCard, Row, Text } from '@/components/base';
-import type { ReflectionQuestion } from '@/constants/reflectionQuestions';
+import type {
+  ReflectionCategory,
+  ReflectionQuestion,
+} from '@/constants/reflectionQuestions';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
+
+// 카테고리별 톤 (KPT 치환 — Keep / Wished / Will)
+const CATEGORY_TONE: Record<
+  ReflectionCategory,
+  { color: string; bg: string; border: string }
+> = {
+  keep: {
+    color: theme.colors.primary,
+    bg: theme.colors.primarySurface,
+    border: theme.colors.primaryLight,
+  },
+  wished: {
+    color: theme.colors.gray600,
+    bg: theme.colors.surfaceWarm,
+    border: theme.colors.gray200,
+  },
+  will: {
+    color: theme.colors.secondary,
+    bg: theme.colors.secondaryLight,
+    border: theme.colors.secondaryLight,
+  },
+};
 
 // ─── Props ──────────────────────────────────────────────
 
@@ -39,9 +64,22 @@ export function QuestionCard({
   const { t } = useTranslation('reflection');
   const isEditable = !!onChangeMyAnswer;
   const showPartner = isRevealed && !!partnerAnswer;
+  const tone = CATEGORY_TONE[question.category];
 
   return (
-    <PixelCard style={styles.card} bg={theme.colors.primarySurface}>
+    <PixelCard style={styles.card} bg={tone.bg}>
+      {/* ── KPT 카테고리 뱃지 ── */}
+      <View
+        style={[
+          styles.categoryBadge,
+          { backgroundColor: tone.color, borderColor: tone.color },
+        ]}
+      >
+        <Text variant="caption" color="white">
+          {t(`category.${question.category}.label`)}
+        </Text>
+      </View>
+
       {/* ── 질문 ── */}
       <Row style={styles.questionRow}>
         <Text style={styles.emoji}>{question.emoji}</Text>
@@ -51,6 +89,9 @@ export function QuestionCard({
           </Text>
           <Text variant="bodyMedium" color="text" mt="xxs">
             {question.question}
+          </Text>
+          <Text variant="caption" color="textMuted" mt="xxs">
+            {t(`category.${question.category}.hint`)}
           </Text>
         </View>
       </Row>
@@ -122,6 +163,16 @@ export function QuestionCard({
 const styles = StyleSheet.create({
   card: {
     padding: LAYOUT.cardPx,
+  },
+
+  /* ── KPT 카테고리 뱃지 ── */
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    marginBottom: SPACING.md,
   },
 
   /* ── 질문 ── */
