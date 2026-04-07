@@ -146,7 +146,7 @@ export function SimpleDatePicker({
                   style={[
                     styles.item,
                     day === item && styles.itemSelected,
-                    disabled && styles.itemDisabled,
+                    disabled ? styles.itemDisabled : undefined,
                   ]}
                   onPress={() => !disabled && setDay(item)}
                   disabled={!!disabled}

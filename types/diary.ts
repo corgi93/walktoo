@@ -7,6 +7,14 @@ export interface FootprintEntry {
   memo: string;
   photos: string[];
   writtenAt: string;
+  /** 다이어리 질문 인덱스 (0~14) */
+  diaryQuestionId?: number;
+  /** 다이어리 질문 답변 */
+  diaryAnswer?: string;
+  /** 커플 질문 인덱스 (0~59) */
+  coupleQuestionId?: number;
+  /** 커플 질문 답변 */
+  coupleAnswer?: string;
 }
 
 // ─── Walk Diary (커플 발자취) ────────────────────────────
@@ -34,4 +42,10 @@ export interface CreateWalkDiaryInput {
   memo: string;
   photos: string[];
   steps: number;
+  /** 다이어리 질문 */
+  diaryQuestionId: number;
+  diaryAnswer: string;
+  /** 커플 질문 */
+  coupleQuestionId: number;
+  coupleAnswer: string;
 }

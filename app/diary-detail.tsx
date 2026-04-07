@@ -16,9 +16,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import {
+  COUPLE_QUESTIONS,
+  DIARY_QUESTIONS,
+  getDailyQuestions,
+} from '@/constants/questions';
+import {
   useAddEntryMutation,
   useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
+import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
@@ -54,10 +60,19 @@ export default function DiaryDetailScreen() {
   const hasMyEntry = !!myEntry;
   const hasPartnerEntry = !!partnerEntry;
 
+  // 질문 데이터
+  const { data: couple } = useGetCoupleQuery();
+  const { diaryQuestion, coupleQuestion } = getDailyQuestions(
+    couple?.firstMetDate,
+    params.date,
+  );
+
   // ─── 수정/입력 모드 ───────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
   const [memo, setMemo] = useState(myEntry?.memo ?? '');
   const [photos, setPhotos] = useState<string[]>(myEntry?.photos ?? []);
+  const [diaryAnswer, setDiaryAnswer] = useState(myEntry?.diaryAnswer ?? '');
+  const [coupleAnswer, setCoupleAnswer] = useState(myEntry?.coupleAnswer ?? '');
 
   const addEntry = useAddEntryMutation();
   const updateEntry = useUpdateEntryMutation();
@@ -75,6 +90,8 @@ export default function DiaryDetailScreen() {
   const handleStartEdit = () => {
     setMemo(myEntry?.memo ?? '');
     setPhotos(myEntry?.photos ?? []);
+    setDiaryAnswer(myEntry?.diaryAnswer ?? '');
+    setCoupleAnswer(myEntry?.coupleAnswer ?? '');
     setIsEditing(true);
   };
 
@@ -105,7 +122,14 @@ export default function DiaryDetailScreen() {
   const handleSave = () => {
     if (hasMyEntry && myEntry) {
       updateEntry.mutate(
-        { walkId, entryId: myEntry.id, memo: memo.trim(), photos },
+        {
+          walkId,
+          entryId: myEntry.id,
+          memo: diaryAnswer.trim(),
+          photos,
+          diaryAnswer: diaryAnswer.trim(),
+          coupleAnswer: coupleAnswer.trim(),
+        },
         {
           onSuccess: () => router.back(),
           onError: (e) => dialog.alert('수정 실패', e.message || '다시 시도해주세요.'),
@@ -113,7 +137,15 @@ export default function DiaryDetailScreen() {
       );
     } else {
       addEntry.mutate(
-        { walkId, memo: memo.trim(), photos },
+        {
+          walkId,
+          memo: diaryAnswer.trim(),
+          photos,
+          diaryQuestionId: diaryQuestion.id,
+          diaryAnswer: diaryAnswer.trim(),
+          coupleQuestionId: coupleQuestion.id,
+          coupleAnswer: coupleAnswer.trim(),
+        },
         {
           onSuccess: () => router.back(),
           onError: (e) => dialog.alert('저장 실패', e.message || '다시 시도해주세요.'),
@@ -193,16 +225,27 @@ export default function DiaryDetailScreen() {
                     {myEntry.photos.length > 0 && (
                       <PhotoStrip photos={myEntry.photos} />
                     )}
-                    {myEntry.memo ? (
+                    {/* 다이어리 질문 Q&A */}
+                    {myEntry.diaryQuestionId != null ? (
+                      <QABlock
+                        label="📝"
+                        question={DIARY_QUESTIONS[myEntry.diaryQuestionId]?.content ?? ''}
+                        answer={myEntry.diaryAnswer ?? ''}
+                        bgColor={theme.colors.surfaceWarm}
+                      />
+                    ) : myEntry.memo ? (
                       <View style={styles.memoReadBubble}>
-                        <Text variant="bodyMedium" color="text">
-                          {myEntry.memo}
-                        </Text>
+                        <Text variant="bodyMedium" color="text">{myEntry.memo}</Text>
                       </View>
-                    ) : (
-                      <Text variant="bodySmall" color="textMuted" mt="xs">
-                        메모가 없어요
-                      </Text>
+                    ) : null}
+                    {/* 커플 질문 Q&A */}
+                    {myEntry.coupleQuestionId != null && (
+                      <QABlock
+                        label="💌"
+                        question={COUPLE_QUESTIONS[myEntry.coupleQuestionId]?.content ?? ''}
+                        answer={myEntry.coupleAnswer ?? ''}
+                        bgColor={theme.colors.primarySurface}
+                      />
                     )}
                     <Pressable
                       style={styles.editChip}
@@ -231,10 +274,16 @@ export default function DiaryDetailScreen() {
                     )}
                     <EntryForm
                       photos={photos}
-                      memo={memo}
+                      diaryAnswer={diaryAnswer}
+                      coupleAnswer={coupleAnswer}
+                      diaryQuestionContent={diaryQuestion.content}
+                      coupleQuestionContent={coupleQuestion.content}
+                      coupleQuestionEmoji={coupleQuestion.emoji}
+                      coupleQuestionCategory={coupleQuestion.categoryLabel}
                       onAddPhoto={handleAddPhoto}
                       onRemovePhoto={handleRemovePhoto}
-                      onChangeMemo={setMemo}
+                      onChangeDiaryAnswer={setDiaryAnswer}
+                      onChangeCoupleAnswer={setCoupleAnswer}
                     />
                   </>
                 ) : null}
@@ -258,21 +307,27 @@ export default function DiaryDetailScreen() {
                     {partnerEntry.photos.length > 0 && (
                       <PhotoStrip photos={partnerEntry.photos} />
                     )}
-                    {partnerEntry.memo ? (
-                      <View
-                        style={[
-                          styles.memoReadBubble,
-                          { backgroundColor: '#EDF7F1' },
-                        ]}
-                      >
-                        <Text variant="bodyMedium" color="text">
-                          {partnerEntry.memo}
-                        </Text>
+                    {/* 다이어리 질문 Q&A */}
+                    {partnerEntry.diaryQuestionId != null ? (
+                      <QABlock
+                        label="📝"
+                        question={DIARY_QUESTIONS[partnerEntry.diaryQuestionId]?.content ?? ''}
+                        answer={partnerEntry.diaryAnswer ?? ''}
+                        bgColor="#EDF7F1"
+                      />
+                    ) : partnerEntry.memo ? (
+                      <View style={[styles.memoReadBubble, { backgroundColor: '#EDF7F1' }]}>
+                        <Text variant="bodyMedium" color="text">{partnerEntry.memo}</Text>
                       </View>
-                    ) : (
-                      <Text variant="bodySmall" color="textMuted" mt="xs">
-                        메모가 없어요
-                      </Text>
+                    ) : null}
+                    {/* 커플 질문 Q&A */}
+                    {partnerEntry.coupleQuestionId != null && (
+                      <QABlock
+                        label="💌"
+                        question={COUPLE_QUESTIONS[partnerEntry.coupleQuestionId]?.content ?? ''}
+                        answer={partnerEntry.coupleAnswer ?? ''}
+                        bgColor="#EDF7F1"
+                      />
                     )}
                   </>
                 ) : (
@@ -414,16 +469,28 @@ function PhotoStrip({ photos }: { photos: string[] }) {
 
 function EntryForm({
   photos,
-  memo,
+  diaryAnswer,
+  coupleAnswer,
+  diaryQuestionContent,
+  coupleQuestionContent,
+  coupleQuestionEmoji,
+  coupleQuestionCategory,
   onAddPhoto,
   onRemovePhoto,
-  onChangeMemo,
+  onChangeDiaryAnswer,
+  onChangeCoupleAnswer,
 }: {
   photos: string[];
-  memo: string;
+  diaryAnswer: string;
+  coupleAnswer: string;
+  diaryQuestionContent: string;
+  coupleQuestionContent: string;
+  coupleQuestionEmoji: string;
+  coupleQuestionCategory: string;
   onAddPhoto: () => void;
   onRemovePhoto: (i: number) => void;
-  onChangeMemo: (t: string) => void;
+  onChangeDiaryAnswer: (t: string) => void;
+  onChangeCoupleAnswer: (t: string) => void;
 }) {
   return (
     <View style={styles.formArea}>
@@ -463,25 +530,86 @@ function EntryForm({
         ))}
       </ScrollView>
 
-      {/* 메모 */}
+      {/* 📝 다이어리 질문 */}
       <Row style={[styles.formLabel, { marginTop: SPACING.md }]}>
-        <Text style={{ fontSize: 12 }}>✏️</Text>
+        <Text style={{ fontSize: 12 }}>📝</Text>
         <Text variant="caption" color="textSecondary" ml="xxs">
-          오늘의 이야기
+          오늘의 다이어리
         </Text>
       </Row>
+      <View style={styles.formQuestionPrompt}>
+        <Text variant="bodySmall" color="primary">
+          Q. {diaryQuestionContent}
+        </Text>
+      </View>
       <View style={styles.formMemoCard}>
         <TextInput
           style={styles.formMemoInput}
-          placeholder="오늘 너와 함께한 순간을 적어볼게"
+          placeholder="오늘의 이야기를 적어봐 :)"
           placeholderTextColor={theme.colors.gray400}
-          value={memo}
-          onChangeText={onChangeMemo}
+          value={diaryAnswer}
+          onChangeText={onChangeDiaryAnswer}
           multiline
           textAlignVertical="top"
           cursorColor={theme.colors.primary}
         />
       </View>
+
+      {/* 💌 커플 질문 */}
+      <Row style={[styles.formLabel, { marginTop: SPACING.lg }]}>
+        <Text style={{ fontSize: 12 }}>💌</Text>
+        <Text variant="caption" color="textSecondary" ml="xxs">
+          오늘의 질문
+        </Text>
+        <View style={styles.formCategoryChip}>
+          <Text style={{ fontSize: 10 }}>{coupleQuestionEmoji}</Text>
+          <Text variant="caption" color="textMuted" ml="xxs">
+            {coupleQuestionCategory}
+          </Text>
+        </View>
+      </Row>
+      <View style={styles.formQuestionPrompt}>
+        <Text variant="bodySmall" color="primary">
+          Q. {coupleQuestionContent}
+        </Text>
+      </View>
+      <View style={styles.formMemoCard}>
+        <TextInput
+          style={styles.formMemoInput}
+          placeholder="솔직하게 적어봐, 연인만 볼 수 있어"
+          placeholderTextColor={theme.colors.gray400}
+          value={coupleAnswer}
+          onChangeText={onChangeCoupleAnswer}
+          multiline
+          textAlignVertical="top"
+          cursorColor={theme.colors.primary}
+        />
+      </View>
+    </View>
+  );
+}
+
+// ─── Q&A Block (읽기 모드) ──────────────────────────────
+
+function QABlock({
+  label,
+  question,
+  answer,
+  bgColor,
+}: {
+  label: string;
+  question: string;
+  answer: string;
+  bgColor: string;
+}) {
+  return (
+    <View style={[styles.qaBlock, { backgroundColor: bgColor }]}>
+      <Text variant="caption" color="textMuted">
+        {label} Q. {question}
+      </Text>
+      <Text variant="bodyMedium" color="text" mt="xs">
+        {answer || '(아직 답변이 없어요)'}
+      </Text>
     </View>
   );
 }
@@ -566,6 +694,13 @@ const styles = StyleSheet.create({
     paddingLeft: SPACING.md,
     marginLeft: SPACING.sm,
     paddingBottom: SPACING.xs,
+  },
+
+  /* ── Q&A 블록 ── */
+  qaBlock: {
+    borderRadius: theme.radius.md,
+    padding: SPACING.md,
+    marginTop: SPACING.sm,
   },
 
   /* ── 읽기 모드 ── */
@@ -701,6 +836,24 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.error,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  formQuestionPrompt: {
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    marginBottom: SPACING.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.primary,
+  },
+  formCategoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray100,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
+    borderRadius: theme.radius.sm,
+    marginLeft: 'auto',
   },
   formMemoCard: {
     backgroundColor: theme.colors.surfaceWarm,

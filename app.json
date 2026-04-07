@@ -4,14 +4,14 @@
     "slug": "walktoo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/appstore.png",
     "scheme": "walktoo",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#F6E9E1"
     },
     "updates": {
       "enabled": true,
@@ -29,8 +29,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/images/adaptive-foreground.png",
+        "backgroundColor": "#F6E9E1"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.walktoo.app",
@@ -60,7 +60,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/images/appstore.png",
           "color": "#E07A5F"
         }
       ],

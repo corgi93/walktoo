@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
+import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
@@ -42,8 +43,15 @@ export default function FootprintCreateScreen() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [locationName, setLocationName] = useState('');
-  const [memo, setMemo] = useState('');
+  const [diaryAnswer, setDiaryAnswer] = useState('');
+  const [coupleAnswer, setCoupleAnswer] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+
+  // 오늘의 질문 (날짜 변경 시 자동 갱신)
+  const { diaryQuestion, coupleQuestion } = getDailyQuestions(
+    couple?.firstMetDate,
+    date,
+  );
 
   const createDiary = useCreateDiaryMutation();
 
@@ -108,9 +116,13 @@ export default function FootprintCreateScreen() {
       {
         date,
         locationName: locationName.trim(),
-        memo: memo.trim(),
+        memo: diaryAnswer.trim(), // 하위호환: memo에도 저장
         photos,
         steps: pedometerSteps,
+        diaryQuestionId: diaryQuestion.id,
+        diaryAnswer: diaryAnswer.trim(),
+        coupleQuestionId: coupleQuestion.id,
+        coupleAnswer: coupleAnswer.trim(),
       },
       {
         onSuccess: () => {
@@ -193,7 +205,9 @@ export default function FootprintCreateScreen() {
                   <Text variant="bodyMedium" color="text" ml="sm">
                     {formattedDate}
                   </Text>
-                  <Icon name="chevron-down" size={14} color={theme.colors.gray400} style={{ marginLeft: 'auto' }} />
+                  <View style={{ marginLeft: 'auto' }}>
+                    <Icon name="chevron-down" size={14} color={theme.colors.gray400} />
+                  </View>
                 </Pressable>
               </Box>
 
@@ -282,21 +296,59 @@ export default function FootprintCreateScreen() {
                 )}
               </Box>
 
-              {/* ── 메모 ── */}
+              {/* ── 📝 다이어리 질문 ── */}
               <Box px="xxl" style={styles.fieldSection}>
                 <Row style={styles.fieldLabel}>
-                  <Icon name="edit" size={14} color={theme.colors.gray600} />
+                  <Text style={{ fontSize: 14 }}>📝</Text>
                   <Text variant="label" color="textSecondary">
-                    오늘 우리의 이야기
+                    오늘의 다이어리
                   </Text>
                 </Row>
+                <View style={styles.questionPrompt}>
+                  <Text variant="bodySmall" color="primary">
+                    Q. {diaryQuestion.content}
+                  </Text>
+                </View>
                 <View style={styles.memoCard}>
                   <TextInput
                     style={styles.memoInput}
-                    placeholder="오늘 너와 함께한 순간을 적어볼게"
+                    placeholder="오늘의 이야기를 적어봐 :)"
                     placeholderTextColor={theme.colors.gray400}
-                    value={memo}
-                    onChangeText={setMemo}
+                    value={diaryAnswer}
+                    onChangeText={setDiaryAnswer}
+                    multiline
+                    textAlignVertical="top"
+                    cursorColor={theme.colors.primary}
+                  />
+                </View>
+              </Box>
+
+              {/* ── 💌 오늘의 질문 ── */}
+              <Box px="xxl" style={styles.fieldSection}>
+                <Row style={styles.fieldLabel}>
+                  <Text style={{ fontSize: 14 }}>💌</Text>
+                  <Text variant="label" color="textSecondary">
+                    오늘의 질문
+                  </Text>
+                  <View style={styles.categoryChip}>
+                    <Text style={{ fontSize: 10 }}>{coupleQuestion.emoji}</Text>
+                    <Text variant="caption" color="textMuted" ml="xxs">
+                      {coupleQuestion.categoryLabel}
+                    </Text>
+                  </View>
+                </Row>
+                <View style={styles.questionPrompt}>
+                  <Text variant="bodySmall" color="primary">
+                    Q. {coupleQuestion.content}
+                  </Text>
+                </View>
+                <View style={styles.memoCard}>
+                  <TextInput
+                    style={styles.memoInput}
+                    placeholder="솔직하게 적어봐, 연인만 볼 수 있어"
+                    placeholderTextColor={theme.colors.gray400}
+                    value={coupleAnswer}
+                    onChangeText={setCoupleAnswer}
                     multiline
                     textAlignVertical="top"
                     cursorColor={theme.colors.primary}
@@ -457,6 +509,26 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.primaryLight,
+  },
+
+  /* ── 질문 프롬프트 ── */
+  questionPrompt: {
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: LAYOUT.cardPx,
+    paddingVertical: SPACING.sm,
+    marginBottom: SPACING.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.primary,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray100,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
+    borderRadius: theme.radius.sm,
+    marginLeft: 'auto',
   },
 
   /* ── 메모 ── */

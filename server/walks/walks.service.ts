@@ -13,6 +13,10 @@ const toFootprintEntry = (row: FootprintEntryRow & { profiles?: { nickname: stri
   memo: row.memo,
   photos: row.photos,
   writtenAt: row.written_at,
+  diaryQuestionId: row.diary_question_id ?? undefined,
+  diaryAnswer: row.diary_answer || undefined,
+  coupleQuestionId: row.couple_question_id ?? undefined,
+  coupleAnswer: row.couple_answer || undefined,
 });
 
 const toWalkDiary = (
@@ -112,6 +116,10 @@ export const walksService = {
       user_id: currentUserId,
       memo: input.memo,
       photos: input.photos,
+      diary_question_id: input.diaryQuestionId,
+      diary_answer: input.diaryAnswer,
+      couple_question_id: input.coupleQuestionId,
+      couple_answer: input.coupleAnswer,
     });
     if (entryError) throw entryError;
 
@@ -132,12 +140,22 @@ export const walksService = {
     userId: string,
     memo: string,
     photos: string[],
+    questionData?: {
+      diaryQuestionId?: number;
+      diaryAnswer?: string;
+      coupleQuestionId?: number;
+      coupleAnswer?: string;
+    },
   ) => {
     const { error: entryError } = await walksRepository.createEntry({
       walk_id: walkId,
       user_id: userId,
       memo,
       photos,
+      diary_question_id: questionData?.diaryQuestionId,
+      diary_answer: questionData?.diaryAnswer ?? '',
+      couple_question_id: questionData?.coupleQuestionId,
+      couple_answer: questionData?.coupleAnswer ?? '',
     });
     if (entryError) throw entryError;
 
@@ -156,8 +174,14 @@ export const walksService = {
     entryId: string,
     memo: string,
     photos: string[],
+    answerData?: { diaryAnswer?: string; coupleAnswer?: string },
   ) => {
-    const { error } = await walksRepository.updateEntry(entryId, { memo, photos });
+    const { error } = await walksRepository.updateEntry(entryId, {
+      memo,
+      photos,
+      ...(answerData?.diaryAnswer !== undefined && { diary_answer: answerData.diaryAnswer }),
+      ...(answerData?.coupleAnswer !== undefined && { couple_answer: answerData.coupleAnswer }),
+    });
     if (error) throw error;
   },
 
