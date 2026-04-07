@@ -178,12 +178,94 @@ export interface Database {
         };
         Relationships: [];
       };
+      monthly_reflections: {
+        Row: {
+          id: string;
+          couple_id: string;
+          year: number;
+          month: number;
+          question_ids: number[];
+          is_revealed: boolean;
+          created_at: string;
+          revealed_at: string | null;
+        };
+        Insert: {
+          couple_id: string;
+          year: number;
+          month: number;
+          question_ids: number[];
+          is_revealed?: boolean;
+        };
+        Update: {
+          is_revealed?: boolean;
+          revealed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      reflection_answers: {
+        Row: {
+          id: string;
+          reflection_id: string;
+          user_id: string;
+          question_id: number;
+          answer: string;
+          updated_at: string;
+        };
+        Insert: {
+          reflection_id: string;
+          user_id: string;
+          question_id: number;
+          answer: string;
+        };
+        Update: {
+          answer?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       get_partner_steps: {
         Args: { p_partner_id: string; p_date: string };
         Returns: number;
+      };
+      claim_memory_stamp: {
+        Args: { p_date: string; p_count?: number };
+        Returns: {
+          success: boolean;
+          reason?: 'no_couple' | 'already_claimed';
+          stamp_id?: string;
+          count?: number;
+        };
+      };
+      get_total_stamps: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      get_or_create_reflection: {
+        Args: {
+          p_year: number;
+          p_month: number;
+          p_question_ids: number[];
+        };
+        Returns: {
+          id?: string;
+          question_ids?: number[];
+          is_revealed?: boolean;
+          error?: string;
+        };
+      };
+      save_reflection_answers: {
+        Args: {
+          p_reflection_id: string;
+          p_answers: { question_id: number; answer: string }[];
+        };
+        Returns: {
+          success: boolean;
+          reason?: string;
+          revealed?: boolean;
+          just_revealed?: boolean;
+        };
       };
     };
     Enums: Record<string, never>;
