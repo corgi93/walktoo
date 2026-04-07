@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, Row, Text } from '@/components/base';
 import {
@@ -43,6 +44,7 @@ try {
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('auth');
   const socialLogin = useSocialLoginMutation();
   const webOAuth = useWebOAuthMutation();
   const [loadingProvider, setLoadingProvider] = useState<
@@ -70,7 +72,7 @@ export default function LoginScreen() {
       });
 
       if (!credential.identityToken) {
-        throw new Error('Apple 인증 토큰을 받지 못했어요');
+        throw new Error(t('login.error-token'));
       }
 
       socialLogin.mutate({
@@ -81,7 +83,7 @@ export default function LoginScreen() {
     } catch (e: unknown) {
       const error = e as { code?: string };
       if (error.code === 'ERR_REQUEST_CANCELED') return;
-      Alert.alert('로그인 실패', 'Apple 로그인 중 문제가 발생했어요');
+      Alert.alert(t('login.error-title'), t('login.error-apple'));
     } finally {
       setLoadingProvider(null);
     }
@@ -111,7 +113,7 @@ export default function LoginScreen() {
       console.log('[Google Native] user:', JSON.stringify(user, null, 2));
 
       if (!idToken) {
-        throw new Error('Google ID 토큰을 받지 못했어요');
+        throw new Error(t('login.error-token'));
       }
 
       console.log('[Google Native] Supabase socialLogin 호출...');
@@ -124,7 +126,7 @@ export default function LoginScreen() {
         if (err.code === statusCodes?.SIGN_IN_CANCELLED) return;
         if (err.code === statusCodes?.IN_PROGRESS) return;
       }
-      Alert.alert('로그인 실패', 'Google 로그인 중 문제가 발생했어요');
+      Alert.alert(t('login.error-title'), t('login.error-google'));
     } finally {
       setLoadingProvider(null);
     }
@@ -193,13 +195,13 @@ export default function LoginScreen() {
         console.log('[OAuth] has refreshToken:', !!refreshToken);
 
         if (!accessToken || !refreshToken) {
-          throw new Error('인증 토큰을 받지 못했어요');
+          throw new Error(t('login.error-token'));
         }
         webOAuth.mutate({ accessToken, refreshToken });
       }
     } catch (e) {
       console.error('[OAuth] error:', e);
-      Alert.alert('로그인 실패', 'Google 로그인 중 문제가 발생했어요');
+      Alert.alert(t('login.error-title'), t('login.error-google'));
     } finally {
       setLoadingProvider(null);
     }
@@ -224,10 +226,10 @@ export default function LoginScreen() {
       {/* ── 브랜드 영역 ── */}
       <Box flex={1} center>
         <Text variant="displayLarge" color="primary">
-          walkToo
+          {t('login.brand')}
         </Text>
         <Text variant="bodyLarge" color="textSecondary" mt="md">
-          우리 둘의 걸음, 하나의 이야기
+          {t('login.tagline')}
         </Text>
       </Box>
 
@@ -243,9 +245,7 @@ export default function LoginScreen() {
             <Row style={styles.socialBtnInner}>
               <Icon name="apple" size={20} color={theme.colors.white} />
               <Text variant="bodyMedium" color="white" ml="sm">
-                {loadingProvider === 'apple'
-                  ? '로그인 중...'
-                  : 'Apple로 시작하기'}
+                {loadingProvider === 'apple' ? t('login.loading') : t('login.apple')}
               </Text>
             </Row>
           </Pressable>
@@ -260,20 +260,13 @@ export default function LoginScreen() {
           <Row style={styles.socialBtnInner}>
             <Icon name="google" size={18} color={theme.colors.text} />
             <Text variant="bodyMedium" color="text" ml="sm">
-              {loadingProvider === 'google'
-                ? '로그인 중...'
-                : 'Google로 시작하기'}
+              {loadingProvider === 'google' ? t('login.loading') : t('login.google')}
             </Text>
           </Row>
         </Pressable>
 
-        <Text
-          variant="caption"
-          color="textMuted"
-          align="center"
-          mt="lg"
-        >
-          시작하기를 누르면 서비스 이용약관에 동의합니다
+        <Text variant="caption" color="textMuted" align="center" mt="lg">
+          {t('login.terms')}
         </Text>
       </Box>
     </View>

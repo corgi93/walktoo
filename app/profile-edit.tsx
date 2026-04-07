@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, Row, Text } from '@/components/base';
 import { useUpdateProfileMutation } from '@/hooks/services/user/mutation';
@@ -48,6 +49,8 @@ const getDaysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
 
 export default function ProfileEditScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { t } = useTranslation(['profile', 'common']);
   const { data: me } = useGetMeQuery();
   const updateProfile = useUpdateProfileMutation();
   const dialog = useDialogStore();
@@ -74,11 +77,11 @@ export default function ProfileEditScreen() {
   const birthdayText =
     year && month && day
       ? `${year}.${pad(month)}.${pad(day)}`
-      : '생년월일을 선택해주세요';
+      : t('profile:edit.birthday-placeholder');
 
   const handleSave = () => {
     if (!nickname.trim()) {
-      dialog.alert('', '닉네임을 입력해주세요');
+      dialog.alert('', t('profile:edit.nickname-required'));
       return;
     }
 
@@ -93,9 +96,9 @@ export default function ProfileEditScreen() {
       {
         onSuccess: () => {
           dialog.showDialog({
-            title: '프로필이 수정되었어요',
+            title: t('profile:edit.save-success'),
             buttons: [
-              { label: '확인', variant: 'primary', onPress: () => router.back() },
+              { label: t('common:actions.ok'), variant: 'primary', onPress: () => router.back() },
             ],
           });
         },
@@ -110,10 +113,10 @@ export default function ProfileEditScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="arrow-left" size={22} color={theme.colors.text} />
         </Pressable>
-        <Text variant="headingMedium">프로필 수정</Text>
+        <Text variant="headingMedium">{t('profile:edit.title')}</Text>
         <Pressable onPress={handleSave} disabled={updateProfile.isPending}>
           <Text variant="bodyMedium" color="primary">
-            저장
+            {t('profile:edit.save')}
           </Text>
         </Pressable>
       </Row>
@@ -121,20 +124,20 @@ export default function ProfileEditScreen() {
       <Box px="xxl" style={{ marginTop: 32 }}>
         {/* 닉네임 */}
         <Text variant="bodySmall" color="textSecondary" mb="xs">
-          닉네임
+          {t('profile:edit.nickname-label')}
         </Text>
         <TextInput
           style={styles.input}
           value={nickname}
           onChangeText={setNickname}
-          placeholder="닉네임"
+          placeholder={t('profile:edit.nickname-placeholder')}
           placeholderTextColor={theme.colors.textMuted}
           maxLength={10}
         />
 
         {/* 생년월일 */}
         <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          생년월일
+          {t('profile:edit.birthday-label')}
         </Text>
         <Pressable
           style={styles.input}
@@ -154,7 +157,7 @@ export default function ProfileEditScreen() {
             columns={4}
             selected={year}
             onSelect={(v) => { setYear(v); setDateStep('month'); }}
-            format={(v) => `${v}년`}
+            format={(v) => `${v}${t('common:labels.year-suffix')}`}
           />
         )}
         {dateStep === 'month' && (
@@ -163,7 +166,7 @@ export default function ProfileEditScreen() {
             columns={4}
             selected={month}
             onSelect={(v) => { setMonth(v); setDay(null); setDateStep('day'); }}
-            format={(v) => `${v}월`}
+            format={(v) => `${v}${t('common:labels.month-suffix')}`}
           />
         )}
         {dateStep === 'day' && (
@@ -178,7 +181,7 @@ export default function ProfileEditScreen() {
 
         {/* 캐릭터 */}
         <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          캐릭터
+          {t('profile:edit.character-label')}
         </Text>
         <Row style={styles.characterRow}>
           <Pressable
@@ -194,7 +197,7 @@ export default function ProfileEditScreen() {
               color={characterType === 'boy' ? 'primary' : 'textSecondary'}
               mt="xxs"
             >
-              남자
+              {t('profile:edit.character-boy')}
             </Text>
           </Pressable>
           <Pressable
@@ -210,7 +213,7 @@ export default function ProfileEditScreen() {
               color={characterType === 'girl' ? 'primary' : 'textSecondary'}
               mt="xxs"
             >
-              여자
+              {t('profile:edit.character-girl')}
             </Text>
           </Pressable>
         </Row>

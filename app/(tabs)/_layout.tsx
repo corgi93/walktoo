@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Icon, IconName } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -10,6 +11,7 @@ import { FONT_FAMILY } from '@/styles/type';
 // ─── Component ──────────────────────────────────────────
 
 export default function TabLayout() {
+  const { t } = useTranslation('home');
   const insets = useSafeAreaInsets();
 
   const bottomPadding =
@@ -42,14 +44,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '홈',
+          title: t('tab.home'),
           tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: '마이',
+          title: t('tab.profile'),
           tabBarIcon: ({ color }) => <TabIcon name="user" color={color} />,
         }}
       />

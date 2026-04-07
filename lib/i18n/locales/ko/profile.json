@@ -1,34 +1,45 @@
 {
-  "title": "마이페이지",
-  "section": {
-    "account": "계정",
-    "couple": "커플",
-    "settings": "설정",
-    "info": "정보"
+  "tab-title": "마이",
+  "fallback-name": "사용자",
+  "status": {
+    "with-partner": "연인과 함께 걷는 중",
+    "solo": "아직 짝이 없어요"
+  },
+  "stats": {
+    "total-walks": "총 산책",
+    "total-walks-count": "{{count}}회",
+    "total-stamps": "추억의 발자국",
+    "current-streak": "연속 산책",
+    "current-streak-days": "{{count}}일"
+  },
+  "no-couple": {
+    "title": "내 사람을 초대해보세요",
+    "subtitle": "연결하면 둘만의 기록이 시작돼요"
   },
   "menu": {
     "edit-profile": "프로필 수정",
     "couple-manage": "커플 관리",
-    "notification-settings": "알림 설정",
-    "permissions": "권한 관리",
-    "logout": "로그아웃",
-    "version": "버전",
-    "terms": "이용약관",
-    "privacy": "개인정보처리방침"
+    "couple-connect": "커플 연결하기",
+    "stats": "산책 통계",
+    "logout": "로그아웃"
   },
   "edit": {
     "title": "프로필 수정",
-    "nickname-label": "닉네임",
-    "nickname-placeholder": "닉네임을 입력해주세요",
-    "character-label": "캐릭터",
     "save": "저장",
-    "save-success": "프로필이 수정되었어요",
-    "save-failed": "수정에 실패했어요"
+    "nickname-label": "닉네임",
+    "nickname-placeholder": "닉네임",
+    "nickname-required": "닉네임을 입력해주세요",
+    "birthday-label": "생년월일",
+    "birthday-placeholder": "생년월일을 선택해주세요",
+    "character-label": "캐릭터",
+    "character-boy": "남자",
+    "character-girl": "여자",
+    "save-success": "프로필이 수정되었어요"
   },
-  "logout": {
-    "confirm-title": "정말 로그아웃 할까요?",
-    "confirm-message": "다시 로그인할 수 있어요",
-    "success": "로그아웃 되었어요",
-    "failed": "로그아웃에 실패했어요"
+  "logout-confirm": {
+    "title": "로그아웃",
+    "message": "정말 로그아웃 하시겠어요?",
+    "confirm": "로그아웃",
+    "cancel": "취소"
   }
 }

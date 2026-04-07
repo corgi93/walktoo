@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { Text } from "@/components/base";
 import { authService, couplesService } from "@/server";
@@ -9,6 +10,7 @@ import { theme } from "@/styles/theme";
 
 export default function SplashAuthScreen() {
   const router = useRouter();
+  const { t } = useTranslation('auth');
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,10 +52,10 @@ export default function SplashAuthScreen() {
     <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Text variant="displayLarge" color="primary">
-          walkToo
+          {t('login.brand')}
         </Text>
         <Text variant="bodyLarge" color="textSecondary" mt="md">
-          우리 둘의 걸음, 하나의 이야기
+          {t('login.tagline')}
         </Text>
       </Animated.View>
     </View>

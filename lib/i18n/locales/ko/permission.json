@@ -1,4 +1,8 @@
 {
+  "onboarding": {
+    "title": "시작하기 전에",
+    "subtitle": "walkToo를 위해 몇 가지 권한이 필요해요"
+  },
   "title": "권한 관리",
   "pedometer": {
     "title": "걸음수 권한",

@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -12,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Row, Text } from '@/components/base';
 import { useCompleteProfileMutation } from '@/hooks/services/user/mutation';
@@ -49,6 +49,7 @@ const GIRL_FRAMES: ImageSourcePropType[] = [
 
 export default function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation(['auth', 'common']);
   const user = useAuthStore((s) => s.user);
   const completeProfile = useCompleteProfileMutation();
 
@@ -68,7 +69,7 @@ export default function ProfileSetupScreen() {
   const birthdayText =
     year && month && day
       ? `${year}.${pad(month)}.${pad(day)}`
-      : '생년월일을 선택해주세요';
+      : t('auth:profile-setup.birthday-placeholder');
 
   const isInfoValid = nickname.trim().length > 0 && year && month && day;
 
@@ -90,9 +91,9 @@ export default function ProfileSetupScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
         <Box px="xxl">
-          <Text variant="headingLarge">캐릭터를 선택해주세요</Text>
+          <Text variant="headingLarge">{t('auth:profile-setup.character-title')}</Text>
           <Text variant="bodySmall" color="textSecondary" mt="xs">
-            홈 화면에 표시될 캐릭터예요
+            {t('auth:profile-setup.character-subtitle')}
           </Text>
         </Box>
 
@@ -110,7 +111,7 @@ export default function ProfileSetupScreen() {
               color={characterType === 'boy' ? 'primary' : 'textSecondary'}
               mt="sm"
             >
-              남자
+              {t('auth:profile-setup.character-boy')}
             </Text>
           </Pressable>
 
@@ -127,7 +128,7 @@ export default function ProfileSetupScreen() {
               color={characterType === 'girl' ? 'primary' : 'textSecondary'}
               mt="sm"
             >
-              여자
+              {t('auth:profile-setup.character-girl')}
             </Text>
           </Pressable>
         </Row>
@@ -139,7 +140,7 @@ export default function ProfileSetupScreen() {
               onPress={() => setPage('info')}
             >
               <Text variant="bodyLarge" color="textSecondary">
-                이전
+                {t('auth:profile-setup.back')}
               </Text>
             </Pressable>
             <Pressable
@@ -148,7 +149,7 @@ export default function ProfileSetupScreen() {
               disabled={completeProfile.isPending}
             >
               <Text variant="bodyLarge" color="white">
-                시작하기
+                {t('auth:profile-setup.start')}
               </Text>
             </Pressable>
           </Row>
@@ -161,9 +162,9 @@ export default function ProfileSetupScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
       {/* Header */}
       <Box px="xxl">
-        <Text variant="headingLarge">프로필을 완성해주세요</Text>
+        <Text variant="headingLarge">{t('auth:profile-setup.info-title')}</Text>
         <Text variant="bodySmall" color="textSecondary" mt="xs">
-          상대방에게 보여질 이름이에요
+          {t('auth:profile-setup.info-subtitle')}
         </Text>
       </Box>
 
@@ -171,13 +172,13 @@ export default function ProfileSetupScreen() {
       <Box px="xxl" style={{ marginTop: 40 }}>
         {/* 닉네임 */}
         <Text variant="bodySmall" color="textSecondary" mb="xs">
-          닉네임
+          {t('auth:profile-setup.nickname-label')}
         </Text>
         <TextInput
           style={styles.input}
           value={nickname}
           onChangeText={setNickname}
-          placeholder="닉네임을 입력해주세요"
+          placeholder={t('auth:profile-setup.nickname-placeholder')}
           placeholderTextColor={theme.colors.textMuted}
           maxLength={10}
           autoFocus
@@ -185,7 +186,7 @@ export default function ProfileSetupScreen() {
 
         {/* 생년월일 */}
         <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          생년월일
+          {t('auth:profile-setup.birthday-label')}
         </Text>
         <Pressable
           style={styles.input}
@@ -209,7 +210,7 @@ export default function ProfileSetupScreen() {
               setYear(v);
               setDateStep('month');
             }}
-            format={(v) => `${v}년`}
+            format={(v) => `${v}${t('common:labels.year-suffix')}`}
           />
         )}
         {dateStep === 'month' && (
@@ -222,7 +223,7 @@ export default function ProfileSetupScreen() {
               setDay(null);
               setDateStep('day');
             }}
-            format={(v) => `${v}월`}
+            format={(v) => `${v}${t('common:labels.month-suffix')}`}
           />
         )}
         {dateStep === 'day' && (
@@ -248,7 +249,7 @@ export default function ProfileSetupScreen() {
             disabled={!isInfoValid}
           >
             <Text variant="bodyLarge" color="white">
-              다음
+              {t('auth:profile-setup.next')}
             </Text>
           </Pressable>
         </View>

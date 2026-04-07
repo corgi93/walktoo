@@ -35,5 +35,9 @@
   "solo": {
     "no-partner": "아직 내 사람이 없어요",
     "connect-prompt": "연결하면 둘만의 산책이 시작돼요"
+  },
+  "tab": {
+    "home": "홈",
+    "profile": "마이"
   }
 }
