@@ -14,6 +14,7 @@ import type error from './locales/ko/error.json';
 import type home from './locales/ko/home.json';
 import type notification from './locales/ko/notification.json';
 import type permission from './locales/ko/permission.json';
+import type premium from './locales/ko/premium.json';
 import type profile from './locales/ko/profile.json';
 import type question from './locales/ko/question.json';
 import type reflection from './locales/ko/reflection.json';
@@ -33,6 +34,7 @@ declare module 'react-i18next' {
       reflection: typeof reflection;
       question: typeof question;
       error: typeof error;
+      premium: typeof premium;
     };
   }
 }

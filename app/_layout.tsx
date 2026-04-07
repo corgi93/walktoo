@@ -4,16 +4,19 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 
 import { GlobalDialog } from "@/components/base/GlobalDialog";
 import { GlobalLoadingBar, LoadingOverlay } from "@/components/base";
 import { PopupProvider } from "@/components/composite/popup/PopupProvider";
 import { ToastProvider } from "@/components/composite/toast/ToastProvider";
+import { useStartTrialMutation } from "@/hooks/services/entitlements/mutation";
+import { useGetMeQuery } from "@/hooks/services/user/query";
 import { useNotificationSetup } from "@/hooks/useNotification";
 import { useStepSync } from "@/hooks/useStepSync";
 import { useBackgroundStepSync } from "@/hooks/useBackgroundStepSync";
 import "@/lib/i18n"; // i18next 초기화 (side-effect import)
+import { initRevenueCat } from "@/lib/revenuecat";
 import { theme } from "@/styles/theme";
 
 // ─── Config ─────────────────────────────────────────────
@@ -75,6 +78,7 @@ export default function RootLayout() {
           <PopupProvider>
             <NotificationInitializer />
             <StepSyncInitializer />
+            <EntitlementInitializer />
             <GlobalLoadingBar />
             <GlobalDialog />
             <Suspense fallback={<LoadingOverlay />}>
@@ -87,6 +91,10 @@ export default function RootLayout() {
                 <Stack.Screen name="profile-edit" />
                 <Stack.Screen name="couple-manage" />
                 <Stack.Screen name="diary-list" />
+                <Stack.Screen
+                  name="paywall"
+                  options={{ presentation: "modal" }}
+                />
                 <Stack.Screen
                   name="footprint-create"
                   options={{ presentation: "modal" }}
@@ -122,5 +130,27 @@ function NotificationInitializer() {
 function StepSyncInitializer() {
   useStepSync(); // 포그라운드: 60초마다 DB 동기화
   useBackgroundStepSync(); // 백그라운드: 15~30분마다 OS가 깨워서 동기화
+  return null;
+}
+
+// ─── Entitlement Initializer ─────────────────────────────
+// 로그인 후:
+//  1) RevenueCat SDK를 me.id로 초기화 (API 키 없으면 graceful skip)
+//  2) 7일 무료 트라이얼 시작 (서버 RPC가 idempotent라 매번 호출해도 안전)
+
+function EntitlementInitializer() {
+  const { data: me } = useGetMeQuery();
+  const startTrial = useStartTrialMutation();
+  const initializedFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!me?.id) return;
+    if (initializedFor.current === me.id) return;
+    initializedFor.current = me.id;
+    void initRevenueCat(me.id);
+    startTrial.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id]);
+
   return null;
 }

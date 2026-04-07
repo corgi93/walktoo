@@ -1,0 +1,52 @@
+{
+  "brand": "walkToo+",
+  "tagline": "둘만의 추억을 더 풍성하게",
+  "trial-banner": "7일 무료 체험 중 — {{days}}일 남음",
+  "trial-ended": "체험이 끝났어요",
+  "benefits": {
+    "section-title": "이런 게 좋아져요",
+    "photos-title": "사진 무제한",
+    "photos-description": "산책 한 번에 최대 {{limit}}장까지 추가할 수 있어요",
+    "decoration-title": "회고 꾸미기 확장팩",
+    "decoration-description": "폴라로이드, 워시테이프, 손그림으로 회고를 꾸며보세요",
+    "stats-title": "산책 통계",
+    "stats-description": "함께 걸은 거리, 시간, 추억을 한눈에",
+    "couple-title": "한 명만 결제하면 양쪽 적용",
+    "couple-description": "둘이 함께 walkToo+를 즐겨요",
+    "no-ads-title": "방해 없는 경험",
+    "no-ads-description": "광고 없이 둘만의 시간에 집중하세요"
+  },
+  "price": {
+    "lifetime-label": "평생 이용권",
+    "lifetime-value": "₩{{price}}",
+    "trial-prefix": "7일 무료 체험 후",
+    "one-time-note": "한 번 결제로 영구 사용"
+  },
+  "actions": {
+    "start": "지금 시작하기",
+    "purchase": "평생 이용권 구매",
+    "restore": "구매 복원",
+    "purchasing": "결제 처리 중...",
+    "restoring": "복원 중...",
+    "close": "닫기"
+  },
+  "result": {
+    "success": "walkToo+가 활성화되었어요 ✨",
+    "restored": "구매를 복원했어요",
+    "no-purchases": "복원할 구매 내역이 없어요",
+    "failed": "결제에 실패했어요. 잠시 후 다시 시도해주세요.",
+    "sdk-unavailable": "결제 시스템을 준비 중이에요. 잠시 후 다시 시도해주세요."
+  },
+  "gate": {
+    "photos-title": "사진을 더 추가하려면",
+    "photos-description": "walkToo+로 한 번에 최대 {{limit}}장까지",
+    "stats-title": "산책 통계는 walkToo+ 전용이에요",
+    "decoration-title": "회고 꾸미기는 walkToo+ 전용이에요",
+    "go-paywall": "walkToo+ 보기"
+  },
+  "menu": {
+    "upgrade": "walkToo+ 시작하기",
+    "active": "walkToo+ 사용 중"
+  },
+  "fine-print": "1회 결제로 영구 사용. 환불은 Apple/Google 정책에 따라 처리됩니다."
+}

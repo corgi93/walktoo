@@ -27,6 +27,10 @@ export interface Database {
           total_steps: number;
           push_token: string | null;
           character_type: string;
+          has_premium: boolean;
+          premium_trial_ends_at: string | null;
+          premium_purchased_at: string | null;
+          revenuecat_user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -42,6 +46,10 @@ export interface Database {
           total_steps?: number;
           push_token?: string | null;
           character_type?: string;
+          has_premium?: boolean;
+          premium_trial_ends_at?: string | null;
+          premium_purchased_at?: string | null;
+          revenuecat_user_id?: string | null;
         };
         Update: {
           nickname?: string;
@@ -54,6 +62,10 @@ export interface Database {
           total_steps?: number;
           push_token?: string | null;
           character_type?: string;
+          has_premium?: boolean;
+          premium_trial_ends_at?: string | null;
+          premium_purchased_at?: string | null;
+          revenuecat_user_id?: string | null;
         };
         Relationships: [];
       };
@@ -65,6 +77,8 @@ export interface Database {
           invite_code: string;
           start_date: string;
           first_met_date: string | null;
+          has_premium: boolean;
+          premium_purchaser_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -72,11 +86,15 @@ export interface Database {
           invite_code: string;
           start_date?: string;
           first_met_date?: string | null;
+          has_premium?: boolean;
+          premium_purchaser_id?: string | null;
         };
         Update: {
           user2_id?: string | null;
           start_date?: string;
           first_met_date?: string | null;
+          has_premium?: boolean;
+          premium_purchaser_id?: string | null;
         };
         Relationships: [
           {
@@ -266,6 +284,23 @@ export interface Database {
           revealed?: boolean;
           just_revealed?: boolean;
         };
+      };
+      start_trial_if_needed: {
+        Args: Record<string, never>;
+        Returns: {
+          started: boolean;
+          trial_ends_at: string | null;
+        };
+      };
+      mark_premium_purchased: {
+        Args: { p_revenuecat_user_id: string };
+        Returns: {
+          success: boolean;
+        };
+      };
+      is_entitled: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
     };
     Enums: Record<string, never>;

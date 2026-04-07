@@ -30,4 +30,7 @@ export const QUERY_KEYS = {
     list: ['notification'] as const,
     unreadCount: ['notification', 'unread'] as const,
   },
+  entitlement: {
+    status: ['entitlement', 'status'] as const,
+  },
 };

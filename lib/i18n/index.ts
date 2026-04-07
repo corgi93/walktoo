@@ -23,6 +23,7 @@ import koError from './locales/ko/error.json';
 import koHome from './locales/ko/home.json';
 import koNotification from './locales/ko/notification.json';
 import koPermission from './locales/ko/permission.json';
+import koPremium from './locales/ko/premium.json';
 import koProfile from './locales/ko/profile.json';
 import koQuestion from './locales/ko/question.json';
 import koReflection from './locales/ko/reflection.json';
@@ -58,6 +59,7 @@ export const NAMESPACES = [
   'reflection',
   'question',
   'error',
+  'premium',
 ] as const;
 
 const resources = {
@@ -73,6 +75,7 @@ const resources = {
     reflection: koReflection,
     question: koQuestion,
     error: koError,
+    premium: koPremium,
   },
 };
 
