@@ -3,7 +3,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -14,31 +13,31 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
-import { useGetCoupleQuery } from '@/hooks/services/couple/query';
-import { useGetMeQuery } from '@/hooks/services/user/query';
+import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
+import { formatDate, getLocalToday, parseLocalDate } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
 export default function FootprintCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation(['diary', 'common']);
 
-  const { data: me } = useGetMeQuery();
-  const { data: couple } = useGetCoupleQuery();
+  const { couple, isCoupleConnected } = usePartnerDerivation();
   const dialog = useDialogStore();
   const photoBooth = usePhotoBoothStore();
-  const isCoupleConnected = !!me?.coupleId && !!couple?.user2?.id;
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalToday());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [locationName, setLocationName] = useState('');
   const [diaryAnswer, setDiaryAnswer] = useState('');
@@ -65,14 +64,14 @@ export default function FootprintCreateScreen() {
 
   const handleOpenPhotoBooth = () => {
     if (photos.length === 0) {
-      dialog.alert('', '먼저 사진을 추가해주세요!');
+      dialog.alert('', t('diary:create.photo-need-first'));
       return;
     }
     photoBooth.setPhotos(photos);
     router.push('/photo-booth');
   };
 
-  const formattedDate = new Date(date).toLocaleDateString('ko-KR', {
+  const formattedDate = formatDate(parseLocalDate(date), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -83,7 +82,10 @@ export default function FootprintCreateScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== 'granted') {
-      dialog.alert('권한 필요', '사진을 업로드하려면 갤러리 접근 권한이 필요해요.');
+      dialog.alert(
+        t('diary:create.photo-permission-title'),
+        t('diary:create.photo-permission-message'),
+      );
       return;
     }
 
@@ -95,18 +97,18 @@ export default function FootprintCreateScreen() {
     });
 
     if (!result.canceled) {
-      const uris = result.assets.map(a => a.uri);
-      setPhotos(prev => [...prev, ...uris].slice(0, 5));
+      const uris = result.assets.map((a) => a.uri);
+      setPhotos((prev) => [...prev, ...uris].slice(0, 5));
     }
   };
 
   const handleRemovePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!locationName.trim()) {
-      dialog.alert('', '오늘의 데이트 장소를 적어주세요!');
+      dialog.alert('', t('diary:create.location-required'));
       return;
     }
 
@@ -122,11 +124,12 @@ export default function FootprintCreateScreen() {
         coupleAnswer: coupleAnswer.trim(),
       },
       {
-        onSuccess: () => {
-          router.back();
-        },
+        onSuccess: () => router.back(),
         onError: (error) => {
-          dialog.alert('저장 실패', error.message || '다시 시도해주세요.');
+          dialog.alert(
+            t('diary:create.save-failed-title'),
+            error.message || t('diary:create.save-failed'),
+          );
         },
       },
     );
@@ -139,7 +142,7 @@ export default function FootprintCreateScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="x" size={22} color={theme.colors.text} />
         </Pressable>
-        <Text variant="headingMedium">오늘의 데이트</Text>
+        <Text variant="headingMedium">{t('diary:create.title')}</Text>
         <View style={{ width: 32 }} />
       </Row>
 
@@ -151,7 +154,7 @@ export default function FootprintCreateScreen() {
               <Icon name="lock" size={32} color={theme.colors.gray500} />
             </View>
             <Text variant="headingSmall" mt="lg" style={{ textAlign: 'center' }}>
-              내 사람이 아직 없어요
+              {t('diary:create.no-couple-title')}
             </Text>
             <Text
               variant="bodySmall"
@@ -159,7 +162,7 @@ export default function FootprintCreateScreen() {
               mt="sm"
               style={{ textAlign: 'center', lineHeight: 20 }}
             >
-              산책 기록은 둘이 함께 남기는 거예요{'\n'}먼저 연인을 초대해주세요
+              {t('diary:create.no-couple-description')}
             </Text>
             <Button
               variant="primary"
@@ -167,7 +170,7 @@ export default function FootprintCreateScreen() {
               mt="xl"
               onPress={() => router.back()}
             >
-              돌아가기
+              {t('diary:create.no-couple-back')}
             </Button>
           </PixelCard>
         </View>
@@ -178,7 +181,7 @@ export default function FootprintCreateScreen() {
             <View style={styles.infoBanner}>
               <Icon name="lock" size={14} color={theme.colors.gray500} />
               <Text variant="caption" color="textSecondary" ml="sm" style={{ flex: 1 }}>
-                둘 다 기록해야 서로의 하루를 열어볼 수 있어요
+                {t('diary:create.info-banner')}
               </Text>
             </View>
           </Box>
@@ -213,13 +216,13 @@ export default function FootprintCreateScreen() {
                 <Row style={styles.fieldLabel}>
                   <Icon name="map-pin" size={14} color={theme.colors.gray600} />
                   <Text variant="label" color="textSecondary">
-                    오늘의 데이트 장소
+                    {t('diary:create.location-label')}
                   </Text>
                 </Row>
                 <View style={styles.inputCard}>
                   <TextInput
                     style={styles.locationInput}
-                    placeholder="한강공원, 경복궁, 홍대..."
+                    placeholder={t('diary:create.location-placeholder')}
                     placeholderTextColor={theme.colors.gray400}
                     value={locationName}
                     onChangeText={setLocationName}
@@ -234,7 +237,7 @@ export default function FootprintCreateScreen() {
                   <Row style={styles.fieldLabel}>
                     <Icon name="camera" size={14} color={theme.colors.gray600} />
                     <Text variant="label" color="textSecondary">
-                      사진
+                      {t('diary:create.photo-label')}
                     </Text>
                   </Row>
                   <Text variant="caption" color="textMuted">
@@ -251,7 +254,7 @@ export default function FootprintCreateScreen() {
                     <Pressable style={styles.photoAdd} onPress={handleAddPhoto}>
                       <Icon name="image-plus" size={24} color={theme.colors.gray400} />
                       <Text variant="caption" color="textMuted" mt="xs">
-                        추가
+                        {t('diary:create.photo-add')}
                       </Text>
                     </Pressable>
                   )}
@@ -277,7 +280,7 @@ export default function FootprintCreateScreen() {
                   <Pressable style={styles.photoBoothBtn} onPress={handleOpenPhotoBooth}>
                     <Icon name="grid" size={14} color={theme.colors.primary} />
                     <Text variant="label" color="primary" ml="xs">
-                      포토부스 만들기
+                      {t('diary:create.photobooth-button')}
                     </Text>
                   </Pressable>
                 )}
@@ -288,18 +291,18 @@ export default function FootprintCreateScreen() {
                 <Row style={styles.fieldLabel}>
                   <Text style={{ fontSize: 14 }}>📝</Text>
                   <Text variant="label" color="textSecondary">
-                    오늘의 다이어리
+                    {t('diary:create.diary-section-title')}
                   </Text>
                 </Row>
                 <View style={styles.questionPrompt}>
                   <Text variant="bodySmall" color="primary">
-                    Q. {diaryQuestion.content}
+                    {t('diary:create.diary-prompt-prefix')} {diaryQuestion.content}
                   </Text>
                 </View>
                 <View style={styles.memoCard}>
                   <TextInput
                     style={styles.memoInput}
-                    placeholder="오늘의 이야기를 적어봐 :)"
+                    placeholder={t('diary:create.diary-placeholder')}
                     placeholderTextColor={theme.colors.gray400}
                     value={diaryAnswer}
                     onChangeText={setDiaryAnswer}
@@ -315,7 +318,7 @@ export default function FootprintCreateScreen() {
                 <Row style={styles.fieldLabel}>
                   <Text style={{ fontSize: 14 }}>💌</Text>
                   <Text variant="label" color="textSecondary">
-                    오늘의 질문
+                    {t('diary:create.couple-section-title')}
                   </Text>
                   <View style={styles.categoryChip}>
                     <Text style={{ fontSize: 10 }}>{coupleQuestion.emoji}</Text>
@@ -326,13 +329,13 @@ export default function FootprintCreateScreen() {
                 </Row>
                 <View style={styles.questionPrompt}>
                   <Text variant="bodySmall" color="primary">
-                    Q. {coupleQuestion.content}
+                    {t('diary:create.diary-prompt-prefix')} {coupleQuestion.content}
                   </Text>
                 </View>
                 <View style={styles.memoCard}>
                   <TextInput
                     style={styles.memoInput}
-                    placeholder="솔직하게 적어봐, 연인만 볼 수 있어"
+                    placeholder={t('diary:create.couple-placeholder')}
                     placeholderTextColor={theme.colors.gray400}
                     value={coupleAnswer}
                     onChangeText={setCoupleAnswer}
@@ -359,11 +362,11 @@ export default function FootprintCreateScreen() {
                   <Row style={styles.savingRow}>
                     <ActivityIndicator size="small" color={theme.colors.white} />
                     <Text variant="bodyMedium" color="white">
-                      저장 중...
+                      {t('diary:create.submitting')}
                     </Text>
                   </Row>
                 ) : (
-                  '오늘의 기록 남기기'
+                  t('diary:create.submit')
                 )}
               </Button>
             </Box>
@@ -375,9 +378,12 @@ export default function FootprintCreateScreen() {
       {showDatePicker && (
         <SimpleDatePicker
           currentDate={date}
-          onSave={(d) => { setDate(d); setShowDatePicker(false); }}
+          onSave={(d) => {
+            setDate(d);
+            setShowDatePicker(false);
+          }}
           onClose={() => setShowDatePicker(false)}
-          title="날짜 선택"
+          title={t('diary:create.date-picker-title')}
           maxDate={new Date()}
         />
       )}
@@ -398,8 +404,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: LAYOUT.headerPy,
   },
-
-  /* ── 안내 배너 ── */
   bannerSection: {
     marginTop: SPACING.xs,
   },
@@ -411,14 +415,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.cardPx,
     paddingVertical: LAYOUT.itemGap,
   },
-
-  /* ── 스크롤 본문 ── */
   scroll: {
     paddingTop: LAYOUT.sectionGap,
     paddingBottom: LAYOUT.bottomSafe,
   },
-
-  /* ── 필드 공통 ── */
   fieldSection: {
     marginTop: LAYOUT.sectionGapLg,
   },
@@ -427,8 +427,6 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
     marginBottom: LAYOUT.itemGap,
   },
-
-  /* ── 날짜 ── */
   dateCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -437,8 +435,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.cardPx,
     paddingVertical: LAYOUT.cardPy,
   },
-
-  /* ── 장소 인풋 ── */
   inputCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -455,8 +451,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     lineHeight: 22,
   },
-
-  /* ── 사진 ── */
   photoScroll: {
     marginTop: LAYOUT.itemGap,
   },
@@ -508,8 +502,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.primaryLight,
   },
-
-  /* ── 질문 프롬프트 ── */
   questionPrompt: {
     backgroundColor: theme.colors.primarySurface,
     borderRadius: theme.radius.md,
@@ -528,8 +520,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
     marginLeft: 'auto',
   },
-
-  /* ── 메모 ── */
   memoCard: {
     backgroundColor: theme.colors.surfaceWarm,
     borderRadius: theme.radius.md,
@@ -537,14 +527,12 @@ const styles = StyleSheet.create({
     minHeight: 140,
   },
   memoInput: {
-    fontSize: SPACING.lg - 1, // 15
+    fontSize: SPACING.lg - 1,
     fontFamily: FONT_FAMILY.pixel,
     lineHeight: 22,
     color: theme.colors.text,
     flex: 1,
   },
-
-  /* ── 하단 저장 바 ── */
   bottomBar: {
     paddingTop: LAYOUT.headerPy,
     borderTopWidth: 2,
@@ -554,8 +542,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: LAYOUT.itemGap,
   },
-
-  /* ── 커플 미연결 ── */
   noCoupleArea: {
     flex: 1,
     justifyContent: 'center',

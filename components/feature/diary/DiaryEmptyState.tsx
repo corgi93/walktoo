@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Column, Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
@@ -8,6 +9,7 @@ import { SPACING } from '@/styles/type';
 // ─── Component ──────────────────────────────────────────
 
 export function DiaryEmptyState() {
+  const { t } = useTranslation('diary');
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
@@ -16,16 +18,10 @@ export function DiaryEmptyState() {
 
       <Column style={{ alignItems: 'center', marginTop: SPACING.lg }}>
         <Text variant="headingSmall" align="center">
-          아직 둘의 기록이 없어요
+          {t('list.empty-title')}
         </Text>
-        <Text
-          variant="bodySmall"
-          color="textMuted"
-          align="center"
-          mt="sm"
-        >
-          첫 번째 산책 기록을{'\n'}
-          남겨보세요
+        <Text variant="bodySmall" color="textMuted" align="center" mt="sm">
+          {t('list.empty-description')}
         </Text>
       </Column>
     </View>

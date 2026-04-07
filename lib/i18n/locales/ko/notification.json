@@ -1,8 +1,14 @@
 {
   "title": "알림",
-  "empty": "알림이 없어요",
+  "empty": "아직 알림이 없어요",
   "mark-all-read": "모두 읽음",
   "loading": "불러오는 중...",
+  "time-ago": {
+    "just-now": "방금 전",
+    "minutes": "{{count}}분 전",
+    "hours": "{{count}}시간 전",
+    "days": "{{count}}일 전"
+  },
   "push": {
     "couple-joined": {
       "title": "커플 연결 완료!",
