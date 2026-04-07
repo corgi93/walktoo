@@ -5,5 +5,6 @@ export { HomeTopBar } from './HomeTopBar';
 export { MissionCard } from './MissionCard';
 export { RecentNotificationsWidget } from './RecentNotificationsWidget';
 export { RecentWalksWidget } from './RecentWalksWidget';
+export { ReflectionWidget } from './ReflectionWidget';
 export { StepsSection } from './StepsSection';
 export { WalkIllustration } from './WalkIllustration';

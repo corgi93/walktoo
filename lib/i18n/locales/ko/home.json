@@ -29,6 +29,17 @@
   "recent-notifications": {
     "title": "최근 알림"
   },
+  "reflection-widget": {
+    "title": "이달의 우리",
+    "loading": "회고를 준비하고 있어요",
+    "state-empty": "이달의 회고를 시작해보세요",
+    "state-in-progress": "내 답변 {{done}}/{{total}}",
+    "state-waiting": "연인의 답변을 기다리는 중",
+    "state-revealed": "💞 이달의 회고가 공개되었어요",
+    "cta-start": "쓰러 가기",
+    "cta-continue": "이어 쓰기",
+    "cta-view": "보러 가기"
+  },
   "cta": {
     "create-walk": "오늘의 산책 기록하기"
   },

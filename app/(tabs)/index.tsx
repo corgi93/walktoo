@@ -13,6 +13,7 @@ import {
   MissionCard,
   RecentNotificationsWidget,
   RecentWalksWidget,
+  ReflectionWidget,
   StepsSection,
   WalkIllustration,
 } from '@/components/feature/home';
@@ -23,6 +24,10 @@ import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation'
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { useNotificationListQuery, useUnreadCountQuery } from '@/hooks/services/notification/query';
+import {
+  useCurrentReflectionQuery,
+  useReflectionDetailQuery,
+} from '@/hooks/services/reflections/query';
 import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
 import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
@@ -32,6 +37,7 @@ import { usePedometer } from '@/hooks/usePedometer';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
+import { getCurrentYearMonth } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -66,6 +72,14 @@ export default function HomeScreen() {
 
   const recentDiaries = (diaryData?.pages.flatMap((page) => page) ?? []).slice(0, 3);
   const recentNotifications = (notifData?.pages.flatMap((page) => page) ?? []).slice(0, 3);
+
+  // 이달의 회고 (홈 위젯용) ─────────────────────────────
+  const { data: currentReflection, isLoading: isReflectionLoading } =
+    useCurrentReflectionQuery(isCoupleConnected ? couple?.id : undefined);
+  const { data: reflectionDetail, isLoading: isReflectionDetailLoading } =
+    useReflectionDetailQuery(currentReflection?.id, me?.id);
+  const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
+  const todayDayOfMonth = new Date().getDate();
 
   // 걸음수 ────────────────────────────────────────────────
   const { steps: pedometerSteps } = usePedometer();
@@ -180,6 +194,17 @@ export default function HomeScreen() {
             hasTodayStamp={hasTodayStamp}
             isClaiming={claimStamp.isPending}
             onClaim={handleClaimStamp}
+          />
+        )}
+
+        {/* 이달의 우리 — 회고 카드 */}
+        {isCoupleConnected && (
+          <ReflectionWidget
+            detail={reflectionDetail}
+            isLoading={isReflectionLoading || isReflectionDetailLoading}
+            todayDayOfMonth={todayDayOfMonth}
+            year={currentYear}
+            month={currentMonth}
           />
         )}
 

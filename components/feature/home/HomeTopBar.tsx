@@ -40,6 +40,11 @@ export function HomeTopBar({
             iconColor={theme.colors.primaryDark}
           />
         )}
+        {isCoupleConnected && (
+          <Pressable hitSlop={8} onPress={() => router.push('/calendar')}>
+            <Icon name="calendar" size={20} color={theme.colors.text} />
+          </Pressable>
+        )}
         <Pressable hitSlop={8} onPress={() => router.push('/notifications')}>
           <View>
             <Icon name="bell" size={20} color={theme.colors.text} />

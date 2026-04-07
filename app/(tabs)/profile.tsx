@@ -200,22 +200,6 @@ export default function ProfileScreen() {
             ) : (
               <MenuItem iconName="link" label={t('menu.couple-connect')} />
             )}
-            {hasCoupleId && (
-              <>
-                <MenuItem
-                  iconName="book-open"
-                  label={t('menu.monthly-reflection')}
-                  iconColor={theme.colors.secondary}
-                  onPress={() => router.push('/reflection')}
-                />
-                <MenuItem
-                  iconName="calendar"
-                  label={t('menu.calendar')}
-                  iconColor={theme.colors.primary}
-                  onPress={() => router.push('/calendar')}
-                />
-              </>
-            )}
             <MenuItem
               iconName="bar-chart"
               label={t('menu.stats')}
