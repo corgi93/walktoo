@@ -9,10 +9,12 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import * as ImagePicker from 'expo-image-picker';
 
 import { Box, Button, Icon, Row, Text } from '@/components/base';
+import { formatDate } from '@/utils/date';
 import FilterPicker from '@/components/feature/photobooth/FilterPicker';
 import FrameColorPicker from '@/components/feature/photobooth/FrameColorPicker';
 import PhotoBoothCanvas from '@/components/feature/photobooth/PhotoBoothCanvas';
@@ -29,6 +31,7 @@ const CANVAS_MAX_WIDTH = SCREEN_WIDTH - SPACING.xxl * 2;
 export default function PhotoBoothScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation('diary');
   const canvasRef = useRef<View>(null);
   const [capturing, setCapturing] = useState(false);
 
@@ -54,7 +57,7 @@ export default function PhotoBoothScreen() {
       ? maxCanvasHeight * template.aspectRatio
       : idealWidth;
 
-  const dateLabel = new Date().toLocaleDateString('ko-KR', {
+  const dateLabel = formatDate(new Date(), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -107,7 +110,7 @@ export default function PhotoBoothScreen() {
         <Pressable onPress={handleCancel} hitSlop={8}>
           <Icon name="x" size={22} color={theme.colors.text} />
         </Pressable>
-        <Text variant="headingMedium">포토부스</Text>
+        <Text variant="headingMedium">{t('photobooth.title')}</Text>
         <View style={{ width: 32 }} />
       </Row>
 
@@ -128,7 +131,7 @@ export default function PhotoBoothScreen() {
         {/* 프레임 색상 */}
         <Box style={styles.section}>
           <Text variant="label" color="textSecondary" style={styles.sectionLabel}>
-            프레임 색상
+            {t('photobooth.frame-color')}
           </Text>
           <FrameColorPicker selectedId={frameColorId} onSelect={setFrameColor} />
         </Box>
@@ -136,7 +139,7 @@ export default function PhotoBoothScreen() {
         {/* 필터 */}
         <Box style={styles.section}>
           <Text variant="label" color="textSecondary" style={styles.sectionLabel}>
-            필터
+            {t('photobooth.filter')}
           </Text>
           <FilterPicker
             selectedId={filterId}
@@ -148,7 +151,7 @@ export default function PhotoBoothScreen() {
         {/* 템플릿 */}
         <Box style={styles.section}>
           <Text variant="label" color="textSecondary" style={styles.sectionLabel}>
-            레이아웃
+            {t('photobooth.layout')}
           </Text>
           <TemplatePicker selectedId={templateId} onSelect={setTemplate} />
         </Box>
@@ -169,11 +172,11 @@ export default function PhotoBoothScreen() {
             <Row style={styles.savingRow}>
               <ActivityIndicator size="small" color={theme.colors.white} />
               <Text variant="bodyMedium" color="white">
-                저장 중...
+                {t('photobooth.saving')}
               </Text>
             </Row>
           ) : (
-            '완성!'
+            t('photobooth.save')
           )}
         </Button>
       </Box>

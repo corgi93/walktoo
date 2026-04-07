@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import {
@@ -29,6 +30,7 @@ interface NoCoupleCardProps {
 // ─── Component ──────────────────────────────────────────
 
 export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
+  const { t } = useTranslation('couple');
   const [mode, setMode] = useState<Mode>('idle');
   const [joinCode, setJoinCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -39,7 +41,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
 
   // ─── Handlers ─────────────────────────────────────────
 
-  const handleCreateInvite = async () => {
+  const handleCreateInvite = () => {
     createInvite.mutate(undefined, {
       onSuccess: (data) => {
         const code = (data as { inviteCode?: string })?.inviteCode ?? '';
@@ -47,7 +49,10 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
         setMode('invite');
       },
       onError: (err) => {
-        dialog.alert('오류', err.message || '초대코드 생성에 실패했어요');
+        dialog.alert(
+          t('invite.create-failed-title'),
+          err.message || t('invite.create-failed-message'),
+        );
       },
     });
   };
@@ -55,7 +60,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
   const handleShareCode = async () => {
     try {
       await Share.share({
-        message: `walkToo에서 같이 걸어볼래?\n초대코드: ${generatedCode}`,
+        message: t('invite.share-message', { code: generatedCode }),
       });
     } catch {
       // 공유 취소 시 무시
@@ -65,31 +70,33 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
   const handleJoin = () => {
     const trimmed = joinCode.trim().toUpperCase();
     if (!trimmed) {
-      dialog.alert('', '초대코드를 입력해주세요!');
+      dialog.alert('', t('join.code-required'));
       return;
     }
     if (trimmed.length < 6) {
-      dialog.alert('', '초대코드는 6자리예요');
+      dialog.alert('', t('join.code-too-short'));
       return;
     }
     joinCouple.mutate(trimmed, {
       onSuccess: () => {
-        dialog.alert('연결 완료! 🎉', '이제 둘만의 산책이 시작돼요');
+        dialog.alert(t('join.success-title'), t('join.success-message'));
         setMode('idle');
         setJoinCode('');
       },
       onError: (err) => {
+        // 백엔드 에러 메시지 패턴 분기 (한국어 식별자 그대로 — 서버 응답 코드).
+        // 향후 백엔드에서 에러 코드(enum)로 내려주면 그걸 키로 분기하는 것이 정공법.
         const msg = err.message || '';
         if (msg.includes('유효하지 않은')) {
-          dialog.alert('초대코드 오류', '존재하지 않는 코드예요.\n다시 확인해주세요!');
+          dialog.alert(t('join.error-invalid-title'), t('join.error-invalid-message'));
         } else if (msg.includes('만료된')) {
-          dialog.alert('코드 만료', '24시간이 지난 코드예요.\n상대방에게 새 코드를 요청해주세요!');
+          dialog.alert(t('join.error-expired-title'), t('join.error-expired-message'));
         } else if (msg.includes('본인의')) {
-          dialog.alert('', '내가 만든 코드엔 연결할 수 없어요 😅');
+          dialog.alert('', t('join.error-self'));
         } else if (msg.includes('이미 연결된')) {
-          dialog.alert('', '이미 연결된 커플이 있어요!');
+          dialog.alert('', t('join.error-already-paired'));
         } else {
-          dialog.alert('연결 실패', '코드를 확인해주세요');
+          dialog.alert(t('join.error-fail-title'), t('join.error-fail-message'));
         }
       },
     });
@@ -104,10 +111,10 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
           <Icon name="mail" size={24} color={theme.colors.primary} />
         </View>
         <Text variant="bodySmall" color="textSecondary" mt="sm" style={{ textAlign: 'center' }}>
-          내 사람을 기다리는 중...
+          {t('no-couple.compact-title')}
         </Text>
         <Text variant="caption" color="textMuted" mt="xxs" style={{ textAlign: 'center' }}>
-          초대코드를 보내보세요
+          {t('no-couple.compact-subtitle')}
         </Text>
       </PixelCard>
     );
@@ -117,13 +124,12 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
 
   return (
     <View style={styles.container}>
-      {/* 상단 아이콘 */}
       <View style={styles.headerIcon}>
         <Icon name="link" size={20} color={theme.colors.primary} />
       </View>
 
       <Text variant="headingMedium" mt="md" style={{ textAlign: 'center' }}>
-        아직 둘이 아니에요
+        {t('no-couple.title')}
       </Text>
       <Text
         variant="bodySmall"
@@ -131,10 +137,9 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
         mt="sm"
         style={{ textAlign: 'center', lineHeight: 20 }}
       >
-        내 사람과 연결하면{'\n'}둘만의 산책이 시작돼요
+        {t('no-couple.description')}
       </Text>
 
-      {/* ─── Idle Mode ─── */}
       {mode === 'idle' && (
         <Box style={{ marginTop: SPACING.xxl, width: '100%' }}>
           <Button
@@ -143,7 +148,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
             onPress={handleCreateInvite}
             loading={createInvite.isPending}
           >
-            초대코드 만들기
+            {t('no-couple.create-code')}
           </Button>
           <Button
             variant="secondary"
@@ -151,17 +156,16 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
             mt="sm"
             onPress={() => setMode('join')}
           >
-            초대코드 입력하기
+            {t('no-couple.enter-code')}
           </Button>
         </Box>
       )}
 
-      {/* ─── Invite Mode (코드 생성됨) ─── */}
       {mode === 'invite' && (
         <Box style={{ marginTop: SPACING.xxl, width: '100%' }}>
           <PixelCard style={styles.codeCard} bg={theme.colors.primarySurface}>
             <Text variant="caption" color="textSecondary">
-              나의 초대코드
+              {t('invite.label')}
             </Text>
             <Text
               variant="displaySmall"
@@ -179,7 +183,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
               <Row style={{ alignItems: 'center', gap: SPACING.xs }}>
                 <Icon name="share" size={14} color={theme.colors.primary} />
                 <Text variant="caption" color="primary">
-                  공유하기
+                  {t('invite.share')}
                 </Text>
               </Row>
             </Pressable>
@@ -191,7 +195,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
             mt="md"
             style={{ textAlign: 'center' }}
           >
-            내 사람에게 이 코드를 보내주세요
+            {t('invite.share-prompt')}
           </Text>
 
           <Button
@@ -200,18 +204,17 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
             mt="md"
             onPress={() => setMode('idle')}
           >
-            돌아가기
+            {t('no-couple.back')}
           </Button>
         </Box>
       )}
 
-      {/* ─── Join Mode (코드 입력) ─── */}
       {mode === 'join' && (
         <Box style={{ marginTop: SPACING.xxl, width: '100%' }}>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.codeInput}
-              placeholder="초대코드 입력"
+              placeholder={t('join.input-placeholder')}
               placeholderTextColor={theme.colors.gray400}
               value={joinCode}
               onChangeText={setJoinCode}
@@ -233,11 +236,11 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
               <Row style={{ alignItems: 'center', gap: SPACING.sm }}>
                 <ActivityIndicator size="small" color={theme.colors.white} />
                 <Text variant="bodyMedium" color="white">
-                  연결 중...
+                  {t('join.submitting')}
                 </Text>
               </Row>
             ) : (
-              '커플 연결하기'
+              t('join.submit')
             )}
           </Button>
 
@@ -250,7 +253,7 @@ export function NoCoupleCard({ compact = false }: NoCoupleCardProps) {
               setJoinCode('');
             }}
           >
-            돌아가기
+            {t('no-couple.back')}
           </Button>
         </Box>
       )}

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Column, Text } from '@/components/base';
 import { PERMISSION_CONFIGS } from '@/constants/permissions';
@@ -25,6 +26,7 @@ export const PermissionPrompt: React.FC<PermissionPromptProps> = ({
   onSkip,
   loading,
 }) => {
+  const { t } = useTranslation('permission');
   const config = PERMISSION_CONFIGS[type];
 
   return (
@@ -35,7 +37,7 @@ export const PermissionPrompt: React.FC<PermissionPromptProps> = ({
 
       <Column style={{ alignItems: 'center', marginTop: SPACING.lg }}>
         <Text variant="headingSmall" align="center">
-          {config.title}
+          {t(`${type}.title`)}
         </Text>
         <Text
           variant="bodySmall"
@@ -43,17 +45,17 @@ export const PermissionPrompt: React.FC<PermissionPromptProps> = ({
           align="center"
           mt="sm"
         >
-          {config.description}
+          {t(`${type}.description`)}
         </Text>
       </Column>
 
       <Box style={{ width: '100%', marginTop: SPACING.xxl }}>
         <Button onPress={onAllow} size="large" loading={loading}>
-          허용하기
+          {t('prompt.allow')}
         </Button>
         {!config.required && onSkip && (
           <Button onPress={onSkip} variant="ghost" size="medium" mt="sm">
-            나중에 하기
+            {t('prompt.later')}
           </Button>
         )}
       </Box>

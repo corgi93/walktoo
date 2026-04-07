@@ -14,11 +14,9 @@ export type PermissionStatus =
 
 // ─── Permission Config ──────────────────────────────
 
-/** 권한 레지스트리 항목 */
+/** 권한 레지스트리 항목. 사용자 표시 문자열은 i18n에서 가져옴. */
 export interface PermissionConfig {
   type: PermissionType;
-  title: string;
-  description: string;
   icon: keyof typeof Ionicons.glyphMap;
   /** 앱 핵심 기능에 필수인지 여부 */
   required: boolean;

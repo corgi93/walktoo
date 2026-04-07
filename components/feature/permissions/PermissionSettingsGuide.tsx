@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Column, Text } from '@/components/base';
-import { PERMISSION_CONFIGS } from '@/constants/permissions';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { PermissionType } from '@/types/permission';
@@ -20,7 +20,7 @@ interface PermissionSettingsGuideProps {
 export const PermissionSettingsGuide: React.FC<
   PermissionSettingsGuideProps
 > = ({ type }) => {
-  const config = PERMISSION_CONFIGS[type];
+  const { t } = useTranslation('permission');
 
   return (
     <View style={styles.card}>
@@ -34,7 +34,7 @@ export const PermissionSettingsGuide: React.FC<
 
       <Column style={{ alignItems: 'center', marginTop: SPACING.lg }}>
         <Text variant="headingSmall" align="center">
-          {config.title}이 필요해요
+          {t('settings-guide.needed', { title: t(`${type}.title`) })}
         </Text>
         <Text
           variant="bodySmall"
@@ -42,13 +42,13 @@ export const PermissionSettingsGuide: React.FC<
           align="center"
           mt="sm"
         >
-          {'설정에서 직접 권한을 허용해주세요.\n앱 설정 → walkToo → 권한'}
+          {t('settings-guide.description')}
         </Text>
       </Column>
 
       <Box style={{ width: '100%', marginTop: SPACING.xxl }}>
         <Button onPress={openAppSettings} size="large" variant="secondary">
-          설정으로 이동
+          {t('settings-guide.open-settings')}
         </Button>
       </Box>
     </View>

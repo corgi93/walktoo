@@ -1,9 +1,37 @@
 {
   "no-couple": {
-    "title": "함께 걸을 사람이 없어요",
-    "description": "초대코드를 만들어 연인과 연결해보세요",
+    "title": "아직 둘이 아니에요",
+    "description": "내 사람과 연결하면\n둘만의 산책이 시작돼요",
+    "compact-title": "내 사람을 기다리는 중...",
+    "compact-subtitle": "초대코드를 보내보세요",
     "create-code": "초대코드 만들기",
-    "enter-code": "초대코드 입력하기"
+    "enter-code": "초대코드 입력하기",
+    "back": "돌아가기"
+  },
+  "invite": {
+    "label": "나의 초대코드",
+    "share": "공유하기",
+    "share-message": "walkToo에서 같이 걸어볼래?\n초대코드: {{code}}",
+    "share-prompt": "내 사람에게 이 코드를 보내주세요",
+    "create-failed-title": "오류",
+    "create-failed-message": "초대코드 생성에 실패했어요"
+  },
+  "join": {
+    "input-placeholder": "초대코드 입력",
+    "submit": "커플 연결하기",
+    "submitting": "연결 중...",
+    "code-required": "초대코드를 입력해주세요!",
+    "code-too-short": "초대코드는 6자리예요",
+    "success-title": "연결 완료! 🎉",
+    "success-message": "이제 둘만의 산책이 시작돼요",
+    "error-invalid-title": "초대코드 오류",
+    "error-invalid-message": "존재하지 않는 코드예요.\n다시 확인해주세요!",
+    "error-expired-title": "코드 만료",
+    "error-expired-message": "24시간이 지난 코드예요.\n상대방에게 새 코드를 요청해주세요!",
+    "error-self": "내가 만든 코드엔 연결할 수 없어요 😅",
+    "error-already-paired": "이미 연결된 커플이 있어요!",
+    "error-fail-title": "연결 실패",
+    "error-fail-message": "코드를 확인해주세요"
   },
   "header": {
     "with": "함께",

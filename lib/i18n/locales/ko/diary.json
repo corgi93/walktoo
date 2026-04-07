@@ -61,6 +61,14 @@
       "save-retry": "다시 시도해주세요."
     }
   },
+  "photobooth": {
+    "title": "포토부스",
+    "frame-color": "프레임 색상",
+    "filter": "필터",
+    "layout": "레이아웃",
+    "save": "완성!",
+    "saving": "저장 중..."
+  },
   "timeline": {
     "year-label": "{{year}}년",
     "locked-waiting-mine": "나의 하루를 먼저 남겨주세요",
