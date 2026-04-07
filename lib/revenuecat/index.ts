@@ -2,17 +2,21 @@
  * RevenueCat SDK 래퍼
  *
  * - 1회성 결제 (non-consumable) 전용
- * - API 키가 없으면 모든 호출이 no-op (Expo Go / dev 환경 안전)
+ * - API 키가 없거나 native 모듈이 없으면 모든 호출이 no-op
  * - SDK 호출 결과는 모두 graceful 처리 (throw X, 호출부에서 결과 분기)
+ *
+ * NOTE: react-native-purchases는 native 모듈이라 dev client 빌드가 필요하다.
+ * Expo Go / 미빌드 dev client에서도 앱이 죽지 않도록 모듈 자체를 lazy require로
+ * 로드한다. 모듈 로딩이 실패하면 Purchases = null 로 두고 모든 함수는 no-op.
  *
  * 콘솔/대시보드 세팅은 docs/revenuecat-setup.md 참고.
  */
 
 import { Platform } from 'react-native';
-import Purchases, {
-  type CustomerInfo,
-  type PurchasesOffering,
-  type PurchasesPackage,
+import type {
+  CustomerInfo,
+  PurchasesOffering,
+  PurchasesPackage,
 } from 'react-native-purchases';
 
 import { PREMIUM } from '@/constants/premium';
@@ -25,6 +29,37 @@ const API_KEY =
     android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '',
   }) ?? '';
 
+// ─── Lazy SDK 로드 ──────────────────────────────────────
+//
+// 최초 호출 시점에 require()로 로드. 실패하면 null로 마킹하고 다시 시도하지 않음.
+
+type PurchasesModule = typeof import('react-native-purchases').default;
+
+let purchasesRef: PurchasesModule | null = null;
+let loadAttempted = false;
+
+const getPurchases = (): PurchasesModule | null => {
+  if (loadAttempted) return purchasesRef;
+  loadAttempted = true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('react-native-purchases');
+    purchasesRef = (mod.default ?? mod) as PurchasesModule;
+    return purchasesRef;
+  } catch (e) {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[RevenueCat] react-native-purchases unavailable. ' +
+          'Rebuild dev client to enable purchases.',
+        e,
+      );
+    }
+    purchasesRef = null;
+    return null;
+  }
+};
+
 let initialized = false;
 
 // ─── 초기화 ──────────────────────────────────────────────
@@ -33,7 +68,7 @@ let initialized = false;
  * RevenueCat SDK 초기화. 한 user당 한 번만 configure 호출.
  * 같은 user로 다시 부르면 logIn으로 처리.
  *
- * API 키가 없으면 (env 미설정) 안전하게 skip.
+ * API 키가 없거나 native 모듈이 없으면 안전하게 skip.
  */
 export const initRevenueCat = async (userId: string): Promise<void> => {
   if (!API_KEY) {
@@ -43,6 +78,9 @@ export const initRevenueCat = async (userId: string): Promise<void> => {
     }
     return;
   }
+
+  const Purchases = getPurchases();
+  if (!Purchases) return;
 
   try {
     if (initialized) {
@@ -62,6 +100,8 @@ export const isRevenueCatReady = (): boolean => initialized;
 
 export const getCurrentOffering = async (): Promise<PurchasesOffering | null> => {
   if (!initialized) return null;
+  const Purchases = getPurchases();
+  if (!Purchases) return null;
   try {
     const offerings = await Purchases.getOfferings();
     return offerings.current ?? null;
@@ -106,6 +146,10 @@ export const purchaseLifetime = async (
   if (!initialized) {
     return { ok: false, errorMessage: 'sdk-unavailable' };
   }
+  const Purchases = getPurchases();
+  if (!Purchases) {
+    return { ok: false, errorMessage: 'sdk-unavailable' };
+  }
   try {
     const result = await Purchases.purchasePackage(pkg);
     const hasEntitlement = hasActiveEntitlement(result.customerInfo);
@@ -122,6 +166,10 @@ export const purchaseLifetime = async (
 
 export const restorePurchases = async (): Promise<PurchaseOutcome> => {
   if (!initialized) {
+    return { ok: false, errorMessage: 'sdk-unavailable' };
+  }
+  const Purchases = getPurchases();
+  if (!Purchases) {
     return { ok: false, errorMessage: 'sdk-unavailable' };
   }
   try {
@@ -143,6 +191,8 @@ export const hasActiveEntitlement = (info: CustomerInfo): boolean => {
 
 export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
   if (!initialized) return null;
+  const Purchases = getPurchases();
+  if (!Purchases) return null;
   try {
     return await Purchases.getCustomerInfo();
   } catch {
@@ -152,6 +202,8 @@ export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {
 
 export const getRevenueCatAppUserId = async (): Promise<string | null> => {
   if (!initialized) return null;
+  const Purchases = getPurchases();
+  if (!Purchases) return null;
   try {
     return await Purchases.getAppUserID();
   } catch {
