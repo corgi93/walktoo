@@ -17,7 +17,7 @@ import { formatNumber, formatSteps } from '@/utils/date';
 
 // ─── Props ──────────────────────────────────────────────
 
-interface UnifiedMissionCardProps {
+interface DualStepsMissionCardProps {
   isCoupleConnected: boolean;
   myName: string;
   partnerName: string;
@@ -29,26 +29,24 @@ interface UnifiedMissionCardProps {
 }
 
 /**
- * 홈 히어로 카드 — StepsSection + MissionCard 통합.
+ * 홈 히어로 카드 — 걸음/미션 통합 (split 카드 + inline progress strip)
  *
- * 커플 모드 (isCoupleConnected):
- *   - 헤더: 🎯 오늘 우리의 걸음 · 진행률 %
- *   - 히어로 숫자: 총합 / 목표
- *   - Progress bar
- *   - divider
- *   - 혁지니 · Kiki 각각 한 줄
- *   - 미션 완료 시 추억의 발자국 받기 버튼
+ * Couple 모드 레이아웃:
+ *   ┌──────────────────────────────┐
+ *   │ ┌──────┐  💗  ┌──────┐       │  ← split step mini cards
+ *   │ │ 혁지니│     │ Kiki │        │     (작지만 임팩트 있게)
+ *   │ │ 3,610│     │  0   │        │
+ *   │ │144kcal│    │0 kcal│        │
+ *   │ └──────┘     └──────┘        │
+ *   │ ─────────────────────        │
+ *   │ 🎯 오늘의 미션     18%       │  ← inline strip
+ *   │ ██████░░░░░░ 3,610/20k       │
+ *   │ [🐾 발자국 받기 (+30)]        │  ← 완료 시만
+ *   └──────────────────────────────┘
  *
- * 솔로 모드:
- *   - 헤더: 🎯 오늘의 걸음
- *   - 히어로 숫자: 내 걸음 / 개인 목표
- *   - Progress bar
- *   - 우측 kcal chip
- *   - claim 버튼 없음
- *
- * PixelCard 기본 padding(16)을 유지. 내부 margin으로만 간격 조정.
+ * Solo 모드: split 카드 없음, 단일 유저 히어로 + 진행바.
  */
-export function UnifiedMissionCard({
+export function DualStepsMissionCard({
   isCoupleConnected,
   myName,
   partnerName,
@@ -57,48 +55,13 @@ export function UnifiedMissionCard({
   hasTodayStamp,
   isClaiming,
   onClaim,
-}: UnifiedMissionCardProps) {
+}: DualStepsMissionCardProps) {
   const { t } = useTranslation('home');
 
-  if (isCoupleConnected) {
-    return (
-      <CoupleMission
-        myName={myName}
-        partnerName={partnerName}
-        mySteps={mySteps}
-        partnerSteps={partnerSteps}
-        hasTodayStamp={hasTodayStamp}
-        isClaiming={isClaiming}
-        onClaim={onClaim}
-        t={t}
-      />
-    );
+  if (!isCoupleConnected) {
+    return <SoloMission mySteps={mySteps} t={t} />;
   }
 
-  return <SoloMission mySteps={mySteps} t={t} />;
-}
-
-// ─── Couple Mode ────────────────────────────────────────
-
-function CoupleMission({
-  myName,
-  partnerName,
-  mySteps,
-  partnerSteps,
-  hasTodayStamp,
-  isClaiming,
-  onClaim,
-  t,
-}: {
-  myName: string;
-  partnerName: string;
-  mySteps: number;
-  partnerSteps: number;
-  hasTodayStamp: boolean;
-  isClaiming: boolean;
-  onClaim: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
-}) {
   const goal = STEP_GOAL.DAILY_COUPLE_MISSION;
   const total = mySteps + partnerSteps;
   const progress = Math.min(total / goal, 1);
@@ -108,11 +71,22 @@ function CoupleMission({
   return (
     <Box px="xxl" style={styles.section}>
       <PixelCard bg={theme.colors.primarySurface}>
-        {/* 헤더 */}
-        <Row style={styles.headerRow}>
-          <Row style={styles.headerTitle}>
-            <Icon name="target" size={16} color={theme.colors.secondary} />
-            <Text variant="label" color="textSecondary" ml="xs">
+        {/* ── Split step cards ── */}
+        <Row style={styles.splitRow}>
+          <PersonMiniCard name={myName} steps={mySteps} highlighted />
+          <View style={styles.heartDivider}>
+            <Icon name="heart" size={14} color={theme.colors.primaryDark} />
+          </View>
+          <PersonMiniCard name={partnerName} steps={partnerSteps} />
+        </Row>
+
+        {/* ── Mission strip ── */}
+        <View style={styles.missionDivider} />
+
+        <Row style={styles.missionHeader}>
+          <Row style={styles.missionHeaderLeft}>
+            <Icon name="target" size={14} color={theme.colors.secondary} />
+            <Text variant="caption" color="textSecondary" ml="xxs">
               {t('unified-mission.title')}
             </Text>
           </Row>
@@ -121,17 +95,6 @@ function CoupleMission({
           </Text>
         </Row>
 
-        {/* 히어로 숫자 */}
-        <Row style={styles.heroRow}>
-          <Text variant="displaySmall" color="primary">
-            {formatSteps(total)}
-          </Text>
-          <Text variant="bodySmall" color="textMuted" ml="xs">
-            {t('unified-mission.goal-suffix', { goal: formatNumber(goal) })}
-          </Text>
-        </Row>
-
-        {/* Progress bar */}
         <PixelProgressBar
           progress={progress}
           segments={16}
@@ -139,15 +102,16 @@ function CoupleMission({
           style={styles.progressBar}
         />
 
-        {/* divider */}
-        <View style={styles.divider} />
+        <Row style={styles.missionFooter}>
+          <Text variant="bodySmall" color="primary">
+            {formatSteps(total)}
+          </Text>
+          <Text variant="caption" color="textMuted" ml="xxs">
+            {t('unified-mission.goal-suffix', { goal: formatNumber(goal) })}
+          </Text>
+        </Row>
 
-        {/* 나 / 상대방 한 줄씩 */}
-        <PersonRow name={myName} steps={mySteps} highlighted t={t} />
-        <View style={styles.personGap} />
-        <PersonRow name={partnerName} steps={partnerSteps} t={t} />
-
-        {/* 발자국 받기 버튼 */}
+        {/* ── Claim button (완료 시만) ── */}
         {isCompleted && (
           <Pressable
             onPress={onClaim}
@@ -175,55 +139,42 @@ function CoupleMission({
   );
 }
 
-// ─── Person Row (Couple Mode 내부) ──────────────────────
+// ─── PersonMiniCard ─────────────────────────────────────
+// 기존 StepsSection의 PersonStepCard 패턴이지만 더 컴팩트.
 
-function PersonRow({
+function PersonMiniCard({
   name,
   steps,
   highlighted,
-  t,
 }: {
   name: string;
   steps: number;
   highlighted?: boolean;
-  t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const kcal = stepsToCalories(steps);
   return (
-    <Row style={styles.personRow}>
-      <Row style={styles.personLeft}>
-        <View
-          style={[
-            styles.personDot,
-            {
-              backgroundColor: highlighted
-                ? theme.colors.primary
-                : theme.colors.gray400,
-            },
-          ]}
-        />
-        <Text variant="bodySmall" color="text" ml="xs">
-          {name}
+    <View
+      style={[
+        styles.personCard,
+        { backgroundColor: highlighted ? theme.colors.surface : theme.colors.surfaceWarm },
+      ]}
+    >
+      <Text variant="caption" color="textSecondary" numberOfLines={1}>
+        {name}
+      </Text>
+      <Text variant="headingLarge" color="primary" style={styles.personSteps}>
+        {formatSteps(steps)}
+      </Text>
+      <Text variant="caption" color="textMuted">
+        걸음
+      </Text>
+      <Row style={styles.kcalChip}>
+        <Icon name="fire" size={9} color={theme.colors.accent} />
+        <Text variant="caption" color="textSecondary" style={styles.kcalText}>
+          {kcal} kcal
         </Text>
       </Row>
-      <Row style={styles.personRight}>
-        <Text
-          variant="label"
-          color={highlighted ? 'primary' : 'text'}
-          style={styles.personSteps}
-        >
-          {formatSteps(steps)}
-        </Text>
-        <Text variant="caption" color="textMuted" ml="xxs">
-          {t('unified-mission.steps-unit')}
-        </Text>
-        <View style={styles.personDivider} />
-        <Icon name="fire" size={10} color={theme.colors.accent} />
-        <Text variant="caption" color="textSecondary" ml="xxs">
-          {t('unified-mission.kcal-unit', { value: kcal })}
-        </Text>
-      </Row>
-    </Row>
+    </View>
   );
 }
 
@@ -244,19 +195,15 @@ function SoloMission({
   return (
     <Box px="xxl" style={styles.section}>
       <PixelCard bg={theme.colors.primarySurface}>
-        <Row style={styles.headerRow}>
-          <Row style={styles.headerTitle}>
-            <Icon name="target" size={16} color={theme.colors.secondary} />
-            <Text variant="label" color="textSecondary" ml="xs">
-              {t('unified-mission.solo-title')}
-            </Text>
-          </Row>
+        <Row style={styles.soloHeader}>
+          <Text variant="caption" color="textSecondary">
+            {t('unified-mission.solo-title')}
+          </Text>
           <Text variant="caption" color="textMuted">
             {t('unified-mission.progress-percent', { percent })}
           </Text>
         </Row>
-
-        <Row style={styles.heroRow}>
+        <Row style={styles.soloHeroRow}>
           <Text variant="displaySmall" color="primary">
             {formatSteps(mySteps)}
           </Text>
@@ -264,19 +211,17 @@ function SoloMission({
             {t('unified-mission.goal-suffix', { goal: formatNumber(goal) })}
           </Text>
         </Row>
-
         <PixelProgressBar
           progress={progress}
           segments={16}
           fillColor={theme.colors.primary}
           style={styles.progressBar}
         />
-
         <Row style={styles.soloKcalRow}>
           <View style={styles.kcalChip}>
             <Icon name="fire" size={11} color={theme.colors.accent} />
             <Text variant="caption" color="textSecondary" ml="xxs">
-              {t('unified-mission.kcal-unit', { value: kcal })}
+              {kcal} kcal
             </Text>
           </View>
         </Row>
@@ -291,53 +236,63 @@ const styles = StyleSheet.create({
   section: {
     marginTop: SPACING.md,
   },
-  headerRow: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    alignItems: 'center',
-  },
-  heroRow: {
-    alignItems: 'baseline',
-    marginTop: 6,
-  },
-  progressBar: {
-    marginTop: SPACING.sm,
-  },
 
-  /* ── divider & person rows (couple mode) ── */
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.gray200,
-    marginVertical: SPACING.md,
-  },
-  personRow: {
-    justifyContent: 'space-between',
+  /* ── Split step cards ── */
+  splitRow: {
     alignItems: 'center',
   },
-  personGap: {
-    height: SPACING.sm,
-  },
-  personLeft: {
+  personCard: {
+    flex: 1,
     alignItems: 'center',
-  },
-  personRight: {
-    alignItems: 'center',
-  },
-  personDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 1,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primaryLight,
   },
   personSteps: {
-    // variant label 기본 크기 유지
+    marginTop: 2,
   },
-  personDivider: {
-    width: SPACING.sm,
+  heartDivider: {
+    width: 24,
+    alignItems: 'center',
+  },
+  kcalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+    backgroundColor: theme.colors.gray100,
+  },
+  kcalText: {
+    marginLeft: 2,
   },
 
-  /* ── claim button ── */
+  /* ── Mission strip ── */
+  missionDivider: {
+    height: 1,
+    backgroundColor: theme.colors.gray200,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  missionHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  missionHeaderLeft: {
+    alignItems: 'center',
+  },
+  progressBar: {
+    marginTop: 6,
+  },
+  missionFooter: {
+    alignItems: 'baseline',
+    marginTop: 4,
+  },
+
+  /* ── Claim button ── */
   claimBtn: {
     marginTop: LAYOUT.itemGap,
     flexDirection: 'row',
@@ -353,17 +308,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.gray100,
   },
 
-  /* ── solo mode ── */
+  /* ── Solo ── */
+  soloHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  soloHeroRow: {
+    alignItems: 'baseline',
+    marginTop: 4,
+  },
   soloKcalRow: {
     marginTop: SPACING.sm,
     justifyContent: 'flex-end',
-  },
-  kcalChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.gray100,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 3,
-    borderRadius: 4,
   },
 });

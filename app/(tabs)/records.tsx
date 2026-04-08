@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -11,11 +11,12 @@ import {
   CalendarMonthNav,
   CalendarMonthSummary,
 } from '@/components/feature/calendar';
+import { FootprintTimeline } from '@/components/feature/diary';
 import { MonthlyWalksList } from '@/components/feature/records';
 import { useCalendarMonthQuery } from '@/hooks/services/calendar/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
-import { LAYOUT } from '@/styles/type';
+import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
 import {
   addMonths,
@@ -24,12 +25,15 @@ import {
   getMonthKey,
 } from '@/utils/date';
 
+type ViewMode = 'calendar' | 'list';
+
 // ─── Screen ─────────────────────────────────────────────
 
 export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
   const { couple, isCoupleConnected } = usePartnerDerivation();
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
 
   if (!isCoupleConnected) {
     return <RecordsNoCoupleFallback insets={insets} />;
@@ -42,6 +46,8 @@ export default function RecordsScreen() {
       onChangeYearMonth={setYearMonth}
       coupleStartDate={couple?.startDate}
       insets={insets}
+      viewMode={viewMode}
+      onChangeViewMode={setViewMode}
     />
   );
 }
@@ -54,12 +60,16 @@ function RecordsContent({
   onChangeYearMonth,
   coupleStartDate,
   insets,
+  viewMode,
+  onChangeViewMode,
 }: {
   year: number;
   month: number;
   onChangeYearMonth: (next: { year: number; month: number }) => void;
   coupleStartDate?: string;
   insets: { top: number; bottom: number; left: number; right: number };
+  viewMode: ViewMode;
+  onChangeViewMode: (mode: ViewMode) => void;
 }) {
   const { t } = useTranslation(['home', 'calendar']);
   const router = useRouter();
@@ -119,13 +129,28 @@ function RecordsContent({
     }
   };
 
+  const handleItemPress = (walk: WalkDiary) => {
+    router.push({
+      pathname: '/diary-detail',
+      params: {
+        id: walk.id,
+        date: walk.date,
+        locationName: walk.locationName,
+        isRevealed: String(walk.isRevealed),
+        myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
+        partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
+      },
+    });
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 탭 헤더 (뒤로가기 없음) */}
+      {/* 탭 헤더 + 뷰 토글 */}
       <Row px="xxl" style={styles.header}>
         <Text variant="headingLarge" color="primary">
           {t('home:records-tab.title')}
         </Text>
+        <ViewToggle viewMode={viewMode} onChange={onChangeViewMode} />
       </Row>
 
       <ScrollView
@@ -135,6 +160,7 @@ function RecordsContent({
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* 월 네비게이션 (두 모드 공통) */}
         <CalendarMonthNav
           year={year}
           month={month}
@@ -143,30 +169,115 @@ function RecordsContent({
           onTapMonth={isCurrentMonth ? undefined : handleResetToCurrent}
         />
 
-        <View style={[isLoading && styles.dimmed]}>
-          <CalendarGrid
-            year={year}
-            month={month}
-            walkDates={walkDateSet}
-            stampDates={stampDateSet}
-            coupleStartDate={coupleStartDate}
-            onSelectDay={handleSelectDay}
-          />
-        </View>
+        {viewMode === 'calendar' ? (
+          <>
+            <View style={[isLoading && styles.dimmed]}>
+              <CalendarGrid
+                year={year}
+                month={month}
+                walkDates={walkDateSet}
+                stampDates={stampDateSet}
+                coupleStartDate={coupleStartDate}
+                onSelectDay={handleSelectDay}
+              />
+            </View>
 
-        <CalendarMonthSummary
-          walksCount={walks.length}
-          stampsCount={stamps.length}
-          reflection={reflection}
-          isCurrentMonth={isCurrentMonth}
-          onPressReflection={handleReflectionCta}
-        />
+            <CalendarMonthSummary
+              walksCount={walks.length}
+              stampsCount={stamps.length}
+              reflection={reflection}
+              isCurrentMonth={isCurrentMonth}
+              onPressReflection={handleReflectionCta}
+            />
 
-        <MonthlyWalksList walks={walks} />
+            <MonthlyWalksList walks={walks} />
+          </>
+        ) : (
+          <View style={styles.listMode}>
+            {walks.length === 0 ? (
+              <Box px="xxl">
+                <Text variant="bodySmall" color="textMuted" align="center">
+                  {t('home:records-tab.walks-empty')}
+                </Text>
+              </Box>
+            ) : (
+              <FootprintTimeline
+                diaries={walks}
+                onItemPress={handleItemPress}
+              />
+            )}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
+
+// ─── ViewToggle (segmented control) ─────────────────────
+
+function ViewToggle({
+  viewMode,
+  onChange,
+}: {
+  viewMode: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}) {
+  return (
+    <Row style={toggleStyles.container}>
+      <Pressable
+        style={[
+          toggleStyles.button,
+          viewMode === 'calendar' && toggleStyles.buttonActive,
+        ]}
+        onPress={() => onChange('calendar')}
+        hitSlop={4}
+      >
+        <Icon
+          name="calendar"
+          size={14}
+          color={
+            viewMode === 'calendar' ? theme.colors.white : theme.colors.gray500
+          }
+        />
+      </Pressable>
+      <Pressable
+        style={[
+          toggleStyles.button,
+          viewMode === 'list' && toggleStyles.buttonActive,
+        ]}
+        onPress={() => onChange('list')}
+        hitSlop={4}
+      >
+        <Icon
+          name="list"
+          size={14}
+          color={
+            viewMode === 'list' ? theme.colors.white : theme.colors.gray500
+          }
+        />
+      </Pressable>
+    </Row>
+  );
+}
+
+const toggleStyles = StyleSheet.create({
+  container: {
+    backgroundColor: theme.colors.gray100,
+    borderRadius: theme.radius.sm,
+    padding: 2,
+    gap: 2,
+  },
+  button: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+});
 
 // ─── No Couple Fallback ─────────────────────────────────
 
@@ -218,6 +329,9 @@ const styles = StyleSheet.create({
   },
   dimmed: {
     opacity: 0.5,
+  },
+  listMode: {
+    marginTop: SPACING.md,
   },
   fallbackBody: {
     flex: 1,

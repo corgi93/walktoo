@@ -8,10 +8,10 @@ import { Box, Button } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
   DdaySection,
+  DualStepsMissionCard,
   FirstMetDatePicker,
   HomeTopBar,
   ReflectionWidget,
-  UnifiedMissionCard,
   WalkIllustration,
 } from '@/components/feature/home';
 import { useToast } from '@/components/composite/toast/ToastProvider';
@@ -163,8 +163,8 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* 통합 히어로 카드 — 걸음 + 미션 + 발자국 받기 */}
-        <UnifiedMissionCard
+        {/* 히어로 카드 — split step cards + 미션 strip */}
+        <DualStepsMissionCard
           isCoupleConnected={isCoupleConnected}
           myName={myName}
           partnerName={partnerName}
@@ -200,6 +200,7 @@ export default function HomeScreen() {
             partnerName={partnerName}
             myCharacter={myCharacter}
             partnerCharacter={partnerCharacter}
+            compact
           />
         </View>
       </ScrollView>
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   },
   illustrationArea: {
     alignItems: 'center',
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   bottomCta: {
     paddingBottom: LAYOUT.bottomSafe,
