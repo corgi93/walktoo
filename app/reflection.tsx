@@ -209,16 +209,26 @@ function CurrentMode({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 서브타이틀 */}
+          {/* ── 인트로 카드 ── */}
           <Box px="xxl" style={styles.subtitleSection}>
-            <Text variant="bodySmall" color="textMuted">
-              {t('subtitle')}
-            </Text>
+            <PixelCard style={styles.introCard} bg={theme.colors.surfaceWarm}>
+              <Text variant="headingSmall" color="text">
+                {t('intro.title')}
+              </Text>
+              <Text variant="bodySmall" color="textSecondary" mt="xs">
+                {t('intro.description')}
+              </Text>
+              <Row style={styles.introTags}>
+                <IntroTag label={t('intro.keep-tag')} color={theme.colors.primary} />
+                <IntroTag label={t('intro.wished-tag')} color={theme.colors.gray600} />
+                <IntroTag label={t('intro.will-tag')} color={theme.colors.secondary} />
+              </Row>
+            </PixelCard>
           </Box>
 
           {/* 질문 카드들 */}
           <Box px="xxl" style={styles.questionsSection}>
-            {questions.map((question) => (
+            {questions.map((question, idx) => (
               <View key={question.id} style={styles.questionWrap}>
                 <QuestionCard
                   question={question}
@@ -232,6 +242,8 @@ function CurrentMode({
                   partnerAnswer={partnerAnswerMap[question.id]}
                   isRevealed={isRevealed}
                   partnerName={partnerName}
+                  stepIndex={idx + 1}
+                  stepTotal={questions.length}
                 />
               </View>
             ))}
@@ -341,7 +353,7 @@ function DetailMode({
         showsVerticalScrollIndicator={false}
       >
         <Box px="xxl" style={styles.questionsSection}>
-          {questions.map((question) => (
+          {questions.map((question, idx) => (
             <View key={question.id} style={styles.questionWrap}>
               <QuestionCard
                 question={question}
@@ -349,6 +361,8 @@ function DetailMode({
                 partnerAnswer={partnerAnswerMap[question.id]}
                 isRevealed={reflection.isRevealed}
                 partnerName={partnerName}
+                stepIndex={idx + 1}
+                stepTotal={questions.length}
               />
             </View>
           ))}
@@ -430,6 +444,33 @@ function NoCoupleFallback({
   );
 }
 
+// ─── Sub: IntroTag ──────────────────────────────────────
+// 인트로 카드 안의 작은 카테고리 칩. 사용자가 세 축을 미리 보고 감을 잡게 함.
+
+function IntroTag({ label, color }: { label: string; color: string }) {
+  return (
+    <View
+      style={[
+        introTagStyles.tag,
+        { borderColor: color, backgroundColor: `${color}14` },
+      ]}
+    >
+      <Text variant="caption" style={{ color, fontWeight: '600' }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+const introTagStyles = StyleSheet.create({
+  tag: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+  },
+});
+
 // ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -452,6 +493,14 @@ const styles = StyleSheet.create({
   },
   subtitleSection: {
     marginTop: SPACING.sm,
+  },
+  introCard: {
+    padding: LAYOUT.cardPx,
+  },
+  introTags: {
+    marginTop: SPACING.md,
+    gap: SPACING.xs,
+    flexWrap: 'wrap',
   },
   questionsSection: {
     marginTop: SPACING.lg,

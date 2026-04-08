@@ -36,6 +36,8 @@ export interface ReflectionQuestion {
   category: ReflectionCategory;
   question: string;
   placeholder?: string;
+  /** 말문을 여는 탭 가능한 시작 문장 조각들. 탭하면 textarea에 삽입됨. */
+  prompts?: string[];
 }
 
 interface ReflectionQuestionMeta {
@@ -116,6 +118,14 @@ const buildQuestion = (meta: ReflectionQuestionMeta): ReflectionQuestion => ({
   },
   get placeholder() {
     return i18n.t(`reflection:questions.${meta.id}.placeholder`);
+  },
+  get prompts() {
+    // i18next returnObjects로 배열 가져오기. 없으면 undefined.
+    const raw = i18n.t(`reflection:questions.${meta.id}.prompts`, {
+      returnObjects: true,
+      defaultValue: undefined,
+    });
+    return Array.isArray(raw) ? (raw as string[]) : undefined;
   },
 });
 
