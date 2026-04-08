@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ import {
   CalendarMonthNav,
   CalendarMonthSummary,
 } from '@/components/feature/calendar';
+import { MonthlyWalksList } from '@/components/feature/records';
 import { useCalendarMonthQuery } from '@/hooks/services/calendar/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
@@ -23,54 +24,44 @@ import {
   getMonthKey,
 } from '@/utils/date';
 
-// ─── Component ──────────────────────────────────────────
+// ─── Screen ─────────────────────────────────────────────
 
-export default function CalendarScreen() {
+export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { t } = useTranslation('calendar');
   const { couple, isCoupleConnected } = usePartnerDerivation();
-
-  // 보고 있는 달
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
 
-  const isCoupleConnectedSafe = isCoupleConnected;
-
-  // ─── 미연결 가드 ──
-  if (!isCoupleConnectedSafe) {
-    return <NoCoupleFallback insets={insets} onBack={() => router.back()} />;
+  if (!isCoupleConnected) {
+    return <RecordsNoCoupleFallback insets={insets} />;
   }
 
   return (
-    <ConnectedCalendar
+    <RecordsContent
       year={year}
       month={month}
       onChangeYearMonth={setYearMonth}
       coupleStartDate={couple?.startDate}
       insets={insets}
-      onBack={() => router.back()}
     />
   );
 }
 
-// ─── Connected Calendar ─────────────────────────────────
+// ─── Content ────────────────────────────────────────────
 
-function ConnectedCalendar({
+function RecordsContent({
   year,
   month,
   onChangeYearMonth,
   coupleStartDate,
   insets,
-  onBack,
 }: {
   year: number;
   month: number;
   onChangeYearMonth: (next: { year: number; month: number }) => void;
   coupleStartDate?: string;
   insets: { top: number; bottom: number; left: number; right: number };
-  onBack: () => void;
 }) {
-  const { t } = useTranslation('calendar');
+  const { t } = useTranslation(['home', 'calendar']);
   const router = useRouter();
 
   const { walks, stamps, reflection, isLoading } = useCalendarMonthQuery(
@@ -78,7 +69,7 @@ function ConnectedCalendar({
     month,
   );
 
-  // 산책 날짜 셋 (셀 인디케이터용) + 날짜 → walk lookup
+  // 산책 날짜 맵 (셀 인디케이터 + tap lookup)
   const walksByDate = useMemo(() => {
     const map = new Map<string, WalkDiary>();
     for (const w of walks) {
@@ -90,18 +81,15 @@ function ConnectedCalendar({
   const walkDateSet = useMemo(() => new Set(walksByDate.keys()), [walksByDate]);
   const stampDateSet = useMemo(() => new Set(stamps), [stamps]);
 
-  // 이번 달인지
   const todayMonthKey = getLocalToday().slice(0, 7);
   const currentMonthKey = getMonthKey(year, month);
   const isCurrentMonth = todayMonthKey === currentMonthKey;
   const today = getLocalToday();
 
-  // 월 이동
   const handlePrev = () => onChangeYearMonth(addMonths(year, month, -1));
   const handleNext = () => onChangeYearMonth(addMonths(year, month, +1));
   const handleResetToCurrent = () => onChangeYearMonth(getCurrentYearMonth());
 
-  // 셀 탭 핸들러
   const handleSelectDay = (yyyyMmDd: string) => {
     const walk = walksByDate.get(yyyyMmDd);
     if (walk) {
@@ -123,7 +111,6 @@ function ConnectedCalendar({
     }
   };
 
-  // 회고 CTA
   const handleReflectionCta = () => {
     if (isCurrentMonth) {
       router.push('/reflection');
@@ -134,13 +121,11 @@ function ConnectedCalendar({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* ── 헤더 ── */}
+      {/* 탭 헤더 (뒤로가기 없음) */}
       <Row px="xxl" style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={8}>
-          <Icon name="arrow-left" size={22} color={theme.colors.text} />
-        </Pressable>
-        <Text variant="headingMedium">{t('title')}</Text>
-        <View style={{ width: 22 }} />
+        <Text variant="headingLarge" color="primary">
+          {t('home:records-tab.title')}
+        </Text>
       </Row>
 
       <ScrollView
@@ -150,7 +135,6 @@ function ConnectedCalendar({
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 월 네비게이션 */}
         <CalendarMonthNav
           year={year}
           month={month}
@@ -159,7 +143,6 @@ function ConnectedCalendar({
           onTapMonth={isCurrentMonth ? undefined : handleResetToCurrent}
         />
 
-        {/* 그리드 */}
         <View style={[isLoading && styles.dimmed]}>
           <CalendarGrid
             year={year}
@@ -171,7 +154,6 @@ function ConnectedCalendar({
           />
         </View>
 
-        {/* 월 요약 */}
         <CalendarMonthSummary
           walksCount={walks.length}
           stampsCount={stamps.length}
@@ -180,14 +162,7 @@ function ConnectedCalendar({
           onPressReflection={handleReflectionCta}
         />
 
-        {/* 빈 달 안내 */}
-        {!isLoading && walks.length === 0 && stamps.length === 0 && (
-          <Box px="xxl" style={styles.emptyHint}>
-            <Text variant="caption" color="textMuted" align="center">
-              {t('empty-month')}
-            </Text>
-          </Box>
-        )}
+        <MonthlyWalksList walks={walks} />
       </ScrollView>
     </View>
   );
@@ -195,31 +170,27 @@ function ConnectedCalendar({
 
 // ─── No Couple Fallback ─────────────────────────────────
 
-function NoCoupleFallback({
+function RecordsNoCoupleFallback({
   insets,
-  onBack,
 }: {
   insets: { top: number; bottom: number; left: number; right: number };
-  onBack: () => void;
 }) {
-  const { t } = useTranslation('calendar');
+  const { t } = useTranslation(['home', 'calendar']);
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Row px="xxl" style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={8}>
-          <Icon name="arrow-left" size={22} color={theme.colors.text} />
-        </Pressable>
-        <Text variant="headingMedium">{t('title')}</Text>
-        <View style={{ width: 22 }} />
+        <Text variant="headingLarge" color="primary">
+          {t('home:records-tab.title')}
+        </Text>
       </Row>
       <View style={styles.fallbackBody}>
         <Box px="xxl" style={{ alignItems: 'center' }}>
           <Icon name="calendar" size={48} color={theme.colors.gray300} />
           <Text variant="headingSmall" mt="lg" align="center">
-            {t('no-couple-title')}
+            {t('calendar:no-couple-title')}
           </Text>
           <Text variant="bodySmall" color="textMuted" mt="sm" align="center">
-            {t('no-couple-description')}
+            {t('calendar:no-couple-description')}
           </Text>
         </Box>
       </View>
@@ -247,9 +218,6 @@ const styles = StyleSheet.create({
   },
   dimmed: {
     opacity: 0.5,
-  },
-  emptyHint: {
-    marginTop: LAYOUT.sectionGap,
   },
   fallbackBody: {
     flex: 1,

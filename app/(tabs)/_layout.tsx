@@ -49,6 +49,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="records"
+        options={{
+          title: t('tab.records'),
+          tabBarIcon: ({ color }) => <TabIcon name="calendar" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: t('tab.profile'),

@@ -49,6 +49,22 @@
   },
   "tab": {
     "home": "홈",
+    "records": "기록",
     "profile": "마이"
+  },
+  "unified-mission": {
+    "title": "오늘 우리의 걸음",
+    "solo-title": "오늘의 걸음",
+    "progress-percent": "{{percent}}%",
+    "goal-suffix": "/ {{goal}}",
+    "steps-unit": "걸음",
+    "kcal-unit": "{{value}} kcal",
+    "claim-button": "추억의 발자국 받기 (+{{count}})",
+    "claim-done": "오늘 발자국 받기 완료"
+  },
+  "records-tab": {
+    "title": "기록",
+    "walks-section-title": "이 달의 산책",
+    "walks-empty": "이 달엔 아직 산책 기록이 없어요"
   }
 }

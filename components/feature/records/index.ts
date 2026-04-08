@@ -1,0 +1,1 @@
+export { MonthlyWalksList } from './MonthlyWalksList';

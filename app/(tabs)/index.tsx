@@ -10,20 +10,16 @@ import {
   DdaySection,
   FirstMetDatePicker,
   HomeTopBar,
-  MissionCard,
-  RecentNotificationsWidget,
-  RecentWalksWidget,
   ReflectionWidget,
-  StepsSection,
+  UnifiedMissionCard,
   WalkIllustration,
 } from '@/components/feature/home';
 import { useToast } from '@/components/composite/toast/ToastProvider';
-import { STAMP, STEP_GOAL } from '@/constants/game-config';
+import { STAMP } from '@/constants/game-config';
 import { QUERY_KEYS } from '@/constants/keys';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
-import { useDiaryListQuery } from '@/hooks/services/diary/query';
-import { useNotificationListQuery, useUnreadCountQuery } from '@/hooks/services/notification/query';
+import { useUnreadCountQuery } from '@/hooks/services/notification/query';
 import {
   useCurrentReflectionQuery,
   useReflectionDetailQuery,
@@ -36,7 +32,7 @@ import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { usePedometer } from '@/hooks/usePedometer';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
-import { LAYOUT } from '@/styles/type';
+import { LAYOUT, SPACING } from '@/styles/type';
 import { getCurrentYearMonth } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
@@ -67,11 +63,6 @@ export default function HomeScreen() {
   const { data: hasTodayStamp = false } = useTodayStampQuery(
     isCoupleConnected ? couple?.id : undefined,
   );
-  const { data: diaryData } = useDiaryListQuery();
-  const { data: notifData } = useNotificationListQuery();
-
-  const recentDiaries = (diaryData?.pages.flatMap((page) => page) ?? []).slice(0, 3);
-  const recentNotifications = (notifData?.pages.flatMap((page) => page) ?? []).slice(0, 3);
 
   // 이달의 회고 (홈 위젯용) ─────────────────────────────
   const { data: currentReflection, isLoading: isReflectionLoading } =
@@ -88,9 +79,6 @@ export default function HomeScreen() {
   const mySteps = pedometerSteps;
   const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
   const partnerSteps = partnerStepsData ?? 0;
-
-  const totalMissionSteps = mySteps + partnerSteps;
-  const isMissionCompleted = totalMissionSteps >= STEP_GOAL.DAILY_COUPLE_MISSION;
 
   // 새로고침 ──────────────────────────────────────────────
   const { refreshing, onRefresh } = useRefresh([
@@ -175,28 +163,22 @@ export default function HomeScreen() {
           />
         )}
 
-        <StepsSection
+        {/* 통합 히어로 카드 — 걸음 + 미션 + 발자국 받기 */}
+        <UnifiedMissionCard
           isCoupleConnected={isCoupleConnected}
           myName={myName}
           partnerName={partnerName}
           mySteps={mySteps}
           partnerSteps={partnerSteps}
+          hasTodayStamp={hasTodayStamp}
+          isClaiming={claimStamp.isPending}
+          onClaim={handleClaimStamp}
         />
 
         {!isCoupleConnected && (
           <Box style={styles.section}>
             <NoCoupleCard />
           </Box>
-        )}
-
-        {isCoupleConnected && (
-          <MissionCard
-            totalSteps={totalMissionSteps}
-            isMissionCompleted={isMissionCompleted}
-            hasTodayStamp={hasTodayStamp}
-            isClaiming={claimStamp.isPending}
-            onClaim={handleClaimStamp}
-          />
         )}
 
         {/* 이달의 우리 — 회고 카드 */}
@@ -220,11 +202,6 @@ export default function HomeScreen() {
             partnerCharacter={partnerCharacter}
           />
         </View>
-
-        {isCoupleConnected && <RecentWalksWidget diaries={recentDiaries} />}
-        {isCoupleConnected && (
-          <RecentNotificationsWidget notifications={recentNotifications} />
-        )}
       </ScrollView>
 
       {isCoupleConnected && (
@@ -254,11 +231,11 @@ const styles = StyleSheet.create({
     paddingBottom: LAYOUT.sectionGap,
   },
   section: {
-    marginTop: LAYOUT.sectionGap,
+    marginTop: SPACING.md,
   },
   illustrationArea: {
     alignItems: 'center',
-    marginTop: LAYOUT.sectionGap,
+    marginTop: SPACING.md,
   },
   bottomCta: {
     paddingBottom: LAYOUT.bottomSafe,
