@@ -1,21 +1,52 @@
 {
   "title": "이달의 우리",
-  "subtitle": "이번 달, 우리에 대해 적어봐",
+  "subtitle": "한 달을 천천히 돌아봐요. 셋만 답하면 충분해요.",
+  "past-detail-title": "지난 회고",
   "month-title": "{{year}}년 {{month}}월",
   "section": {
     "current": "이달의 회고",
     "past": "지난 회고"
   },
-  "answer-placeholder": "답변을 적어줘",
+  "loading": "불러오는 중...",
+  "answer-placeholder": "한 단어도 괜찮아",
   "save": "답변 저장하기",
   "saving": "저장 중...",
   "save-success": "답변을 저장했어요",
   "save-failed": "저장에 실패했어요",
-  "reveal-locked": "둘 다 답변하면 공개돼요",
-  "reveal-just-now": "💞 답변이 공개되었어요!",
+  "reveal-locked": "둘 다 답하면 함께 열려요",
+  "reveal-just-now": "💞 이달의 우리가 공개되었어요",
   "my-answer": "내 답변",
+  "partner-answer-label": "{{name}}의 답변",
   "partner-answer": "연인의 답변",
   "empty-past": "아직 지난 회고가 없어요",
+  "reveal-status-pending": "대기중",
+  "reveal-status-revealed": "공개됨",
+  "no-couple-title": "회고는 둘이 함께 쓰는 거예요",
+  "no-couple-description": "먼저 연인과 연결해주세요",
+  "current-month-empty": "이번 달 회고를 시작해보세요",
+  "question-prefix": "Q.",
+  "prompts-label": "말문 열기 (탭해서 시작)",
+  "intro": {
+    "title": "한 달을 세 가지로 돌아봐요",
+    "description": "좋았던 우리, 아쉬웠던 우리, 다음 달 우리 — 각각 한 줄씩이면 충분해요.",
+    "keep-tag": "💝 좋았던 우리",
+    "wished-tag": "🤍 아쉬웠던 우리",
+    "will-tag": "🌱 다음 달 우리"
+  },
+  "category": {
+    "keep": {
+      "label": "좋았던 우리",
+      "hint": "잘했고, 계속하고 싶은 것"
+    },
+    "wished": {
+      "label": "아쉬웠던 우리",
+      "hint": "솔직히 조금 더 바랐던 것"
+    },
+    "will": {
+      "label": "다음 달 우리",
+      "hint": "다음 달, 함께 시도해보고 싶은 것"
+    }
+  },
   "questions": {
     "1": {
       "question": "이번 달 가장 고마웠던 순간은?",
@@ -96,6 +127,114 @@
     "20": {
       "question": "이번 달 가장 기뻤던 선물은?",
       "placeholder": "마음도 선물이야"
+    },
+
+    "101": {
+      "question": "이번 달, 우리에게 가장 좋았던 순간은?",
+      "placeholder": "사소한 순간도 괜찮아",
+      "prompts": ["같이 ", "네가 ", "우리 둘이서 "]
+    },
+    "102": {
+      "question": "이번 달, 가장 많이 웃었던 날은 언제였어?",
+      "placeholder": "왜 웃었는지도 적어줘",
+      "prompts": ["그날 ", "네가 ", "웃겼던 건 "]
+    },
+    "103": {
+      "question": "이번 달 우리를 한 단어로 표현한다면?",
+      "placeholder": "한 단어면 충분해",
+      "prompts": ["우리는 ", "이번 달은 ", "한 마디로 "]
+    },
+    "104": {
+      "question": "이번 달 너의 가장 빛났던 모습은?",
+      "placeholder": "표정이든, 말투든, 행동이든",
+      "prompts": ["네가 ", "그때 표정이 ", "~할 때의 네가 "]
+    },
+    "105": {
+      "question": "이번 달, 너에게 가장 고마웠던 한 가지는?",
+      "placeholder": "작은 것도 좋아",
+      "prompts": ["~해줘서 고마워", "그날 ", "사실 "]
+    },
+    "106": {
+      "question": "이번 달 가장 좋았던 산책길은?",
+      "placeholder": "어디서, 어떤 기분이었어?",
+      "prompts": ["~에서 걸었던 날", "그 길은 ", "둘이 "]
+    },
+    "107": {
+      "question": "이번 달 함께 만든 작은 추억 하나만 꼽는다면?",
+      "placeholder": "장소, 음식, 무엇이든",
+      "prompts": ["우리 같이 ", "그날의 ", "기억에 남는 건 "]
+    },
+
+    "108": {
+      "question": "이번 달, 더 함께 해보고 싶었지만 못했던 건?",
+      "placeholder": "비난이 아니야, 그냥 마음",
+      "prompts": ["사실 ", "같이 ~하고 싶었는데", "조금 더 "]
+    },
+    "109": {
+      "question": "이번 달, 미안한 마음이 남는 순간이 있어?",
+      "placeholder": "용기 내서 적어도 괜찮아",
+      "prompts": ["그때 ", "미안해, ", "돌이켜 보면 "]
+    },
+    "110": {
+      "question": "이번 달, 표현하지 못해 아쉬운 말이 있다면?",
+      "placeholder": "지금이라도 늦지 않았어",
+      "prompts": ["사실 ", "~라고 말하고 싶었어", "그날 "]
+    },
+    "111": {
+      "question": "이번 달, 다시 돌아간다면 다르게 해보고 싶은 순간은?",
+      "placeholder": "후회가 아니라 마음이야",
+      "prompts": ["그때 ", "다시 갈 수 있다면 ", "내가 "]
+    },
+    "112": {
+      "question": "이번 달, 솔직히 조금 서운했던 게 있었다면?",
+      "placeholder": "조심스럽게라도 괜찮아",
+      "prompts": ["살짝 ", "사실 ", "그때는 "]
+    },
+    "113": {
+      "question": "이번 달, 우리에게 부족했던 한 가지는?",
+      "placeholder": "다음 달엔 채워보자",
+      "prompts": ["우리한테 ", "조금 더 ", "앞으로는 "]
+    },
+    "114": {
+      "question": "이번 달, 더 챙겨주길 바랐던 건?",
+      "placeholder": "솔직한 한 마디",
+      "prompts": ["~해줬으면", "조금 더 ", "사실 "]
+    },
+
+    "115": {
+      "question": "다음 달, 꼭 같이 해보고 싶은 한 가지는?",
+      "placeholder": "작은 것부터 큰 것까지",
+      "prompts": ["같이 ", "우리 ", "한 번쯤 "]
+    },
+    "116": {
+      "question": "다음 달, 너에게 해주고 싶은 약속이 있다면?",
+      "placeholder": "지킬 수 있는 만큼만",
+      "prompts": ["약속할게, ", "~해줄게", "앞으로 "]
+    },
+    "117": {
+      "question": "다음 달, 우리가 만들어가고 싶은 작은 변화는?",
+      "placeholder": "한 가지면 충분해",
+      "prompts": ["우리 ", "작게 ", "앞으로는 "]
+    },
+    "118": {
+      "question": "다음 달, 함께 가보고 싶은 곳이 있어?",
+      "placeholder": "동네 카페도 좋아",
+      "prompts": ["같이 ", "~에 가보자", "언젠가 "]
+    },
+    "119": {
+      "question": "다음 달, 우리에게 도전해보고 싶은 건?",
+      "placeholder": "작은 도전도 좋아",
+      "prompts": ["한 번쯤 ", "우리 ", "같이 "]
+    },
+    "120": {
+      "question": "다음 달, 서로에게 더 해주고 싶은 한 마디는?",
+      "placeholder": "한 줄이면 돼",
+      "prompts": ["사랑해, ", "고마워, ", "네가 "]
+    },
+    "121": {
+      "question": "다음 달, 우리만의 새로운 루틴을 만든다면?",
+      "placeholder": "주말 산책, 하루 한 마디 같은 것",
+      "prompts": ["매주 ", "하루에 한 번 ", "우리끼리 "]
     }
   }
 }

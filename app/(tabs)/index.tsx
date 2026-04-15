@@ -8,21 +8,22 @@ import { Box, Button } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
   DdaySection,
+  DualStepsMissionCard,
   FirstMetDatePicker,
   HomeTopBar,
-  MissionCard,
-  RecentNotificationsWidget,
-  RecentWalksWidget,
-  StepsSection,
+  ReflectionWidget,
   WalkIllustration,
 } from '@/components/feature/home';
 import { useToast } from '@/components/composite/toast/ToastProvider';
-import { STAMP, STEP_GOAL } from '@/constants/game-config';
+import { STAMP } from '@/constants/game-config';
 import { QUERY_KEYS } from '@/constants/keys';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
-import { useDiaryListQuery } from '@/hooks/services/diary/query';
-import { useNotificationListQuery, useUnreadCountQuery } from '@/hooks/services/notification/query';
+import { useUnreadCountQuery } from '@/hooks/services/notification/query';
+import {
+  useCurrentReflectionQuery,
+  useReflectionDetailQuery,
+} from '@/hooks/services/reflections/query';
 import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
 import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
@@ -31,7 +32,8 @@ import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { usePedometer } from '@/hooks/usePedometer';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
-import { LAYOUT } from '@/styles/type';
+import { LAYOUT, SPACING } from '@/styles/type';
+import { getCurrentYearMonth } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -61,20 +63,22 @@ export default function HomeScreen() {
   const { data: hasTodayStamp = false } = useTodayStampQuery(
     isCoupleConnected ? couple?.id : undefined,
   );
-  const { data: diaryData } = useDiaryListQuery();
-  const { data: notifData } = useNotificationListQuery();
 
-  const recentDiaries = (diaryData?.pages.flatMap((page) => page) ?? []).slice(0, 3);
-  const recentNotifications = (notifData?.pages.flatMap((page) => page) ?? []).slice(0, 3);
+  // 이달의 회고 (홈 위젯용) ─────────────────────────────
+  const { data: currentReflection, isLoading: isReflectionLoading } =
+    useCurrentReflectionQuery(isCoupleConnected ? couple?.id : undefined);
+  const { data: reflectionDetail } = useReflectionDetailQuery(
+    currentReflection?.id,
+    me?.id,
+  );
+  const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
+  const todayDayOfMonth = new Date().getDate();
 
   // 걸음수 ────────────────────────────────────────────────
   const { steps: pedometerSteps } = usePedometer();
   const mySteps = pedometerSteps;
   const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
   const partnerSteps = partnerStepsData ?? 0;
-
-  const totalMissionSteps = mySteps + partnerSteps;
-  const isMissionCompleted = totalMissionSteps >= STEP_GOAL.DAILY_COUPLE_MISSION;
 
   // 새로고침 ──────────────────────────────────────────────
   const { refreshing, onRefresh } = useRefresh([
@@ -159,12 +163,16 @@ export default function HomeScreen() {
           />
         )}
 
-        <StepsSection
+        {/* 히어로 카드 — split step cards + 미션 strip */}
+        <DualStepsMissionCard
           isCoupleConnected={isCoupleConnected}
           myName={myName}
           partnerName={partnerName}
           mySteps={mySteps}
           partnerSteps={partnerSteps}
+          hasTodayStamp={hasTodayStamp}
+          isClaiming={claimStamp.isPending}
+          onClaim={handleClaimStamp}
         />
 
         {!isCoupleConnected && (
@@ -173,13 +181,15 @@ export default function HomeScreen() {
           </Box>
         )}
 
+        {/* 이달의 우리 — 회고 카드 */}
         {isCoupleConnected && (
-          <MissionCard
-            totalSteps={totalMissionSteps}
-            isMissionCompleted={isMissionCompleted}
-            hasTodayStamp={hasTodayStamp}
-            isClaiming={claimStamp.isPending}
-            onClaim={handleClaimStamp}
+          <ReflectionWidget
+            reflection={currentReflection}
+            detail={reflectionDetail}
+            isLoading={isReflectionLoading}
+            todayDayOfMonth={todayDayOfMonth}
+            fallbackYear={currentYear}
+            fallbackMonth={currentMonth}
           />
         )}
 
@@ -190,13 +200,9 @@ export default function HomeScreen() {
             partnerName={partnerName}
             myCharacter={myCharacter}
             partnerCharacter={partnerCharacter}
+            compact
           />
         </View>
-
-        {isCoupleConnected && <RecentWalksWidget diaries={recentDiaries} />}
-        {isCoupleConnected && (
-          <RecentNotificationsWidget notifications={recentNotifications} />
-        )}
       </ScrollView>
 
       {isCoupleConnected && (
@@ -226,11 +232,11 @@ const styles = StyleSheet.create({
     paddingBottom: LAYOUT.sectionGap,
   },
   section: {
-    marginTop: LAYOUT.sectionGap,
+    marginTop: SPACING.md,
   },
   illustrationArea: {
     alignItems: 'center',
-    marginTop: LAYOUT.sectionGap,
+    marginTop: SPACING.sm,
   },
   bottomCta: {
     paddingBottom: LAYOUT.bottomSafe,

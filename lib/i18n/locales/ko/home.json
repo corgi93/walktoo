@@ -23,11 +23,25 @@
   },
   "recent-walks": {
     "title": "최근 산책",
-    "status-revealed": "공개됨",
-    "status-pending": "대기중"
+    "status-both": "둘 다 완료",
+    "status-me-only": "나만 완료",
+    "status-partner-only": "상대만 완료",
+    "status-none": "둘 다 안 씀"
   },
   "recent-notifications": {
     "title": "최근 알림"
+  },
+  "reflection-widget": {
+    "title": "이달의 우리",
+    "loading": "회고를 준비하고 있어요",
+    "state-empty": "이달의 회고를 시작해보세요",
+    "state-in-progress": "내 답변 {{done}}/{{total}}",
+    "state-waiting": "연인의 답변을 기다리는 중",
+    "state-revealed": "💞 이달의 회고가 공개되었어요",
+    "cta-start": "쓰러 가기",
+    "cta-continue": "이어 쓰기",
+    "cta-edit": "{{month}}월 회고 수정하기",
+    "cta-view": "보러 가기"
   },
   "cta": {
     "create-walk": "오늘의 산책 기록하기"
@@ -38,6 +52,22 @@
   },
   "tab": {
     "home": "홈",
+    "records": "기록",
     "profile": "마이"
+  },
+  "unified-mission": {
+    "title": "오늘 우리의 걸음",
+    "solo-title": "오늘의 걸음",
+    "progress-percent": "{{percent}}%",
+    "goal-suffix": "/ {{goal}}",
+    "steps-unit": "걸음",
+    "kcal-unit": "{{value}} kcal",
+    "claim-button": "추억의 발자국 받기 (+{{count}})",
+    "claim-done": "오늘 발자국 받기 완료"
+  },
+  "records-tab": {
+    "title": "기록",
+    "walks-section-title": "이 달의 산책",
+    "walks-empty": "이 달엔 아직 산책 기록이 없어요"
   }
 }

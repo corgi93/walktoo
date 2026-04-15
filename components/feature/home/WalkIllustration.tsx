@@ -15,6 +15,8 @@ interface WalkIllustrationProps {
   partnerName?: string;
   myCharacter?: CharacterType;
   partnerCharacter?: CharacterType;
+  /** 컴팩트 모드 — 캐릭터와 간격을 줄여 홈의 세로 공간 절약 */
+  compact?: boolean;
 }
 
 // ─── Sprite Frames ──────────────────────────────────────
@@ -177,20 +179,27 @@ export function WalkIllustration({
   partnerName,
   myCharacter = 'boy',
   partnerCharacter = 'girl',
+  compact = false,
 }: WalkIllustrationProps) {
   const { t } = useTranslation(['common', 'home']);
   const displayMyName = myName ?? t('common:labels.me');
   const displayPartnerName = partnerName ?? t('common:fallback.partner-nickname');
 
+  // compact 모드: 캐릭터 60px, container minHeight 100, heartCenter marginBottom 28
+  const spriteSize = compact ? 60 : 80;
+  const heartBubbleSize = compact ? 20 : 24;
+  const heartMarginBottom = compact ? 28 : 40;
+  const containerStyle = compact ? styles.containerCompact : styles.container;
+
   if (mode === 'couple') {
     return (
-      <View style={styles.container}>
+      <View style={containerStyle}>
         <View style={styles.coupleArea}>
           {/* 나 (왼쪽) */}
           <View style={styles.figureWrapper}>
             <WalkingSprite
               frames={FRAMES_MAP[myCharacter]}
-              size={80}
+              size={spriteSize}
               delay={0}
             />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
@@ -199,10 +208,19 @@ export function WalkIllustration({
           </View>
 
           {/* 가운데 하트 + 떠오르는 하트 */}
-          <View style={styles.heartCenter}>
+          <View style={[styles.heartCenter, { marginBottom: heartMarginBottom }]}>
             <FloatingHearts />
-            <View style={styles.heartBubble}>
-              <Icon name="heart" size={11} color={theme.colors.white} />
+            <View
+              style={[
+                styles.heartBubble,
+                {
+                  width: heartBubbleSize,
+                  height: heartBubbleSize,
+                  borderRadius: heartBubbleSize / 2,
+                },
+              ]}
+            >
+              <Icon name="heart" size={compact ? 9 : 11} color={theme.colors.white} />
             </View>
           </View>
 
@@ -210,7 +228,7 @@ export function WalkIllustration({
           <View style={styles.figureWrapper}>
             <WalkingSprite
               frames={FRAMES_MAP[partnerCharacter]}
-              size={80}
+              size={spriteSize}
               delay={150}
             />
             <Text variant="caption" color="textSecondary" style={styles.nameText}>
@@ -225,9 +243,9 @@ export function WalkIllustration({
   // ─── Solo ───────────────────────────────────────────────
 
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       <View style={styles.soloArea}>
-        <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={80} />
+        <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={spriteSize} />
       </View>
       <Text variant="bodySmall" color="textSecondary" mt="md" style={styles.nameText}>
         {t('home:solo.no-partner')}
@@ -247,6 +265,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     minHeight: 140,
+  },
+  containerCompact: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    minHeight: 100,
   },
   coupleArea: {
     flexDirection: 'row',

@@ -8,6 +8,9 @@ import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { formatNumber } from '@/utils/date';
 
+// 캘린더는 '기록' 탭으로 이동했으므로 헤더 아이콘 제거.
+// 헤더는 로고 + 스탬프 뱃지 + 알림 벨 3개로 간소화.
+
 interface HomeTopBarProps {
   isCoupleConnected: boolean;
   totalStamps: number;

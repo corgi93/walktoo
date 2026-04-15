@@ -26,6 +26,8 @@ import {
   useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
 import { useGetCoupleQuery } from '@/hooks/services/couple/query';
+import { useEntitlement } from '@/hooks/useEntitlement';
+import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
@@ -38,7 +40,11 @@ export default function DiaryDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const dialog = useDialogStore();
-  const { t } = useTranslation(['diary', 'common']);
+  const { t } = useTranslation(['diary', 'common', 'premium']);
+  const { isEntitled } = useEntitlement();
+  const photoLimit = isEntitled
+    ? PREMIUM.PHOTO_LIMIT_PREMIUM
+    : PREMIUM.PHOTO_LIMIT_FREE;
   const params = useLocalSearchParams<{
     id: string;
     date: string;
@@ -98,6 +104,17 @@ export default function DiaryDetailScreen() {
   const handleCancelEdit = () => setIsEditing(false);
 
   const handleAddPhoto = async () => {
+    if (!isEntitled && photos.length >= PREMIUM.PHOTO_LIMIT_FREE) {
+      dialog.confirm(
+        t('premium:gate.photos-title'),
+        t('premium:gate.photos-description', {
+          limit: PREMIUM.PHOTO_LIMIT_PREMIUM,
+        }),
+        () => router.push('/paywall'),
+        t('premium:gate.go-paywall'),
+      );
+      return;
+    }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       dialog.alert(
@@ -109,12 +126,12 @@ export default function DiaryDetailScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      selectionLimit: 5 - photos.length,
+      selectionLimit: photoLimit - photos.length,
       quality: 0.8,
     });
     if (!result.canceled) {
       const uris = result.assets.map((a) => a.uri);
-      setPhotos((prev) => [...prev, ...uris].slice(0, 5));
+      setPhotos((prev) => [...prev, ...uris].slice(0, photoLimit));
     }
   };
 

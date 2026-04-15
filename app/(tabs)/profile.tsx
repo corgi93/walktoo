@@ -10,9 +10,10 @@ import { useLogoutMutation } from '@/hooks/services/auth/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { useEntitlement } from '@/hooks/useEntitlement';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
-import { COMPONENT_SIZE, LAYOUT } from '@/styles/type';
+import { COMPONENT_SIZE, LAYOUT, SPACING } from '@/styles/type';
 import { formatNumber } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
@@ -20,12 +21,13 @@ import { formatNumber } from '@/utils/date';
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t } = useTranslation('profile');
+  const { t } = useTranslation(['profile', 'premium']);
 
   const { data: me } = useGetMeQuery();
   const { data: stats } = useCoupleStatsQuery();
   const logout = useLogoutMutation();
   const { refreshing, onRefresh } = useRefresh();
+  const { isEntitled } = useEntitlement();
 
   const hasCoupleId = !!me?.coupleId;
   const { data: totalStamps = 0 } = useTotalStampsQuery(hasCoupleId);
@@ -158,6 +160,28 @@ export default function ProfileScreen() {
           </Box>
         )}
 
+        {/* ── walkToo+ 업그레이드 CTA (free 일 때만) ── */}
+        {!isEntitled && (
+          <Box px="xxl" style={styles.section}>
+            <Pressable onPress={() => router.push('/paywall')}>
+              <PixelCard style={styles.upgradeCard} bg={theme.colors.primarySurface}>
+                <Row style={styles.upgradeRow}>
+                  <Text style={styles.upgradeEmoji}>👑</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyMedium" color="primary">
+                      {t('premium:menu.upgrade')}
+                    </Text>
+                    <Text variant="caption" color="textMuted" mt="xxs">
+                      {t('premium:tagline')}
+                    </Text>
+                  </View>
+                  <Icon name="chevron-right" size={16} color={theme.colors.primary} />
+                </Row>
+              </PixelCard>
+            </Pressable>
+          </Box>
+        )}
+
         {/* ── Menu Items ── */}
         <Box px="xxl" style={styles.menuSection}>
           <PixelCard style={styles.menuCard}>
@@ -176,7 +200,15 @@ export default function ProfileScreen() {
             ) : (
               <MenuItem iconName="link" label={t('menu.couple-connect')} />
             )}
-            <MenuItem iconName="bar-chart" label={t('menu.stats')} />
+            <MenuItem
+              iconName="bar-chart"
+              label={t('menu.stats')}
+              locked={!isEntitled}
+              onPress={() => {
+                if (!isEntitled) router.push('/paywall');
+                // entitled일 때 통계 페이지는 후속 작업
+              }}
+            />
             <MenuItem
               iconName="log-out"
               label={t('menu.logout')}
@@ -199,6 +231,7 @@ function MenuItem({
   iconColor,
   isDestructive = false,
   isLast = false,
+  locked = false,
   onPress,
 }: {
   iconName: IconName;
@@ -206,6 +239,7 @@ function MenuItem({
   iconColor?: string;
   isDestructive?: boolean;
   isLast?: boolean;
+  locked?: boolean;
   onPress?: () => void;
 }) {
   return (
@@ -226,6 +260,11 @@ function MenuItem({
         >
           {label}
         </Text>
+        {locked && (
+          <View style={styles.lockBadge}>
+            <Icon name="lock" size={10} color={theme.colors.gray500} />
+          </View>
+        )}
       </Row>
       <Icon name="chevron-right" size={16} color={theme.colors.gray400} />
     </Pressable>
@@ -327,5 +366,25 @@ const styles = StyleSheet.create({
   },
   menuItemLast: {
     borderBottomWidth: 0,
+  },
+  lockBadge: {
+    marginLeft: SPACING.sm,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: theme.colors.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  upgradeCard: {
+    paddingHorizontal: LAYOUT.cardPx,
+    paddingVertical: LAYOUT.cardPy,
+  },
+  upgradeRow: {
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  upgradeEmoji: {
+    fontSize: 28,
   },
 });

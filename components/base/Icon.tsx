@@ -31,6 +31,7 @@ const ICON_MAP = {
   camera: { set: 'feather', name: 'camera' },
   'image-plus': { set: 'feather', name: 'image' },
   search: { set: 'feather', name: 'search' },
+  'chevron-left': { set: 'feather', name: 'chevron-left' },
   'chevron-right': { set: 'feather', name: 'chevron-right' },
   'chevron-down': { set: 'feather', name: 'chevron-down' },
   'arrow-left': { set: 'feather', name: 'arrow-left' },

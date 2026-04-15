@@ -17,8 +17,10 @@ import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
+import { PREMIUM } from '@/constants/premium';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
+import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
@@ -31,11 +33,16 @@ import { formatDate, getLocalToday, parseLocalDate } from '@/utils/date';
 export default function FootprintCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t } = useTranslation(['diary', 'common']);
+  const { t } = useTranslation(['diary', 'common', 'premium']);
 
   const { couple, isCoupleConnected } = usePartnerDerivation();
+  const { isEntitled } = useEntitlement();
   const dialog = useDialogStore();
   const photoBooth = usePhotoBoothStore();
+
+  const photoLimit = isEntitled
+    ? PREMIUM.PHOTO_LIMIT_PREMIUM
+    : PREMIUM.PHOTO_LIMIT_FREE;
 
   const [date, setDate] = useState(getLocalToday());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -79,6 +86,19 @@ export default function FootprintCreateScreen() {
   });
 
   const handleAddPhoto = async () => {
+    // 무료 사용자가 사진 한도 도달 시 페이월 안내
+    if (!isEntitled && photos.length >= PREMIUM.PHOTO_LIMIT_FREE) {
+      dialog.confirm(
+        t('premium:gate.photos-title'),
+        t('premium:gate.photos-description', {
+          limit: PREMIUM.PHOTO_LIMIT_PREMIUM,
+        }),
+        () => router.push('/paywall'),
+        t('premium:gate.go-paywall'),
+      );
+      return;
+    }
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== 'granted') {
@@ -92,13 +112,13 @@ export default function FootprintCreateScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      selectionLimit: 5 - photos.length,
+      selectionLimit: photoLimit - photos.length,
       quality: 0.8,
     });
 
     if (!result.canceled) {
       const uris = result.assets.map((a) => a.uri);
-      setPhotos((prev) => [...prev, ...uris].slice(0, 5));
+      setPhotos((prev) => [...prev, ...uris].slice(0, photoLimit));
     }
   };
 

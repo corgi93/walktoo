@@ -23,6 +23,9 @@ export const useSaveReflectionAnswersMutation = () => {
         queryKey: QUERY_KEYS.reflection.detail(variables.reflectionId),
       });
       queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.reflection.progress(variables.reflectionId),
+      });
+      queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.reflection.current,
       });
       queryClient.invalidateQueries({
