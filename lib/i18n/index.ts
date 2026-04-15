@@ -31,6 +31,7 @@ import koPremium from './locales/ko/premium.json';
 import koProfile from './locales/ko/profile.json';
 import koQuestion from './locales/ko/question.json';
 import koReflection from './locales/ko/reflection.json';
+import koSchedule from './locales/ko/schedule.json';
 
 // ─── 지원 로케일 ────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export const NAMESPACES = [
   'error',
   'premium',
   'calendar',
+  'schedule',
 ] as const;
 
 const resources = {
@@ -102,6 +104,7 @@ const resources = {
     error: koError,
     premium: koPremium,
     calendar: koCalendar,
+    schedule: koSchedule,
   },
 };
 

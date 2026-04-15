@@ -23,8 +23,10 @@
   },
   "recent-walks": {
     "title": "최근 산책",
-    "status-revealed": "공개됨",
-    "status-pending": "대기중"
+    "status-both": "둘 다 완료",
+    "status-me-only": "나만 완료",
+    "status-partner-only": "상대만 완료",
+    "status-none": "둘 다 안 씀"
   },
   "recent-notifications": {
     "title": "최근 알림"
@@ -38,6 +40,7 @@
     "state-revealed": "💞 이달의 회고가 공개되었어요",
     "cta-start": "쓰러 가기",
     "cta-continue": "이어 쓰기",
+    "cta-edit": "{{month}}월 회고 수정하기",
     "cta-view": "보러 가기"
   },
   "cta": {

@@ -1,0 +1,53 @@
+{
+  "header": {
+    "title": "일정",
+    "add": "일정 추가"
+  },
+  "category": {
+    "work": "회사",
+    "social": "약속",
+    "wedding": "결혼식",
+    "health": "병원",
+    "travel": "여행",
+    "study": "학회/공부",
+    "anniversary": "기념일",
+    "other": "기타"
+  },
+  "form": {
+    "create-title": "일정 추가",
+    "edit-title": "일정 수정",
+    "readonly-notice": "상대방이 만든 일정은 수정할 수 없어요",
+    "label": {
+      "title": "제목",
+      "category": "카테고리",
+      "date": "날짜",
+      "note": "메모 (선택)"
+    },
+    "placeholder": {
+      "title": "예: 회사 반차, 친구 결혼식",
+      "note": "간단한 메모를 남겨보세요"
+    },
+    "pick-date": "날짜 선택",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제"
+  },
+  "day-sheet": {
+    "walk-untitled": "산책",
+    "walk-revealed": "산책 기록 보기",
+    "walk-locked": "상대 작성 대기 중",
+    "stamp-earned": "이 날 발자국을 받았어요",
+    "schedules-title": "일정 {{count}}개",
+    "schedules-empty": "등록된 일정이 없어요",
+    "cta-add-schedule": "일정 추가",
+    "cta-create-walk": "산책 기록하기"
+  },
+  "toast": {
+    "create-success": "일정을 추가했어요",
+    "create-failed": "일정 추가에 실패했어요",
+    "update-success": "일정을 수정했어요",
+    "update-failed": "일정 수정에 실패했어요",
+    "delete-success": "일정을 삭제했어요",
+    "delete-failed": "일정 삭제에 실패했어요"
+  }
+}

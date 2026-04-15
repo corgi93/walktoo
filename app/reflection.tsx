@@ -16,15 +16,20 @@ import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
-  PastReflectionItem,
+  PastReflectionExpanded,
   QuestionCard,
   ReflectionHeader,
+  ReflectionStatusLine,
 } from '@/components/feature/reflection';
-import { getQuestionById } from '@/constants/reflectionQuestions';
+import {
+  getQuestionById,
+  pickReflectionQuestions,
+} from '@/constants/reflectionQuestions';
 import {
   useCurrentReflectionQuery,
   useReflectionDetailQuery,
   useReflectionListQuery,
+  useReflectionProgressQuery,
 } from '@/hooks/services/reflections/query';
 import { useSaveReflectionAnswersMutation } from '@/hooks/services/reflections/mutation';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
@@ -40,7 +45,8 @@ export default function ReflectionScreen() {
   const { id: detailId } = useLocalSearchParams<{ id?: string }>();
   const isDetailMode = !!detailId;
 
-  const { me, couple, partnerName, isCoupleConnected } = usePartnerDerivation();
+  const { me, couple, myName, partnerName, isCoupleConnected } =
+    usePartnerDerivation();
 
   // ─── 미연결 가드 ──────────────────────────────────────
   if (!isCoupleConnected) {
@@ -53,6 +59,7 @@ export default function ReflectionScreen() {
     <DetailMode
       reflectionId={detailId!}
       myUserId={me?.id}
+      myName={myName}
       partnerName={partnerName}
       insets={insets}
       onBack={() => router.back()}
@@ -61,6 +68,7 @@ export default function ReflectionScreen() {
     <CurrentMode
       coupleId={couple?.id}
       myUserId={me?.id}
+      myName={myName}
       partnerName={partnerName}
       insets={insets}
       onBack={() => router.back()}
@@ -72,6 +80,7 @@ export default function ReflectionScreen() {
 
 interface ModeProps {
   insets: { top: number; bottom: number; left: number; right: number };
+  myName: string;
   partnerName: string;
   onBack: () => void;
 }
@@ -79,6 +88,7 @@ interface ModeProps {
 function CurrentMode({
   coupleId,
   myUserId,
+  myName,
   partnerName,
   insets,
   onBack,
@@ -99,23 +109,28 @@ function CurrentMode({
     isLoading: isLoadingDetail,
   } = useReflectionDetailQuery(currentReflection?.id, myUserId);
 
+  // 2-b. 진행 상태 (상대방 내용 없이 카운트만) — "둘 다 썼는지" 배지용
+  const { data: progress } = useReflectionProgressQuery(currentReflection?.id);
+
   // 3. 지난 회고 목록
   const { data: pastList = [] } = useReflectionListQuery(coupleId);
 
   // 4. 로컬 답변 state — fetched myAnswers를 초기값으로
+  //    detail이 null이어도 빈 객체로 초기화해서 TextInput이 즉시 동작하도록.
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [initialized, setInitialized] = useState(false);
+  const [hydratedFromServer, setHydratedFromServer] = useState(false);
 
   useEffect(() => {
-    if (detail && !initialized) {
-      const initial: Record<number, string> = {};
-      detail.myAnswers.forEach((a) => {
-        initial[a.questionId] = a.answer;
-      });
-      setAnswers(initial);
-      setInitialized(true);
-    }
-  }, [detail, initialized]);
+    if (hydratedFromServer) return;
+    if (!detail) return;
+    const initial: Record<number, string> = {};
+    detail.myAnswers.forEach((a) => {
+      initial[a.questionId] = a.answer;
+    });
+    // 서버 값이 있으면 덮어쓰기 (유저가 아직 입력 안 한 상태일 때만 안전)
+    setAnswers((prev) => ({ ...initial, ...prev }));
+    setHydratedFromServer(true);
+  }, [detail, hydratedFromServer]);
 
   // 5. partnerAnswers를 questionId 기준 맵으로
   const partnerAnswerMap = useMemo(() => {
@@ -127,32 +142,77 @@ function CurrentMode({
     return map;
   }, [detail]);
 
-  // 6. 질문 lookup (i18n getter)
+  // 6. 질문 lookup
+  //
+  // 과거에는 `currentReflection.questionIds`를 lookup해서 만들었는데,
+  // DB에 오래된/빈 row가 있으면 questions가 [] 로 찍혀서 인풋이 사라지는 버그가 있었다.
+  // pickReflectionQuestions는 (coupleId, year, month)에 대해 결정론적이므로
+  // 두 파트너가 서로 같은 3개 질문을 보게 되어 있고, DB 상태에 무관하게
+  // 항상 안정적으로 3개를 렌더할 수 있다.
+  const now = useMemo(() => new Date(), []);
   const questions = useMemo(() => {
-    if (!currentReflection) return [];
-    return currentReflection.questionIds
+    if (!coupleId) return [];
+    const year = currentReflection?.year ?? now.getFullYear();
+    const month = currentReflection?.month ?? now.getMonth() + 1;
+    const fresh = pickReflectionQuestions(coupleId, year, month);
+    if (fresh.length > 0) return fresh;
+    // fresh 가 어떤 이유로 비어 있으면 DB row 기준으로 fallback (legacy 호환)
+    return (currentReflection?.questionIds ?? [])
       .map((id) => getQuestionById(id))
       .filter((q): q is NonNullable<typeof q> => !!q);
-  }, [currentReflection]);
+  }, [coupleId, currentReflection, now]);
 
   // 7. 저장 mutation
   const saveAnswers = useSaveReflectionAnswersMutation();
-  const isRevealed = detail?.reflection.isRevealed ?? false;
+  const isRevealed =
+    detail?.reflection.isRevealed ??
+    progress?.isRevealed ??
+    currentReflection?.isRevealed ??
+    false;
 
-  // 8. dirty 검사: 비어있지 않은 답변이 1개 이상 + initialized 후
-  const isDirty = useMemo(() => {
-    if (!initialized) return false;
+  // 8. 3개 질문에 모두 답변했는지 (전부 입력해야 저장 가능)
+  const hasAnyAnswer = useMemo(() => {
     return Object.values(answers).some((v) => v.trim().length > 0);
-  }, [answers, initialized]);
+  }, [answers]);
 
-  // 9. 모든 질문에 답변이 있는지 (저장 활성화 조건)
+  // 9. 초기 로드 값과 비교해서 변경된게 있는지 (dirty)
+  const initialAnswerMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    detail?.myAnswers.forEach((a) => {
+      map[a.questionId] = a.answer;
+    });
+    return map;
+  }, [detail]);
+
+  const isDirty = useMemo(() => {
+    // initialized 의존성 없이 바로 dirty 계산 — 입력 즉시 저장 활성화되도록
+    return questions.some((q) => {
+      const cur = (answers[q.id] ?? '').trim();
+      const prev = (initialAnswerMap[q.id] ?? '').trim();
+      return cur !== prev;
+    });
+  }, [questions, answers, initialAnswerMap]);
+
+  // 전부 답변됐는지
   const allAnswered = useMemo(() => {
     if (questions.length === 0) return false;
     return questions.every((q) => (answers[q.id] ?? '').trim().length > 0);
   }, [questions, answers]);
 
+  // 기존에 저장된 답변이 있는지 (저장하기 vs 수정하기 분기)
+  const hasExistingAnswers = useMemo(() => {
+    return (detail?.myAnswers ?? []).some((a) => a.answer.trim().length > 0);
+  }, [detail]);
+
   const handleSave = () => {
-    if (!currentReflection || !allAnswered) return;
+    if (!currentReflection) {
+      toast.error(t('save-failed'));
+      return;
+    }
+    if (!allAnswered) {
+      toast.error(t('save-need-all'));
+      return;
+    }
     const payload: ReflectionAnswer[] = questions.map((q) => ({
       questionId: q.id,
       answer: (answers[q.id] ?? '').trim(),
@@ -161,17 +221,16 @@ function CurrentMode({
       { reflectionId: currentReflection.id, answers: payload },
       {
         onSuccess: (result) => {
-          if (result.success) {
-            if (result.justRevealed) {
-              toast.success(t('reveal-just-now'));
-            } else {
-              toast.success(t('save-success'));
-            }
+          if (result.justRevealed) {
+            toast.success(t('reveal-just-now'));
           } else {
-            toast.error(t('save-failed'));
+            toast.success(t('save-success'));
           }
         },
-        onError: () => toast.error(t('save-failed')),
+        onError: (error) => {
+          console.error('[reflection] save failed:', error.message);
+          toast.error(t('save-failed'));
+        },
       },
     );
   };
@@ -226,6 +285,23 @@ function CurrentMode({
             </PixelCard>
           </Box>
 
+          {/* ── 진행 상태: 한 줄 인라인 (카드 X) ── */}
+          <Box px="xxl" style={styles.statusLineSection}>
+            <ReflectionStatusLine
+              myName={myName}
+              partnerName={partnerName}
+              myAnswered={progress?.myAnswered ?? 0}
+              partnerAnswered={progress?.partnerAnswered ?? 0}
+              total={
+                progress && progress.total > 0
+                  ? progress.total
+                  : questions.length
+              }
+              isRevealed={isRevealed}
+              hasPartner={progress?.hasPartner ?? true}
+            />
+          </Box>
+
           {/* 질문 카드들 */}
           <Box px="xxl" style={styles.questionsSection}>
             {questions.map((question, idx) => (
@@ -233,6 +309,7 @@ function CurrentMode({
                 <QuestionCard
                   question={question}
                   myAnswer={answers[question.id] ?? ''}
+                  myName={myName}
                   onChangeMyAnswer={
                     isRevealed
                       ? undefined
@@ -249,34 +326,43 @@ function CurrentMode({
             ))}
           </Box>
 
-          {/* 지난 회고 목록 */}
+          {/* 지난 회고 — 인라인으로 펼쳐서 월별 쭉 훑을 수 있게 */}
           {pastList.length > 0 && (
             <Box px="xxl" style={styles.pastSection}>
-              <Text variant="headingSmall" mb="md">
-                {t('section.past')}
-              </Text>
-              <PixelCard style={styles.pastCard}>
+              <Row style={styles.pastHeader}>
+                <Text variant="headingSmall">
+                  {t('section.past')}
+                </Text>
+                <Pressable
+                  onPress={() => router.push('/reflection-timeline')}
+                  hitSlop={8}
+                >
+                  <Row style={styles.timelineLink}>
+                    <Text variant="caption" color="primary">
+                      {t('timeline.title')}
+                    </Text>
+                    <Icon name="chevron-right" size={12} color={theme.colors.primary} />
+                  </Row>
+                </Pressable>
+              </Row>
+              <View style={styles.pastList}>
                 {pastList
                   .filter((r) => r.id !== currentReflection?.id)
-                  .map((reflection, idx, arr) => (
-                    <PastReflectionItem
+                  .map((reflection) => (
+                    <PastReflectionExpanded
                       key={reflection.id}
                       reflection={reflection}
-                      isLast={idx === arr.length - 1}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/reflection',
-                          params: { id: reflection.id },
-                        })
-                      }
+                      myUserId={myUserId}
+                      myName={myName}
+                      partnerName={partnerName}
                     />
                   ))}
-              </PixelCard>
+              </View>
             </Box>
           )}
         </ScrollView>
 
-        {/* 저장 버튼 — 공개 전에만 */}
+        {/* 저장 버튼 — 공개 전에만. 부분 저장 허용(한 질문이라도 쓰면 활성화). */}
         {!isRevealed && (
           <Box
             px="xxl"
@@ -289,10 +375,16 @@ function CurrentMode({
               variant="primary"
               size="large"
               onPress={handleSave}
-              disabled={!allAnswered || saveAnswers.isPending || !isDirty}
+              disabled={!allAnswered || !isDirty || saveAnswers.isPending}
               loading={saveAnswers.isPending}
             >
-              {saveAnswers.isPending ? t('saving') : t('save')}
+              {saveAnswers.isPending
+                ? t('saving')
+                : !allAnswered
+                  ? t('save-need-all')
+                  : hasExistingAnswers
+                    ? t('save-edit')
+                    : t('save')}
             </Button>
           </Box>
         )}
@@ -306,6 +398,7 @@ function CurrentMode({
 function DetailMode({
   reflectionId,
   myUserId,
+  myName,
   partnerName,
   insets,
   onBack,
@@ -358,6 +451,7 @@ function DetailMode({
               <QuestionCard
                 question={question}
                 myAnswer={myAnswerMap[question.id] ?? ''}
+                myName={myName}
                 partnerAnswer={partnerAnswerMap[question.id]}
                 isRevealed={reflection.isRevealed}
                 partnerName={partnerName}
@@ -502,6 +596,9 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
     flexWrap: 'wrap',
   },
+  statusLineSection: {
+    marginTop: SPACING.sm,
+  },
   questionsSection: {
     marginTop: SPACING.lg,
   },
@@ -511,9 +608,17 @@ const styles = StyleSheet.create({
   pastSection: {
     marginTop: SPACING.xxl,
   },
-  pastCard: {
-    padding: 0,
-    overflow: 'hidden',
+  pastHeader: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  timelineLink: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  pastList: {
+    gap: SPACING.md,
   },
   bottomBar: {
     paddingTop: LAYOUT.headerPy,

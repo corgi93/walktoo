@@ -29,6 +29,7 @@ export const QUERY_KEYS = {
     current: ['reflection', 'current'] as const,
     detail: (id: string) => ['reflection', 'detail', id] as const,
     list: ['reflection', 'list'] as const,
+    progress: (id: string) => ['reflection', 'progress', id] as const,
   },
   notification: {
     list: ['notification'] as const,
@@ -36,5 +37,10 @@ export const QUERY_KEYS = {
   },
   entitlement: {
     status: ['entitlement', 'status'] as const,
+  },
+  schedule: {
+    byMonth: (year: number, month: number) =>
+      ['schedule', 'month', year, month] as const,
+    byDate: (date: string) => ['schedule', 'date', date] as const,
   },
 };

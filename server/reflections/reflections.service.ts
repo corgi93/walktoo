@@ -2,6 +2,7 @@ import { pickReflectionQuestions } from '@/constants/reflectionQuestions';
 import type {
   MonthlyReflection,
   ReflectionAnswer,
+  ReflectionProgress,
   ReflectionWithAnswers,
 } from '@/types/reflection';
 
@@ -163,8 +164,13 @@ export async function saveAnswers(
   });
 
   if (error) {
-    console.warn('[reflections] save error:', error.message);
-    return { success: false };
+    console.error('[reflections] save error:', error.message, error.details);
+    throw new Error(error.message);
+  }
+
+  if (!data || typeof data !== 'object') {
+    console.error('[reflections] unexpected RPC response:', data);
+    throw new Error('Unexpected response from server');
   }
 
   const result = data as {
@@ -172,9 +178,49 @@ export async function saveAnswers(
     just_revealed?: boolean;
   };
 
+  if (!result.success) {
+    const reason = (data as { reason?: string }).reason ?? 'unknown';
+    console.warn('[reflections] save rejected:', reason);
+    throw new Error(reason);
+  }
+
   return {
-    success: result.success,
-    justRevealed: result.just_revealed,
+    success: true,
+    justRevealed: result.just_revealed ?? false,
+  };
+}
+
+// ─── 진행 상태 (상대방 내용 없이 카운트만) ──────────────
+
+export async function getReflectionProgress(
+  reflectionId: string,
+): Promise<ReflectionProgress | null> {
+  const { data, error } = await supabase.rpc('get_reflection_progress', {
+    p_reflection_id: reflectionId,
+  });
+
+  if (error) {
+    console.warn('[reflections] progress error:', error.message);
+    return null;
+  }
+
+  const result = data as {
+    total?: number;
+    my_answered?: number;
+    partner_answered?: number;
+    has_partner?: boolean;
+    is_revealed?: boolean;
+    error?: string;
+  };
+
+  if (result.error) return null;
+
+  return {
+    total: result.total ?? 0,
+    myAnswered: result.my_answered ?? 0,
+    partnerAnswered: result.partner_answered ?? 0,
+    hasPartner: result.has_partner ?? false,
+    isRevealed: result.is_revealed ?? false,
   };
 }
 
@@ -183,4 +229,5 @@ export const reflectionsService = {
   getReflectionWithAnswers,
   listPastReflections,
   saveAnswers,
+  getReflectionProgress,
 };

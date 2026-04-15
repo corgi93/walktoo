@@ -15,14 +15,17 @@ import { useMemo } from 'react';
 
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useReflectionListQuery } from '@/hooks/services/reflections/query';
+import { useSchedulesByMonthQuery } from '@/hooks/services/schedules/query';
 import { useStampsByMonthQuery } from '@/hooks/services/stamps/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import type { WalkDiary } from '@/types/diary';
 import type { MonthlyReflection } from '@/types/reflection';
+import type { CoupleSchedule } from '@/types/schedule';
 
 export interface CalendarMonthData {
   walks: WalkDiary[];
   stamps: string[]; // 'YYYY-MM-DD' 배열
+  schedules: CoupleSchedule[];
   reflection: MonthlyReflection | null;
   isLoading: boolean;
 }
@@ -36,6 +39,7 @@ export const useCalendarMonthQuery = (
 
   const walksQuery = useDiaryByMonthQuery(year, month);
   const stampsQuery = useStampsByMonthQuery(coupleId, year, month);
+  const schedulesQuery = useSchedulesByMonthQuery(year, month);
   const reflectionListQuery = useReflectionListQuery(coupleId);
 
   // 회고 목록은 flat이라 클라에서 필터
@@ -45,11 +49,15 @@ export const useCalendarMonthQuery = (
   }, [reflectionListQuery.data, year, month]);
 
   const isLoading =
-    walksQuery.isLoading || stampsQuery.isLoading || reflectionListQuery.isLoading;
+    walksQuery.isLoading ||
+    stampsQuery.isLoading ||
+    schedulesQuery.isLoading ||
+    reflectionListQuery.isLoading;
 
   return {
     walks: walksQuery.data ?? [],
     stamps: stampsQuery.data ?? [],
+    schedules: schedulesQuery.data ?? [],
     reflection,
     isLoading,
   };

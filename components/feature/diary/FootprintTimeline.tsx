@@ -12,6 +12,8 @@ import { formatDate, parseLocalDate } from '@/utils/date';
 
 interface FootprintTimelineProps {
   diaries: WalkDiary[];
+  myName?: string;
+  partnerName?: string;
   onItemPress?: (diary: WalkDiary) => void;
   onNudge?: (diary: WalkDiary) => void;
   nudgeLoading?: boolean;
@@ -26,6 +28,8 @@ interface YearGroup {
 
 export function FootprintTimeline({
   diaries,
+  myName,
+  partnerName,
   onItemPress,
   onNudge,
   nudgeLoading,
@@ -113,6 +117,8 @@ export function FootprintTimeline({
                 ) : (
                   <LockedCard
                     diary={diary}
+                    myName={myName}
+                    partnerName={partnerName}
                     onNudge={onNudge}
                     nudgeLoading={nudgeLoading}
                   />
@@ -130,16 +136,22 @@ export function FootprintTimeline({
 
 function LockedCard({
   diary,
+  myName: myNameProp,
+  partnerName: partnerNameProp,
   onNudge,
   nudgeLoading,
 }: {
   diary: WalkDiary;
+  myName?: string;
+  partnerName?: string;
   onNudge?: (diary: WalkDiary) => void;
   nudgeLoading?: boolean;
 }) {
   const { t } = useTranslation(['diary', 'common']);
   const hasMyEntry = !!diary.myEntry;
   const hasPartnerEntry = !!diary.partnerEntry;
+  const myLabel = myNameProp ?? t('diary:timeline.status-mine-empty');
+  const partnerLabel = partnerNameProp ?? t('diary:timeline.status-partner-empty');
   const canNudge = hasMyEntry && !hasPartnerEntry;
 
   return (
@@ -148,26 +160,50 @@ function LockedCard({
         {diary.locationName}
       </Text>
 
-      {/* 상태 표시 */}
+      {/* 상태 표시 — 누가 썼는지 한눈에 */}
       <View style={styles.lockStatus}>
-        <View style={styles.lockChip}>
+        <View
+          style={[
+            styles.lockChip,
+            hasMyEntry ? styles.lockChipDone : styles.lockChipEmpty,
+          ]}
+        >
           <Icon
-            name={hasMyEntry ? 'check-circle' : 'clock'}
+            name={hasMyEntry ? 'check-circle' : 'edit'}
             size={13}
             color={hasMyEntry ? theme.colors.secondary : theme.colors.gray400}
           />
-          <Text variant="caption" color="textSecondary" ml="xs">
-            {t('diary:timeline.status-mine')}
+          <Text
+            variant="caption"
+            ml="xs"
+            style={{
+              color: hasMyEntry ? theme.colors.secondary : theme.colors.gray500,
+              fontWeight: hasMyEntry ? '600' : '400',
+            }}
+          >
+            {hasMyEntry ? `${myLabel} ✓` : myLabel}
           </Text>
         </View>
-        <View style={styles.lockChip}>
+        <View
+          style={[
+            styles.lockChip,
+            hasPartnerEntry ? styles.lockChipDone : styles.lockChipEmpty,
+          ]}
+        >
           <Icon
-            name={hasPartnerEntry ? 'check-circle' : 'clock'}
+            name={hasPartnerEntry ? 'check-circle' : 'edit'}
             size={13}
             color={hasPartnerEntry ? theme.colors.secondary : theme.colors.gray400}
           />
-          <Text variant="caption" color="textSecondary" ml="xs">
-            {t('diary:timeline.status-partner')}
+          <Text
+            variant="caption"
+            ml="xs"
+            style={{
+              color: hasPartnerEntry ? theme.colors.secondary : theme.colors.gray500,
+              fontWeight: hasPartnerEntry ? '600' : '400',
+            }}
+          >
+            {hasPartnerEntry ? `${partnerLabel} ✓` : partnerLabel}
           </Text>
         </View>
       </View>
@@ -189,9 +225,11 @@ function LockedCard({
       )}
 
       <Text variant="caption" color="textMuted" mt="sm" align="center">
-        {hasMyEntry
+        {hasMyEntry && !hasPartnerEntry
           ? t('diary:timeline.locked-waiting-partner')
-          : t('diary:timeline.locked-waiting-mine')}
+          : !hasMyEntry && hasPartnerEntry
+            ? t('diary:timeline.locked-waiting-mine')
+            : t('diary:timeline.locked-both-empty')}
       </Text>
 
       {/* 톡톡 버튼 */}
@@ -393,10 +431,18 @@ const styles = StyleSheet.create({
   lockChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.gray100,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: 4,
+    borderWidth: 1.5,
+  },
+  lockChipDone: {
+    backgroundColor: `${theme.colors.secondary}14`,
+    borderColor: `${theme.colors.secondary}40`,
+  },
+  lockChipEmpty: {
+    backgroundColor: theme.colors.gray100,
+    borderColor: theme.colors.gray200,
   },
   myEntryPreview: {
     width: '100%',

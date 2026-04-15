@@ -124,6 +124,7 @@ export function ReflectionWidget({
       case 'in-progress':
         return t('reflection-widget.cta-continue');
       case 'waiting-partner':
+        return t('reflection-widget.cta-edit', { month });
       case 'revealed':
         return t('reflection-widget.cta-view');
     }

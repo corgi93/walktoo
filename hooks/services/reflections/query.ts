@@ -33,6 +33,23 @@ export const useReflectionDetailQuery = (
 };
 
 /**
+ * 회고 진행 상태 (상대방 답변 내용 없이 카운트만)
+ * "둘 다 써야 둘 다 보여요" 상태 UI를 위한 경량 쿼리.
+ */
+export const useReflectionProgressQuery = (
+  reflectionId: string | undefined,
+) => {
+  return useQuery({
+    queryKey: reflectionId
+      ? QUERY_KEYS.reflection.progress(reflectionId)
+      : ['reflection', 'progress', 'none'],
+    queryFn: () => reflectionsService.getReflectionProgress(reflectionId!),
+    enabled: !!reflectionId,
+    staleTime: 30_000,
+  });
+};
+
+/**
  * 지난 회고 목록
  */
 export const useReflectionListQuery = (coupleId: string | undefined) => {

@@ -240,6 +240,37 @@ export interface Database {
         };
         Relationships: [];
       };
+      couple_schedules: {
+        Row: {
+          id: string;
+          couple_id: string;
+          owner_id: string;
+          date: string;
+          title: string;
+          category: string;
+          emoji: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          owner_id: string;
+          date: string;
+          title: string;
+          category?: string;
+          emoji?: string | null;
+          note?: string | null;
+        };
+        Update: {
+          date?: string;
+          title?: string;
+          category?: string;
+          emoji?: string | null;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -283,6 +314,19 @@ export interface Database {
           reason?: string;
           revealed?: boolean;
           just_revealed?: boolean;
+        };
+      };
+      get_reflection_progress: {
+        Args: {
+          p_reflection_id: string;
+        };
+        Returns: {
+          total?: number;
+          my_answered?: number;
+          partner_answered?: number;
+          has_partner?: boolean;
+          is_revealed?: boolean;
+          error?: string;
         };
       };
       start_trial_if_needed: {
