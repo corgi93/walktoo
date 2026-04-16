@@ -175,21 +175,9 @@ export default function PaywallScreen() {
           </Text>
           <PixelCard style={styles.benefitsCard}>
             <BenefitRow
-              emoji="📷"
-              title={t('premium:benefits.photos-title')}
-              description={t('premium:benefits.photos-description', {
-                limit: PREMIUM.PHOTO_LIMIT_PREMIUM,
-              })}
-            />
-            <BenefitRow
               emoji="🎨"
               title={t('premium:benefits.decoration-title')}
               description={t('premium:benefits.decoration-description')}
-            />
-            <BenefitRow
-              emoji="📊"
-              title={t('premium:benefits.stats-title')}
-              description={t('premium:benefits.stats-description')}
             />
             <BenefitRow
               emoji="💞"

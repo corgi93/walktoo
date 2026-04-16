@@ -42,6 +42,7 @@ const CATEGORY_TONE: Record<
 interface QuestionCardProps {
   question: ReflectionQuestion;
   myAnswer: string;
+  myName: string;
   partnerAnswer?: string;
   isRevealed: boolean;
   partnerName: string;
@@ -50,6 +51,8 @@ interface QuestionCardProps {
   /** 카드 진행 순서 (1/3, 2/3, 3/3) — 헤더에 표시 */
   stepIndex?: number;
   stepTotal?: number;
+  /** 상대방이 이 질문에 답변했는지 (progress 기반, 미공개 상태에서도 표시) */
+  partnerHasAnswered?: boolean;
 }
 
 /**
@@ -62,21 +65,30 @@ interface QuestionCardProps {
  * - 입력 필드가 시각적으로 명확하도록 surface 배경 + 카테고리 톤 테두리.
  * - 말문 열기 칩은 입력 위에서 글의 시작을 도와줌 (DB 변경 없는 UI affordance).
  */
+// wished 카테고리에만 노출되는 "스킵" 문구.
+// 이걸 탭하면 답변 필드에 자동으로 채워지며, 정상 답변으로 저장된다.
+// (비난/아쉬움 부담이 없는 달에도 회고가 성립하도록 하는 escape hatch)
+const WISHED_SKIP_MARKER = '이번 달엔 딱히 아쉬웠던 게 없어요 🤍';
+
 export function QuestionCard({
   question,
   myAnswer,
+  myName,
   partnerAnswer,
   isRevealed,
   partnerName,
   onChangeMyAnswer,
   stepIndex,
   stepTotal,
+  partnerHasAnswered,
 }: QuestionCardProps) {
   const { t } = useTranslation('reflection');
   const isEditable = !!onChangeMyAnswer;
   const showPartner = isRevealed && !!partnerAnswer;
   const tone = CATEGORY_TONE[question.category];
   const prompts = question.prompts ?? [];
+  const canSkip = question.category === 'wished';
+  const isSkipped = canSkip && myAnswer.trim() === WISHED_SKIP_MARKER;
 
   const handleChipTap = (prompt: string) => {
     if (!onChangeMyAnswer) return;
@@ -88,6 +100,15 @@ export function QuestionCard({
         ? ''
         : ' ';
     onChangeMyAnswer(`${myAnswer}${separator}${prompt}`);
+  };
+
+  const handleSkipToggle = () => {
+    if (!onChangeMyAnswer) return;
+    if (isSkipped) {
+      onChangeMyAnswer('');
+    } else {
+      onChangeMyAnswer(WISHED_SKIP_MARKER);
+    }
   };
 
   return (
@@ -157,19 +178,57 @@ export function QuestionCard({
 
       {/* ── 내 답변 ── */}
       <View style={styles.answerSection}>
-        <Row style={styles.sectionLabel}>
-          <Icon name="user" size={11} color={tone.accent} />
-          <Text
-            variant="caption"
-            ml="xxs"
-            style={{ color: tone.accent, fontWeight: '600' }}
-          >
-            {t('my-answer')}
-          </Text>
+        <Row style={styles.sectionLabelRow}>
+          <Row style={styles.sectionLabel}>
+            <Icon name="user" size={11} color={tone.accent} />
+            <Text
+              variant="caption"
+              ml="xxs"
+              style={{ color: tone.accent, fontWeight: '600' }}
+            >
+              {t('my-answer-with-name', { name: myName })}
+            </Text>
+          </Row>
+          {/* Wished 전용 스킵 토글 — 아쉬웠던 게 없는 달에도 부담없이 지나갈 수 있도록 */}
+          {canSkip && isEditable && (
+            <Pressable
+              onPress={handleSkipToggle}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.skipChip,
+                isSkipped && styles.skipChipActive,
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Icon
+                name={isSkipped ? 'check' : 'heart'}
+                size={10}
+                color={
+                  isSkipped ? theme.colors.white : theme.colors.textSecondary
+                }
+              />
+              <Text
+                variant="caption"
+                style={{
+                  color: isSkipped
+                    ? theme.colors.white
+                    : theme.colors.textSecondary,
+                  fontWeight: '600',
+                  marginLeft: 4,
+                }}
+              >
+                {t(isSkipped ? 'skip-done' : 'skip-wished')}
+              </Text>
+            </Pressable>
+          )}
         </Row>
         {isEditable ? (
           <TextInput
-            style={[styles.input, { borderColor: tone.accent }]}
+            style={[
+              styles.input,
+              { borderColor: tone.accent },
+              isSkipped && styles.inputSkipped,
+            ]}
             value={myAnswer}
             onChangeText={onChangeMyAnswer}
             placeholder={question.placeholder ?? t('answer-placeholder')}
@@ -177,12 +236,19 @@ export function QuestionCard({
             multiline
             textAlignVertical="top"
             cursorColor={tone.accent}
+            editable={!isSkipped}
           />
         ) : (
           <View style={[styles.readOnlyBox, { borderColor: tone.soft }]}>
-            <Text variant="bodyMedium" color="text">
-              {myAnswer || t('answer-placeholder')}
-            </Text>
+            {myAnswer ? (
+              <Text variant="bodyMedium" color="text">
+                {myAnswer}
+              </Text>
+            ) : (
+              <Text variant="bodyMedium" color="textMuted" style={{ fontStyle: 'italic' }}>
+                {t('answer-not-written')}
+              </Text>
+            )}
           </View>
         )}
       </View>
@@ -192,21 +258,23 @@ export function QuestionCard({
         <View style={[styles.dividerLine, { backgroundColor: tone.soft }]} />
         <Row style={styles.partnerBadge}>
           <Icon
-            name={showPartner ? 'heart' : 'lock'}
+            name={showPartner ? 'heart' : partnerHasAnswered ? 'check-circle' : 'lock'}
             size={11}
-            color={showPartner ? tone.accent : theme.colors.gray500}
+            color={showPartner ? tone.accent : partnerHasAnswered ? theme.colors.secondary : theme.colors.gray500}
           />
           <Text
             variant="caption"
             ml="xxs"
             style={{
-              color: showPartner ? tone.accent : theme.colors.gray500,
+              color: showPartner ? tone.accent : partnerHasAnswered ? theme.colors.secondary : theme.colors.gray500,
               fontWeight: '500',
             }}
           >
             {showPartner
               ? t('partner-answer-label', { name: partnerName })
-              : t('reveal-locked')}
+              : partnerHasAnswered
+                ? t('partner-completed')
+                : t('reveal-locked')}
           </Text>
         </Row>
         <View style={[styles.dividerLine, { backgroundColor: tone.soft }]} />
@@ -217,6 +285,13 @@ export function QuestionCard({
         <View style={[styles.partnerAnswerBox, { borderColor: tone.soft }]}>
           <Text variant="bodyMedium" color="text">
             {partnerAnswer}
+          </Text>
+        </View>
+      ) : partnerHasAnswered ? (
+        <View style={[styles.partnerCompletedBox, { borderColor: theme.colors.secondaryLight }]}>
+          <Icon name="check-circle" size={18} color={theme.colors.secondary} />
+          <Text variant="bodySmall" color="secondary" mt="xs" align="center">
+            {t('partner-completed-hint')}
           </Text>
         </View>
       ) : (
@@ -300,9 +375,27 @@ const styles = StyleSheet.create({
   answerSection: {
     marginTop: SPACING.lg,
   },
-  sectionLabel: {
+  sectionLabelRow: {
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.xs,
+  },
+  sectionLabel: {
+    alignItems: 'center',
+  },
+  skipChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    backgroundColor: theme.colors.surface,
+  },
+  skipChipActive: {
+    backgroundColor: theme.colors.gray500,
+    borderColor: theme.colors.gray500,
   },
   input: {
     backgroundColor: theme.colors.surface,
@@ -315,6 +408,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: FONT_FAMILY.pixel,
     color: theme.colors.text,
+  },
+  inputSkipped: {
+    backgroundColor: theme.colors.gray100,
+    color: theme.colors.textMuted,
+    opacity: 0.85,
   },
   readOnlyBox: {
     backgroundColor: theme.colors.surface,
@@ -345,6 +443,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
     padding: SPACING.md,
+    borderWidth: 1.5,
+  },
+  partnerCompletedBox: {
+    backgroundColor: theme.colors.secondaryLight,
+    borderRadius: theme.radius.md,
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
     borderWidth: 1.5,
   },
   lockedBox: {

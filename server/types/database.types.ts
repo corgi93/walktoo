@@ -240,37 +240,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      couple_schedules: {
-        Row: {
-          id: string;
-          couple_id: string;
-          owner_id: string;
-          date: string;
-          title: string;
-          category: string;
-          emoji: string | null;
-          note: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          couple_id: string;
-          owner_id: string;
-          date: string;
-          title: string;
-          category?: string;
-          emoji?: string | null;
-          note?: string | null;
-        };
-        Update: {
-          date?: string;
-          title?: string;
-          category?: string;
-          emoji?: string | null;
-          note?: string | null;
-        };
-        Relationships: [];
-      };
     };
     Views: Record<string, never>;
     Functions: {

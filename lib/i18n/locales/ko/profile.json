@@ -1,9 +1,9 @@
 {
-  "tab-title": "마이",
+  "tab-title": "프로필",
   "fallback-name": "사용자",
   "status": {
     "with-partner": "연인과 함께 걷는 중",
-    "solo": "아직 짝이 없어요"
+    "solo": "아직 연인이 없어요"
   },
   "stats": {
     "total-walks": "총 산책",
@@ -13,7 +13,7 @@
     "current-streak-days": "{{count}}일"
   },
   "no-couple": {
-    "title": "내 사람을 초대해보세요",
+    "title": "연인을 초대해보세요",
     "subtitle": "연결하면 둘만의 기록이 시작돼요"
   },
   "menu": {

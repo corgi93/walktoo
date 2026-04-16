@@ -17,7 +17,6 @@ export { notificationsService } from './notifications';
 export { memoryStampsService } from './memory-stamps';
 export { reflectionsService } from './reflections';
 export { entitlementsService } from './entitlements';
-export { schedulesService } from './schedules';
 export type { EntitlementStatus } from './entitlements';
 
 // Supabase client (직접 접근이 필요한 경우)

@@ -16,7 +16,7 @@
   },
   "labels": {
     "me": "나",
-    "partner": "상대방",
+    "partner": "연인",
     "lover": "연인",
     "today": "오늘",
     "tomorrow": "내일",
@@ -34,6 +34,6 @@
     "photos-count": "사진 {{count}}장"
   },
   "fallback": {
-    "partner-nickname": "상대방"
+    "partner-nickname": "연인"
   }
 }

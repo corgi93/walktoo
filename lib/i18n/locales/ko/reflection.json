@@ -9,13 +9,27 @@
   },
   "loading": "불러오는 중...",
   "answer-placeholder": "한 단어도 괜찮아",
+  "answer-not-written": "아직 작성하지 않았어요",
+  "partner-completed": "작성 완료",
+  "partner-completed-hint": "나만 적으면 함께 열려요!",
   "save": "답변 저장하기",
+  "save-edit": "답변 수정하기",
+  "save-need-all": "세 질문 모두 답변해주세요",
   "saving": "저장 중...",
   "save-success": "답변을 저장했어요",
   "save-failed": "저장에 실패했어요",
   "reveal-locked": "둘 다 답하면 함께 열려요",
   "reveal-just-now": "💞 이달의 우리가 공개되었어요",
   "my-answer": "내 답변",
+  "my-answer-with-name": "{{name}}의 답변",
+  "skip-wished": "이번 달엔 없었어",
+  "skip-done": "없었어요 ✓",
+  "recap": {
+    "title": "이번 달 내가 남긴 기록",
+    "subtitle": "회고 쓸 때 살짝 참고해봐",
+    "count": "산책 {{count}}번",
+    "empty": "이 달엔 아직 남긴 기록이 없어요"
+  },
   "partner-answer-label": "{{name}}의 답변",
   "partner-answer": "연인의 답변",
   "empty-past": "아직 지난 회고가 없어요",
@@ -32,6 +46,34 @@
     "keep-tag": "💝 좋았던 우리",
     "wished-tag": "🤍 아쉬웠던 우리",
     "will-tag": "🌱 다음 달 우리"
+  },
+  "progress": {
+    "label": "이달의 진행 상태",
+    "headline-default": "둘 다 답하면 서로의 답이 함께 열려요",
+    "headline-waiting": "{{name}}의 답변을 기다리고 있어요",
+    "headline-my-turn": "내 차례예요. 한 줄이면 충분해요",
+    "headline-revealed": "💞 이달의 우리가 함께 공개됐어요",
+    "me-label": "나",
+    "count": "{{done}}/{{total}}",
+    "partner-writing": "작성 중",
+    "partner-ready": "작성 완료",
+    "no-partner": "연결 대기중"
+  },
+  "status-line": {
+    "revealed": "둘 다 완료 · 서로의 답이 열렸어요",
+    "partner-writing-short": "작성 중",
+    "partner-ready-short": "완료 ✓",
+    "no-partner": "대기"
+  },
+  "past-expanded": {
+    "partner-locked": "아직 공개 전이에요"
+  },
+  "timeline": {
+    "title": "우리의 회고",
+    "empty": "아직 함께 쓴 회고가 없어요",
+    "year-count": "{{count}}개월",
+    "tap-to-read": "탭해서 읽기",
+    "tap-to-view": "탭해서 보기"
   },
   "category": {
     "keep": {

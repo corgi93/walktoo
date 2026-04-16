@@ -102,7 +102,7 @@ export default function ProfileScreen() {
                 </Text>
               </PixelCard>
               <PixelCard style={styles.statCard}>
-                <Icon name="footprint" size={22} color={theme.colors.primary} />
+                <Icon name="star" size={22} color={theme.colors.primary} />
                 <Text variant="displaySmall" color="primary" mt="sm">
                   {formatNumber(totalStamps)}
                 </Text>
@@ -144,7 +144,7 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
                 <View style={styles.ghostStat}>
-                  <Icon name="shoe-sneaker" size={18} color={theme.colors.gray400} />
+                  <Icon name="star" size={18} color={theme.colors.gray400} />
                   <Text variant="bodyMedium" color="textMuted" mt="xs">
                     ???
                   </Text>

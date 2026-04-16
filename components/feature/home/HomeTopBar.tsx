@@ -36,7 +36,7 @@ export function HomeTopBar({
       <Row style={styles.topBarRight}>
         {isCoupleConnected && (
           <PixelBadge
-            iconName="footprint"
+            iconName="star"
             label={formatNumber(totalStamps)}
             size="small"
             bg={theme.colors.primarySurface}

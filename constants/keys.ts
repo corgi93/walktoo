@@ -38,9 +38,4 @@ export const QUERY_KEYS = {
   entitlement: {
     status: ['entitlement', 'status'] as const,
   },
-  schedule: {
-    byMonth: (year: number, month: number) =>
-      ['schedule', 'month', year, month] as const,
-    byDate: (date: string) => ['schedule', 'date', date] as const,
-  },
 };

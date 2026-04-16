@@ -37,7 +37,7 @@ export default function DiaryScreen() {
   const router = useRouter();
   const toast = useToast();
   const { t } = useTranslation(['diary']);
-  const { me, hasCoupleId, partnerId } = usePartnerDerivation();
+  const { me, hasCoupleId, partnerId, myName, partnerName } = usePartnerDerivation();
   const nudge = useNudgeMutation();
 
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
@@ -182,6 +182,8 @@ export default function DiaryScreen() {
               </Row>
               <FootprintTimeline
                 diaries={diaries}
+                myName={myName}
+                partnerName={partnerName}
                 onItemPress={handleItemPress}
                 onNudge={handleNudge}
                 nudgeLoading={nudge.isPending}
