@@ -10,8 +10,6 @@ import type { MonthlyReflection } from '@/types/reflection';
 interface MonthStripProps {
   walksCount: number;
   stampsCount: number;
-  /** 이 달 등록된 커플 일정 개수 (없으면 칩 미노출) */
-  schedulesCount?: number;
   reflection: MonthlyReflection | null;
   /** 현재 달인지 (CTA 가용 여부) */
   isCurrentMonth: boolean;
@@ -34,7 +32,6 @@ interface MonthStripProps {
 export function MonthStrip({
   walksCount,
   stampsCount,
-  schedulesCount,
   reflection,
   isCurrentMonth,
   myAnsweredCount,
@@ -100,15 +97,6 @@ export function MonthStrip({
           icon="star"
           label={t('strip.stamps', { count: stampsCount })}
         />
-        {schedulesCount !== undefined && schedulesCount > 0 && (
-          <>
-            <View style={styles.dot} />
-            <StatChip
-              icon="calendar"
-              label={t('strip.schedules', { count: schedulesCount })}
-            />
-          </>
-        )}
       </Row>
 
       {/* ── 회고 칩 ── */}
@@ -145,7 +133,7 @@ function StatChip({
   icon,
   label,
 }: {
-  icon: 'footprint' | 'star' | 'calendar';
+  icon: 'footprint' | 'star';
   label: string;
 }) {
   return (

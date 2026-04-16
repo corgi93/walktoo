@@ -321,6 +321,9 @@ function CurrentMode({
                   partnerName={partnerName}
                   stepIndex={idx + 1}
                   stepTotal={questions.length}
+                  partnerHasAnswered={
+                    (progress?.partnerAnswered ?? 0) >= questions.length
+                  }
                 />
               </View>
             ))}

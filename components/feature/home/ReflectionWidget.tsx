@@ -86,14 +86,12 @@ export function ReflectionWidget({
   const isMyComplete = myAnsweredCount === REFLECTION_QUESTION_COUNT;
   const isMonthEnd = todayDayOfMonth >= 25;
 
-  type State = 'empty' | 'in-progress' | 'waiting-partner' | 'revealed';
+  type State = 'empty' | 'waiting-partner' | 'revealed';
   const state: State = isRevealed
     ? 'revealed'
     : isMyComplete
       ? 'waiting-partner'
-      : myAnsweredCount > 0
-        ? 'in-progress'
-        : 'empty';
+      : 'empty';
 
   // 상태별 톤
   const accent =
@@ -105,11 +103,6 @@ export function ReflectionWidget({
     switch (state) {
       case 'empty':
         return t('reflection-widget.state-empty');
-      case 'in-progress':
-        return t('reflection-widget.state-in-progress', {
-          done: myAnsweredCount,
-          total: REFLECTION_QUESTION_COUNT,
-        });
       case 'waiting-partner':
         return t('reflection-widget.state-waiting');
       case 'revealed':
@@ -121,16 +114,12 @@ export function ReflectionWidget({
     switch (state) {
       case 'empty':
         return t('reflection-widget.cta-start');
-      case 'in-progress':
-        return t('reflection-widget.cta-continue');
       case 'waiting-partner':
         return t('reflection-widget.cta-edit', { month });
       case 'revealed':
         return t('reflection-widget.cta-view');
     }
   })();
-
-  const dots = Array.from({ length: REFLECTION_QUESTION_COUNT }, (_, i) => i);
 
   const monthLabel = formatDate(new Date(year, month - 1, 1), {
     year: 'numeric',
@@ -174,25 +163,9 @@ export function ReflectionWidget({
             {stateLabel}
           </Text>
 
-          {/* 진행도 점 + CTA */}
+          {/* CTA */}
           <Row style={styles.bottomRow}>
-            <Row style={styles.dots}>
-              {dots.map((i) => {
-                const filled = isRevealed || i < myAnsweredCount;
-                return (
-                  <View
-                    key={i}
-                    style={[
-                      styles.dot,
-                      filled && {
-                        backgroundColor: accent,
-                        borderColor: accent,
-                      },
-                    ]}
-                  />
-                );
-              })}
-            </Row>
+            <View />
             <Row>
               <Text
                 variant="caption"
@@ -236,17 +209,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: SPACING.md,
-  },
-  dots: {
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: theme.colors.gray300,
-    backgroundColor: 'transparent',
   },
 });

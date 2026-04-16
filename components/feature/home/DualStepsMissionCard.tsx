@@ -119,7 +119,7 @@ export function DualStepsMissionCard({
             style={[styles.claimBtn, hasTodayStamp && styles.claimBtnDone]}
           >
             <Icon
-              name="footprint"
+              name="star"
               size={14}
               color={hasTodayStamp ? theme.colors.textMuted : theme.colors.white}
             />
@@ -247,8 +247,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
     borderRadius: theme.radius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primaryLight,
+    ...theme.pixel.borderThin,
   },
   personSteps: {
     marginTop: 2,

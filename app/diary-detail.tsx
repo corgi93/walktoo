@@ -25,7 +25,10 @@ import {
   useAddEntryMutation,
   useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
+import { useNudgeMutation } from '@/hooks/services/notification/mutation';
 import { useGetCoupleQuery } from '@/hooks/services/couple/query';
+import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
+import { useToast } from '@/components/composite/toast/ToastProvider';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
@@ -81,7 +84,22 @@ export default function DiaryDetailScreen() {
 
   const addEntry = useAddEntryMutation();
   const updateEntry = useUpdateEntryMutation();
+  const nudge = useNudgeMutation();
+  const toast = useToast();
+  const { partnerId, couple: coupleData } = usePartnerDerivation();
   const isSaving = addEntry.isPending || updateEntry.isPending;
+
+  const canNudge = hasMyEntry && !partnerEntry;
+  const handleNudge = () => {
+    if (!partnerId || !coupleData?.id) return;
+    nudge.mutate(
+      { recipientId: partnerId, coupleId: coupleData.id, walkId },
+      {
+        onSuccess: () => toast.success(t('diary:timeline.nudge-success')),
+        onError: () => toast.error(t('diary:timeline.nudge-failed')),
+      },
+    );
+  };
 
   const formattedDate = params.date
     ? formatDate(parseLocalDate(params.date), {
@@ -366,6 +384,24 @@ export default function DiaryDetailScreen() {
                         ? t('diary:detail.locked.waiting-letter-description')
                         : t('diary:detail.locked.still-locked-description')}
                     </Text>
+
+                    {/* 톡톡 버튼 — 내가 쓰고 연인이 안 썼을 때만 */}
+                    {canNudge && (
+                      <Pressable
+                        style={[styles.nudgeBtn, nudge.isPending && styles.nudgeBtnDisabled]}
+                        onPress={handleNudge}
+                        disabled={nudge.isPending}
+                      >
+                        <Text style={styles.nudgeEmoji}>
+                          {nudge.isPending ? '...' : '👆'}
+                        </Text>
+                        <Text variant="label" color="primary" ml="xs">
+                          {nudge.isPending
+                            ? t('diary:timeline.nudge-sending')
+                            : t('diary:timeline.nudge-button')}
+                        </Text>
+                      </Pressable>
+                    )}
                   </View>
                 )}
               </EntrySection>
@@ -743,6 +779,24 @@ const styles = StyleSheet.create({
   },
   lockedStickerEmoji: {
     fontSize: 22,
+  },
+  nudgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.lg,
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
+  },
+  nudgeBtnDisabled: {
+    opacity: 0.6,
+  },
+  nudgeEmoji: {
+    fontSize: 14,
   },
   heartDivider: {
     alignItems: 'center',

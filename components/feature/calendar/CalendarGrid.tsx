@@ -12,7 +12,7 @@ import {
   getMonthKey,
 } from '@/utils/date';
 
-import { CalendarDayCell, type ScheduleIndicator } from './CalendarDayCell';
+import { CalendarDayCell } from './CalendarDayCell';
 
 interface CalendarGridProps {
   year: number;
@@ -21,8 +21,6 @@ interface CalendarGridProps {
   walkDates: Set<string>;
   /** 발자국 받은 'YYYY-MM-DD' 셋 */
   stampDates: Set<string>;
-  /** 각 날짜별 일정 인디케이터. 빈 배열이면 없음. */
-  schedulesByDate?: Map<string, ScheduleIndicator[]>;
   /** 커플 시작일 ISO 문자열 — 이전 날짜는 faded */
   coupleStartDate?: string;
   onSelectDay: (yyyyMmDd: string) => void;
@@ -39,7 +37,6 @@ export function CalendarGrid({
   month,
   walkDates,
   stampDates,
-  schedulesByDate,
   coupleStartDate,
   onSelectDay,
 }: CalendarGridProps) {
@@ -100,12 +97,12 @@ export function CalendarGrid({
             const dateStr = `${monthPrefix}-${String(day).padStart(2, '0')}`;
             const hasWalk = walkDates.has(dateStr);
             const hasStamp = stampDates.has(dateStr);
-            const schedules = schedulesByDate?.get(dateStr);
             const isToday = day === todayDay;
             const cellMs = new Date(dateStr).getTime();
+            const isFuture = cellMs > new Date(today).getTime();
             const isBeforeCouple =
               coupleStartMs !== null && cellMs < coupleStartMs;
-            const faded = isBeforeCouple;
+            const faded = isFuture || isBeforeCouple;
 
             return (
               <CalendarDayCell
@@ -113,10 +110,9 @@ export function CalendarGrid({
                 day={day}
                 hasWalk={hasWalk}
                 hasStamp={hasStamp}
-                schedules={schedules}
                 isToday={isToday}
                 faded={faded}
-                disabled={isBeforeCouple}
+                disabled={isFuture}
                 onPress={() => onSelectDay(dateStr)}
               />
             );

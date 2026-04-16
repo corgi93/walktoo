@@ -22,7 +22,6 @@
   "strip": {
     "walks": "산책 {{count}}",
     "stamps": "발자국 {{count}}",
-    "schedules": "일정 {{count}}",
     "reflection-empty": "이달의 회고 쓰기",
     "reflection-pending": "회고 이어 쓰기",
     "reflection-edit": "{{month}}월 회고 수정하기",

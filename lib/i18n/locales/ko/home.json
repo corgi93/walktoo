@@ -26,7 +26,13 @@
     "status-both": "둘 다 완료",
     "status-me-only": "나만 완료",
     "status-partner-only": "상대만 완료",
-    "status-none": "둘 다 안 씀"
+    "status-none": "둘 다 안 씀",
+    "status-revealed": "둘 다 완료",
+    "status-pending": "나만 완료"
+  },
+  "recent-walks-section": {
+    "title": "최근 산책",
+    "empty": "아직 산책 기록이 없어요"
   },
   "recent-notifications": {
     "title": "최근 알림"
@@ -68,6 +74,8 @@
   "records-tab": {
     "title": "기록",
     "walks-section-title": "이 달의 산책",
-    "walks-empty": "이 달엔 아직 산책 기록이 없어요"
+    "walks-empty": "이 달엔 아직 산책 기록이 없어요",
+    "picker-title": "월 선택",
+    "picker-today": "이번 달"
   }
 }
