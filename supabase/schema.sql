@@ -182,6 +182,22 @@ CREATE TABLE IF NOT EXISTS public.couple_schedules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 1-12. couple_pack_entitlements (커플 단위 꾸미기 팩 소유권)
+--   decoration_packs 카탈로그는 클라이언트 constants에 하드코딩.
+--   'lifetime' 팩은 pack_id='lifetime' 한 row만 insert하고,
+--   클라이언트에서 "* 포함"으로 해석해 모든 팩 unlock.
+--   번들 구매 시엔 includes의 각 pack_id 별로 row 생성.
+--   커플 중 한 명이 구매하면 양쪽 모두 적용 (couple_id 공유).
+CREATE TABLE IF NOT EXISTS public.couple_pack_entitlements (
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  couple_id             UUID NOT NULL REFERENCES public.couples(id) ON DELETE CASCADE,
+  pack_id               TEXT NOT NULL,
+  purchased_by          UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  revenuecat_product_id TEXT,
+  purchased_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(couple_id, pack_id)
+);
+
 -- 1-11. reflection_answers (회고 답변)
 CREATE TABLE IF NOT EXISTS public.reflection_answers (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -210,6 +226,7 @@ CREATE INDEX IF NOT EXISTS idx_monthly_reflections_couple   ON public.monthly_re
 CREATE INDEX IF NOT EXISTS idx_reflection_answers_reflection ON public.reflection_answers(reflection_id);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_couple_date  ON public.couple_schedules(couple_id, date);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_owner        ON public.couple_schedules(owner_id);
+CREATE INDEX IF NOT EXISTS idx_pack_entitlements_couple      ON public.couple_pack_entitlements(couple_id);
 
 
 -- ────────────────────────────────────────────────────────────
@@ -226,6 +243,7 @@ ALTER TABLE public.memory_stamps       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.monthly_reflections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reflection_answers  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.couple_schedules    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.couple_pack_entitlements ENABLE ROW LEVEL SECURITY;
 
 -- 멱등 RLS 헬퍼: 있으면 DROP → 재생성
 -- (CREATE POLICY에는 IF NOT EXISTS가 없어서 DO 블록으로 처리)
@@ -428,6 +446,15 @@ DO $$ BEGIN
   DROP POLICY IF EXISTS "couple_schedules_delete" ON public.couple_schedules;
   CREATE POLICY "couple_schedules_delete" ON public.couple_schedules
     FOR DELETE USING (owner_id = auth.uid());
+
+  -- ── couple_pack_entitlements ──
+  DROP POLICY IF EXISTS "pack_entitlements_select" ON public.couple_pack_entitlements;
+  CREATE POLICY "pack_entitlements_select" ON public.couple_pack_entitlements
+    FOR SELECT USING (
+      couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  -- INSERT/UPDATE는 RPC(mark_pack_purchased)를 통해서만 — 직접 허용하지 않음.
 
 END $$;
 
@@ -733,6 +760,36 @@ BEGIN
 END;
 $$;
 
+-- 6-8b. 꾸미기 팩 구매 기록 (RevenueCat 결제 완료 후 앱에서 호출)
+--       pack_id가 'lifetime' 이면 1 row만 저장 — 클라이언트에서 '* 포함'으로 해석
+--       번들은 앱에서 각 sub-pack_id에 대해 여러 번 호출
+CREATE OR REPLACE FUNCTION public.mark_pack_purchased(
+  p_pack_id TEXT,
+  p_revenuecat_product_id TEXT
+)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_entitlement_id UUID;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  INSERT INTO public.couple_pack_entitlements (
+    couple_id, pack_id, purchased_by, revenuecat_product_id
+  )
+  VALUES (v_couple_id, p_pack_id, auth.uid(), p_revenuecat_product_id)
+  ON CONFLICT (couple_id, pack_id) DO UPDATE SET
+    purchased_by = EXCLUDED.purchased_by,
+    revenuecat_product_id = EXCLUDED.revenuecat_product_id,
+    purchased_at = now()
+  RETURNING id INTO v_entitlement_id;
+  RETURN jsonb_build_object('success', true, 'id', v_entitlement_id);
+END;
+$$;
+
 -- 6-9. 프리미엄 자격 확인
 CREATE OR REPLACE FUNCTION public.is_entitled()
 RETURNS BOOLEAN
@@ -758,5 +815,6 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.start_trial_if_needed()        TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT)   TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_pack_purchased(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_entitled()                  TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_reflection_progress(UUID)  TO authenticated;

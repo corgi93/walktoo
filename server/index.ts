@@ -18,6 +18,8 @@ export { memoryStampsService } from './memory-stamps';
 export { reflectionsService } from './reflections';
 export { entitlementsService } from './entitlements';
 export type { EntitlementStatus } from './entitlements';
+export { packsService } from './packs';
+export type { PackEntitlement } from './packs';
 
 // Supabase client (직접 접근이 필요한 경우)
 export { supabase } from './client';

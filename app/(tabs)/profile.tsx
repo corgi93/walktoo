@@ -4,8 +4,7 @@ import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { Icon, IconName, PixelCard, Row, Text } from '@/components/base';
-import { Box } from '@/components/base';
+import { Box, Icon, IconName, PixelCard, Row, Text } from '@/components/base';
 import { useLogoutMutation } from '@/hooks/services/auth/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useTotalStampsQuery } from '@/hooks/services/stamps/query';
@@ -200,15 +199,6 @@ export default function ProfileScreen() {
             ) : (
               <MenuItem iconName="link" label={t('menu.couple-connect')} />
             )}
-            <MenuItem
-              iconName="bar-chart"
-              label={t('menu.stats')}
-              locked={!isEntitled}
-              onPress={() => {
-                if (!isEntitled) router.push('/paywall');
-                // entitled일 때 통계 페이지는 후속 작업
-              }}
-            />
             <MenuItem
               iconName="log-out"
               label={t('menu.logout')}

@@ -38,4 +38,7 @@ export const QUERY_KEYS = {
   entitlement: {
     status: ['entitlement', 'status'] as const,
   },
+  packs: {
+    owned: ['packs', 'owned'] as const,
+  },
 };

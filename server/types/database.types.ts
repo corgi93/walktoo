@@ -246,6 +246,26 @@ export interface Database {
         };
         Relationships: [];
       };
+      couple_pack_entitlements: {
+        Row: {
+          id: string;
+          couple_id: string;
+          pack_id: string;
+          purchased_by: string | null;
+          revenuecat_product_id: string | null;
+          purchased_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          pack_id: string;
+          purchased_by?: string | null;
+          revenuecat_product_id?: string | null;
+        };
+        Update: {
+          revenuecat_product_id?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -315,6 +335,14 @@ export interface Database {
         Args: { p_revenuecat_user_id: string };
         Returns: {
           success: boolean;
+        };
+      };
+      mark_pack_purchased: {
+        Args: { p_pack_id: string; p_revenuecat_product_id: string };
+        Returns: {
+          success: boolean;
+          reason?: 'no_couple';
+          id?: string;
         };
       };
       is_entitled: {

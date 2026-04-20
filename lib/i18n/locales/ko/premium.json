@@ -31,11 +31,22 @@
     "close": "닫기"
   },
   "result": {
-    "success": "walkToo+가 활성화되었어요 ✨",
+    "success": "구매가 완료되었어요 ✨",
     "restored": "구매를 복원했어요",
     "no-purchases": "복원할 구매 내역이 없어요",
     "failed": "결제에 실패했어요. 잠시 후 다시 시도해주세요.",
-    "sdk-unavailable": "결제 시스템을 준비 중이에요. 잠시 후 다시 시도해주세요."
+    "sdk-unavailable": "결제 시스템을 준비 중이에요. 잠시 후 다시 시도해주세요.",
+    "already-owned": "이미 가지고 있는 팩이에요",
+    "coming-soon": "곧 만나볼 수 있어요!"
+  },
+  "shop": {
+    "title": "꾸미기 스토어",
+    "tagline": "둘만의 기록을 더 특별하게",
+    "singles-title": "개별 팩",
+    "bundle-title": "묶음 팩",
+    "lifetime-title": "평생팩",
+    "owned": "보유중",
+    "coming-soon": "곧 출시"
   },
   "gate": {
     "photos-title": "사진을 더 추가하려면",
