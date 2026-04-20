@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -20,6 +20,7 @@ import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
 import { PREMIUM } from '@/constants/premium';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
+import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
@@ -50,6 +51,8 @@ export default function FootprintCreateScreen() {
   const [diaryAnswer, setDiaryAnswer] = useState('');
   const [coupleAnswer, setCoupleAnswer] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  // each = 각자의 하루, together = 같이 보낸 날. 일상 기록이 메인 플로우라 default=each
+  const [kind, setKind] = useState<'each' | 'together'>('each');
 
   // 오늘의 질문 (날짜 변경 시 자동 갱신)
   const { diaryQuestion, coupleQuestion } = getDailyQuestions(
@@ -58,6 +61,39 @@ export default function FootprintCreateScreen() {
   );
 
   const createDiary = useCreateDiaryMutation();
+
+  // 선택한 날짜에 이미 walk가 있으면 → diary-detail로 자동 리다이렉트.
+  // kind를 상대가 정한대로 강제 승계하려면 여기서 막아야 함.
+  const { year, month } = useMemo(() => {
+    const d = parseLocalDate(date);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  }, [date]);
+  const { data: monthWalks } = useDiaryByMonthQuery(year, month);
+  const existingWalk = useMemo(
+    () => monthWalks?.find((w) => w.date === date),
+    [monthWalks, date],
+  );
+
+  useEffect(() => {
+    if (!existingWalk) return;
+    // 이미 있으면 diary-detail 로 보내기 — kind 는 walk에 이미 결정됨.
+    router.replace({
+      pathname: '/diary-detail',
+      params: {
+        id: existingWalk.id,
+        date: existingWalk.date,
+        locationName: existingWalk.locationName,
+        kind: existingWalk.kind,
+        isRevealed: String(existingWalk.isRevealed),
+        myEntry: existingWalk.myEntry
+          ? JSON.stringify(existingWalk.myEntry)
+          : '',
+        partnerEntry: existingWalk.partnerEntry
+          ? JSON.stringify(existingWalk.partnerEntry)
+          : '',
+      },
+    });
+  }, [existingWalk, router]);
 
   // 포토부스에서 돌아왔을 때 결과 이미지 반영
   useFocusEffect(
@@ -127,7 +163,8 @@ export default function FootprintCreateScreen() {
   };
 
   const handleSave = () => {
-    if (!locationName.trim()) {
+    // each 모드는 장소 생략 가능 (각자의 하루 = 어디든 OK)
+    if (kind === 'together' && !locationName.trim()) {
       dialog.alert('', t('diary:create.location-required'));
       return;
     }
@@ -135,6 +172,7 @@ export default function FootprintCreateScreen() {
     createDiary.mutate(
       {
         date,
+        kind,
         locationName: locationName.trim(),
         memo: diaryAnswer.trim(), // 하위호환: memo에도 저장
         photos,
@@ -215,8 +253,77 @@ export default function FootprintCreateScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* ── 날짜 ── */}
+              {/* ── 오늘은? (같이/각자) ── */}
               <Box px="xxl">
+                <Text variant="label" color="textSecondary" mb="sm">
+                  {t('diary:create.kind-label')}
+                </Text>
+                <Row style={styles.kindRow}>
+                  <Pressable
+                    style={[
+                      styles.kindChip,
+                      kind === 'each' && styles.kindChipActive,
+                    ]}
+                    onPress={() => setKind('each')}
+                  >
+                    <View
+                      style={[
+                        styles.kindIconBadge,
+                        kind === 'each' && styles.kindIconBadgeActive,
+                      ]}
+                    >
+                      <Icon
+                        name="sun"
+                        size={16}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text
+                      variant="bodySmall"
+                      color={kind === 'each' ? 'primary' : 'text'}
+                      style={styles.kindLabel}
+                    >
+                      {t('diary:create.kind-each')}
+                    </Text>
+                    <Text variant="caption" color="textMuted">
+                      {t('diary:create.kind-each-hint')}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.kindChip,
+                      kind === 'together' && styles.kindChipActive,
+                    ]}
+                    onPress={() => setKind('together')}
+                  >
+                    <View
+                      style={[
+                        styles.kindIconBadge,
+                        kind === 'together' && styles.kindIconBadgeActive,
+                      ]}
+                    >
+                      <Icon
+                        name="heart"
+                        size={16}
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                    <Text
+                      variant="bodySmall"
+                      color={kind === 'together' ? 'primary' : 'text'}
+                      style={styles.kindLabel}
+                    >
+                      {t('diary:create.kind-together')}
+                    </Text>
+                    <Text variant="caption" color="textMuted">
+                      {t('diary:create.kind-together-hint')}
+                    </Text>
+                  </Pressable>
+                </Row>
+              </Box>
+
+              {/* ── 날짜 ── */}
+              <Box px="xxl" style={styles.fieldSection}>
                 <Pressable
                   style={styles.dateCard}
                   onPress={() => setShowDatePicker(true)}
@@ -236,13 +343,19 @@ export default function FootprintCreateScreen() {
                 <Row style={styles.fieldLabel}>
                   <Icon name="map-pin" size={14} color={theme.colors.gray600} />
                   <Text variant="label" color="textSecondary">
-                    {t('diary:create.location-label')}
+                    {kind === 'each'
+                      ? t('diary:create.location-label-each')
+                      : t('diary:create.location-label')}
                   </Text>
                 </Row>
                 <View style={styles.inputCard}>
                   <TextInput
                     style={styles.locationInput}
-                    placeholder={t('diary:create.location-placeholder')}
+                    placeholder={
+                      kind === 'each'
+                        ? t('diary:create.location-placeholder-each')
+                        : t('diary:create.location-placeholder')
+                    }
                     placeholderTextColor={theme.colors.gray400}
                     value={locationName}
                     onChangeText={setLocationName}
@@ -454,6 +567,41 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     paddingHorizontal: LAYOUT.cardPx,
     paddingVertical: LAYOUT.cardPy,
+  },
+  kindRow: {
+    gap: SPACING.sm,
+  },
+  kindChip: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    gap: SPACING.xxs,
+  },
+  kindChipActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySurface,
+  },
+  kindIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xxs,
+  },
+  kindIconBadgeActive: {
+    borderColor: theme.colors.primary,
+  },
+  kindLabel: {
+    fontWeight: '600',
   },
   inputCard: {
     flexDirection: 'row',

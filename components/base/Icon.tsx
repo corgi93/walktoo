@@ -51,6 +51,7 @@ const ICON_MAP = {
   award: { set: 'feather', name: 'award' },
   target: { set: 'feather', name: 'target' },
   'trending-up': { set: 'feather', name: 'trending-up' },
+  sun: { set: 'feather', name: 'sun' },
 
   // Content
   calendar: { set: 'feather', name: 'calendar' },

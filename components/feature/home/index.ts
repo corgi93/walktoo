@@ -5,3 +5,4 @@ export { HeroStatCard } from './HeroStatCard';
 export { HomeTopBar } from './HomeTopBar';
 export { ReflectionWidget } from './ReflectionWidget';
 export { WalkIllustration } from './WalkIllustration';
+export { WidgetBoard } from './WidgetBoard';

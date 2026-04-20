@@ -12,6 +12,7 @@ const toFootprintEntry = (row: FootprintEntryRow & { profiles?: { nickname: stri
   nickname: row.profiles?.nickname ?? '',
   memo: row.memo,
   photos: row.photos,
+  locationName: row.location_name ?? '',
   writtenAt: row.written_at,
   diaryQuestionId: row.diary_question_id ?? undefined,
   diaryAnswer: row.diary_answer || undefined,
@@ -33,6 +34,7 @@ const toWalkDiary = (
     coupleId: row.couple_id,
     date: row.date,
     locationName: row.location_name,
+    kind: row.kind ?? 'together',
     myEntry: myEntry ? toFootprintEntry(myEntry) : undefined,
     partnerEntry: partnerEntry ? toFootprintEntry(partnerEntry) : undefined,
     isRevealed: row.is_revealed,
@@ -117,11 +119,14 @@ export const walksService = {
     }
 
     // 1. 산책 레코드 생성
+    //    - together: walk.location_name에 공용 장소 저장
+    //    - each:     walk.location_name은 빈값, entry.location_name에 각자 장소
     const { data: walk, error: walkError } = await walksRepository.create({
       couple_id: coupleId,
       date: input.date,
-      location_name: input.locationName,
+      location_name: input.kind === 'together' ? input.locationName : '',
       steps: 0, // legacy 컬럼 (더 이상 사용하지 않음)
+      kind: input.kind,
     });
     if (walkError) throw walkError;
 
@@ -131,6 +136,7 @@ export const walksService = {
       user_id: currentUserId,
       memo: input.memo,
       photos: input.photos,
+      location_name: input.kind === 'each' ? input.locationName : '',
       diary_question_id: input.diaryQuestionId,
       diary_answer: input.diaryAnswer,
       couple_question_id: input.coupleQuestionId,
@@ -161,12 +167,14 @@ export const walksService = {
       coupleQuestionId?: number;
       coupleAnswer?: string;
     },
+    locationName?: string,
   ) => {
     const { error: entryError } = await walksRepository.createEntry({
       walk_id: walkId,
       user_id: userId,
       memo,
       photos,
+      location_name: locationName ?? '',
       diary_question_id: questionData?.diaryQuestionId,
       diary_answer: questionData?.diaryAnswer ?? '',
       couple_question_id: questionData?.coupleQuestionId,
@@ -189,11 +197,18 @@ export const walksService = {
     entryId: string,
     memo: string,
     photos: string[],
-    answerData?: { diaryAnswer?: string; coupleAnswer?: string },
+    answerData?: {
+      locationName?: string;
+      diaryAnswer?: string;
+      coupleAnswer?: string;
+    },
   ) => {
     const { error } = await walksRepository.updateEntry(entryId, {
       memo,
       photos,
+      ...(answerData?.locationName !== undefined && {
+        location_name: answerData.locationName,
+      }),
       ...(answerData?.diaryAnswer !== undefined && { diary_answer: answerData.diaryAnswer }),
       ...(answerData?.coupleAnswer !== undefined && { couple_answer: answerData.coupleAnswer }),
     });

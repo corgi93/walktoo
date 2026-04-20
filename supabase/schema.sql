@@ -64,7 +64,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 1-3. walks (산책)
+-- 1-3. walks (산책/하루 기록)
+--   kind:
+--     'together' — 커플이 함께 보낸 날 (데이트/산책)
+--     'each'     — 각자의 하루 (회사·친구·휴식 등)
+--   기존 레코드는 전부 'together'로 backfill (과거 기록 = 데이트가 맞음)
 CREATE TABLE IF NOT EXISTS public.walks (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   couple_id     UUID NOT NULL REFERENCES public.couples(id) ON DELETE CASCADE,
@@ -72,16 +76,36 @@ CREATE TABLE IF NOT EXISTS public.walks (
   location_name TEXT NOT NULL,
   steps         INTEGER NOT NULL DEFAULT 0,
   is_revealed   BOOLEAN NOT NULL DEFAULT false,
+  kind          TEXT NOT NULL DEFAULT 'together'
+                CHECK (kind IN ('together', 'each')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 기존 배포를 위한 idempotent migration
+ALTER TABLE public.walks
+  ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'together';
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'walks_kind_check'
+  ) THEN
+    ALTER TABLE public.walks
+      ADD CONSTRAINT walks_kind_check CHECK (kind IN ('together', 'each'));
+  END IF;
+END $$;
+
 -- 1-4. footprint_entries (발자취 엔트리)
+--   location_name: kind='each'일 때 각자 장소 (회사/카페/집 등)
+--                  kind='together'일 때는 walks.location_name이 authoritative,
+--                  이 컬럼은 비워둠(빈 문자열)
 CREATE TABLE IF NOT EXISTS public.footprint_entries (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   walk_id            UUID NOT NULL REFERENCES public.walks(id) ON DELETE CASCADE,
   user_id            UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   memo               TEXT NOT NULL DEFAULT '',
   photos             TEXT[] NOT NULL DEFAULT '{}',
+  location_name      TEXT NOT NULL DEFAULT '',
   diary_question_id  INTEGER,
   diary_answer       TEXT NOT NULL DEFAULT '',
   couple_question_id INTEGER,
@@ -89,6 +113,10 @@ CREATE TABLE IF NOT EXISTS public.footprint_entries (
   written_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(walk_id, user_id)
 );
+
+-- 기존 배포를 위한 idempotent migration
+ALTER TABLE public.footprint_entries
+  ADD COLUMN IF NOT EXISTS location_name TEXT NOT NULL DEFAULT '';
 
 -- 1-5. notifications (알림)
 CREATE TABLE IF NOT EXISTS public.notifications (

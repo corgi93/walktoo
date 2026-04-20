@@ -8,8 +8,11 @@
 export const STEP_GOAL = {
   /** 개인 일일 목표 (걸음) */
   DAILY_INDIVIDUAL: 10_000,
-  /** 커플 합산 일일 미션 목표 (걸음) */
-  DAILY_COUPLE_MISSION: 20_000,
+  /**
+   * 커플 합산 일일 미션 목표 (걸음)
+   * TODO(release): 30 은 테스트용. 릴리즈 전 20_000 으로 되돌릴 것.
+   */
+  DAILY_COUPLE_MISSION: 30,
 } as const;
 
 export const STAMP = {

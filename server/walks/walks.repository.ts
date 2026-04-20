@@ -73,6 +73,7 @@ export const walksRepository = {
     data: {
       memo?: string;
       photos?: string[];
+      location_name?: string;
       diary_answer?: string;
       couple_answer?: string;
     },

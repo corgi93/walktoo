@@ -9,9 +9,16 @@
     "summary-count": "총 {{count}}개의 기록"
   },
   "create": {
-    "title": "오늘의 데이트",
+    "title": "오늘의 기록",
+    "kind-label": "오늘은 어떤 하루였어요?",
+    "kind-together": "같이 보낸 날",
+    "kind-together-hint": "데이트 · 산책",
+    "kind-each": "각자의 하루",
+    "kind-each-hint": "회사 · 친구 · 휴식",
     "location-label": "오늘의 데이트 장소",
+    "location-label-each": "오늘 어디서?",
     "location-placeholder": "한강공원, 경복궁, 홍대...",
+    "location-placeholder-each": "회사, 카페, 집...",
     "diary-section-title": "오늘의 다이어리",
     "diary-prompt-prefix": "Q.",
     "diary-placeholder": "오늘의 이야기를 적어봐 :)",

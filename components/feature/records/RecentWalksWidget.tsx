@@ -8,7 +8,7 @@ import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
-import type { WalkDiary } from '@/types/diary';
+import { getWalkLocationSummary, type WalkDiary } from '@/types/diary';
 import { formatDate, parseLocalDate } from '@/utils/date';
 
 interface RecentWalksWidgetProps {
@@ -157,7 +157,7 @@ function WalkMiniCard({
         numberOfLines={1}
         style={styles.cardLocation}
       >
-        {walk.locationName}
+        {getWalkLocationSummary(walk)}
       </Text>
 
       {/* 상태 뱃지 — 누가 썼는지 명확하게 */}

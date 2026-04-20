@@ -22,7 +22,7 @@ interface WalkIllustrationProps {
 // ─── Sprite Frames ──────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const BOY_FRAMES: ImageSourcePropType[] = [
+export const BOY_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/boy_walk_1.png'),
   require('@/assets/sprites/boy_walk_2.png'),
   require('@/assets/sprites/boy_walk_3.png'),
@@ -30,16 +30,18 @@ const BOY_FRAMES: ImageSourcePropType[] = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const GIRL_FRAMES: ImageSourcePropType[] = [
+export const GIRL_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/girl_walk_1.png'),
   require('@/assets/sprites/girl_walk_2.png'),
   require('@/assets/sprites/girl_walk_3.png'),
   require('@/assets/sprites/girl_walk_4.png'),
 ];
 
+export type CharacterFrames = ImageSourcePropType[];
+
 // ─── Walking Sprite Animation ───────────────────────────
 
-function WalkingSprite({
+export function WalkingSprite({
   frames,
   size = 100,
   delay = 0,

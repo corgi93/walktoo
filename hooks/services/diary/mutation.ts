@@ -54,6 +54,7 @@ export const useAddEntryMutation = () => {
       walkId,
       memo,
       photos,
+      locationName,
       diaryQuestionId,
       diaryAnswer,
       coupleQuestionId,
@@ -62,6 +63,8 @@ export const useAddEntryMutation = () => {
       walkId: string;
       memo: string;
       photos: string[];
+      /** kind='each' 인 walk에 조인할 때 내 장소 */
+      locationName?: string;
       diaryQuestionId?: number;
       diaryAnswer?: string;
       coupleQuestionId?: number;
@@ -86,6 +89,7 @@ export const useAddEntryMutation = () => {
         memo,
         photoUrls.length > 0 ? photoUrls : photos,
         { diaryQuestionId, diaryAnswer, coupleQuestionId, coupleAnswer },
+        locationName,
       );
     },
     onSuccess: (_data, variables) => {
@@ -110,6 +114,7 @@ export const useUpdateEntryMutation = () => {
       entryId,
       memo,
       photos,
+      locationName,
       diaryAnswer,
       coupleAnswer,
     }: {
@@ -117,6 +122,8 @@ export const useUpdateEntryMutation = () => {
       entryId: string;
       memo: string;
       photos: string[];
+      /** 'each' walk의 내 장소 수정 시 */
+      locationName?: string;
       diaryAnswer?: string;
       coupleAnswer?: string;
     }) => {
@@ -138,6 +145,7 @@ export const useUpdateEntryMutation = () => {
       const allPhotos = [...existingUrls, ...newUrls];
 
       await walksService.updateEntry(entryId, memo, allPhotos, {
+        locationName,
         diaryAnswer,
         coupleAnswer,
       });

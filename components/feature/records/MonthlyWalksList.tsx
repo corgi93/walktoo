@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Box, Icon, PixelCard, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
-import type { WalkDiary } from '@/types/diary';
+import { getWalkLocationSummary, type WalkDiary } from '@/types/diary';
 import { formatDate, parseLocalDate } from '@/utils/date';
 
 interface MonthlyWalksListProps {
@@ -104,7 +104,7 @@ function WalkRow({
         numberOfLines={1}
         style={styles.rowLocation}
       >
-        {walk.locationName}
+        {getWalkLocationSummary(walk)}
       </Text>
       <Row style={styles.rowStatus}>
         <Icon

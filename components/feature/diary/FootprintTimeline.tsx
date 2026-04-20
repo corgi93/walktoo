@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
-import { WalkDiary } from '@/types/diary';
+import { getWalkLocationSummary, WalkDiary } from '@/types/diary';
 import { formatDate, parseLocalDate } from '@/utils/date';
 
 // ─── Types ──────────────────────────────────────────────
@@ -157,7 +157,7 @@ function LockedCard({
   return (
     <View style={[styles.card, styles.cardLocked]}>
       <Text variant="headingSmall">
-        {diary.locationName}
+        {getWalkLocationSummary(diary)}
       </Text>
 
       {/* 상태 표시 — 누가 썼는지 한눈에 */}
@@ -261,7 +261,7 @@ function RevealedCard({
   return (
     <View style={styles.card}>
       <Text variant="headingSmall">
-        {diary.locationName}
+        {getWalkLocationSummary(diary)}
       </Text>
 
       {/* 둘의 기록 나란히 */}

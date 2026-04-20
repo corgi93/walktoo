@@ -25,7 +25,8 @@
     "month-suffix": "월",
     "day-suffix": "일",
     "weeks": "주",
-    "days": "일"
+    "days": "일",
+    "each-day": "각자의 하루"
   },
   "units": {
     "steps": "걸음",

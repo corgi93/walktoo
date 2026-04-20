@@ -15,7 +15,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
   const bottomPadding =
-    Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 8);
+    Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 4);
 
   return (
     <Tabs
@@ -23,17 +23,19 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
+          paddingTop: 4,
           paddingBottom: bottomPadding,
-          height: 60 + bottomPadding,
-          borderTopWidth: 2,
+          height: 44 + bottomPadding,
+          borderTopWidth: 1,
           borderTopColor: theme.colors.border,
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.gray500,
         tabBarLabelStyle: {
           fontFamily: FONT_FAMILY.pixel,
-          fontSize: 11,
-          lineHeight: 14,
+          fontSize: 9,
+          lineHeight: 11,
+          marginTop: 1,
         },
         tabBarIconStyle: {
           marginBottom: -2,
@@ -69,5 +71,5 @@ export default function TabLayout() {
 // ─── Tab Icon ────────────────────────────────────────────
 
 function TabIcon({ name, color }: { name: IconName; color: string }) {
-  return <Icon name={name} size={22} color={color} />;
+  return <Icon name={name} size={18} color={color} />;
 }

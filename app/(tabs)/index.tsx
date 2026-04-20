@@ -1,28 +1,25 @@
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useTranslation } from 'react-i18next';
 
-import { Box, Button } from '@/components/base';
+import { Box } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
-  DdaySection,
-  DualStepsMissionCard,
   FirstMetDatePicker,
   HomeTopBar,
-  ReflectionWidget,
-  WalkIllustration,
+  WidgetBoard,
 } from '@/components/feature/home';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { STAMP } from '@/constants/game-config';
 import { QUERY_KEYS } from '@/constants/keys';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
-import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
+import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useUnreadCountQuery } from '@/hooks/services/notification/query';
 import {
   useCurrentReflectionQuery,
-  useReflectionDetailQuery,
+  useReflectionProgressQuery,
 } from '@/hooks/services/reflections/query';
 import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
 import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
@@ -32,14 +29,13 @@ import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { usePedometer } from '@/hooks/usePedometer';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
-import { LAYOUT, SPACING } from '@/styles/type';
-import { getCurrentYearMonth } from '@/utils/date';
+import { LAYOUT } from '@/styles/type';
+import { getCurrentYearMonth, getLocalToday } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const toast = useToast();
   const { t } = useTranslation(['home']);
 
@@ -57,26 +53,31 @@ export default function HomeScreen() {
 
   useCouplePolling(me?.coupleId, isCoupleConnected);
 
-  const { data: stats } = useCoupleStatsQuery();
   const { data: unreadCount = 0 } = useUnreadCountQuery();
   const { data: totalStamps = 0 } = useTotalStampsQuery(isCoupleConnected);
   const { data: hasTodayStamp = false } = useTodayStampQuery(
     isCoupleConnected ? couple?.id : undefined,
   );
 
-  // 이달의 회고 (홈 위젯용) ─────────────────────────────
-  const { data: currentReflection, isLoading: isReflectionLoading } =
-    useCurrentReflectionQuery(isCoupleConnected ? couple?.id : undefined);
-  const { data: reflectionDetail } = useReflectionDetailQuery(
-    currentReflection?.id,
-    me?.id,
+  // 이달의 회고 진행도 ───────────────────────────────────
+  const { data: currentReflection } = useCurrentReflectionQuery(
+    isCoupleConnected ? couple?.id : undefined,
   );
-  const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
-  const todayDayOfMonth = new Date().getDate();
+  const { data: reflectionProgress } = useReflectionProgressQuery(
+    currentReflection?.id,
+  );
+
+  // 오늘의 산책 (current month에서 today 필터) ────────────
+  const { year, month } = getCurrentYearMonth();
+  const today = getLocalToday();
+  const { data: monthWalks } = useDiaryByMonthQuery(year, month);
+  const todayWalk = useMemo(
+    () => monthWalks?.find((w) => w.date === today),
+    [monthWalks, today],
+  );
 
   // 걸음수 ────────────────────────────────────────────────
-  const { steps: pedometerSteps } = usePedometer();
-  const mySteps = pedometerSteps;
+  const { steps: mySteps } = usePedometer();
   const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
   const partnerSteps = partnerStepsData ?? 0;
 
@@ -108,7 +109,9 @@ export default function HomeScreen() {
         onSuccess: (result) => {
           if (result.success) {
             toast.success(
-              t('home:stamp.claim-success', { count: result.count ?? STAMP.DAILY_REWARD }),
+              t('home:stamp.claim-success', {
+                count: result.count ?? STAMP.DAILY_REWARD,
+              }),
             );
           } else if (result.reason === 'already_claimed') {
             toast.info(t('home:stamp.claim-already'));
@@ -120,9 +123,6 @@ export default function HomeScreen() {
       },
     );
   };
-
-  // 미사용 (추후 통계 카드에서 활용 예정)
-  void stats;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -143,78 +143,50 @@ export default function HomeScreen() {
           />
         }
       >
-        {isCoupleConnected && (
-          <DdaySection
-            myName={myName}
-            partnerName={partnerName}
-            firstMetDate={couple?.firstMetDate}
-            onPress={() => setShowDatePicker(true)}
-          />
-        )}
-
-        {showDatePicker && couple && (
-          <FirstMetDatePicker
-            currentDate={couple.firstMetDate}
-            onSave={(date) => {
-              updateFirstMetDate.mutate({ coupleId: couple.id, date });
-              setShowDatePicker(false);
-            }}
-            onClose={() => setShowDatePicker(false)}
-          />
-        )}
-
-        {/* 히어로 카드 — split step cards + 미션 strip */}
-        <DualStepsMissionCard
-          isCoupleConnected={isCoupleConnected}
-          myName={myName}
-          partnerName={partnerName}
-          mySteps={mySteps}
-          partnerSteps={partnerSteps}
-          hasTodayStamp={hasTodayStamp}
-          isClaiming={claimStamp.isPending}
-          onClaim={handleClaimStamp}
-        />
-
         {!isCoupleConnected && (
-          <Box style={styles.section}>
+          <Box px="xxl" style={styles.noCoupleWrap}>
             <NoCoupleCard />
           </Box>
         )}
 
-        {/* 이달의 우리 — 회고 카드 */}
         {isCoupleConnected && (
-          <ReflectionWidget
-            reflection={currentReflection}
-            detail={reflectionDetail}
-            isLoading={isReflectionLoading}
-            todayDayOfMonth={todayDayOfMonth}
-            fallbackYear={currentYear}
-            fallbackMonth={currentMonth}
-          />
-        )}
-
-        <View style={styles.illustrationArea}>
-          <WalkIllustration
-            mode={isCoupleConnected ? 'couple' : 'solo'}
+          <WidgetBoard
+            firstMetDate={couple?.firstMetDate}
+            todayWalk={todayWalk}
             myName={myName}
             partnerName={partnerName}
             myCharacter={myCharacter}
             partnerCharacter={partnerCharacter}
-            compact
+            mySteps={mySteps}
+            partnerSteps={partnerSteps}
+            reflectionProgress={
+              reflectionProgress
+                ? {
+                    total: reflectionProgress.total,
+                    myAnswered: reflectionProgress.myAnswered,
+                    partnerAnswered: reflectionProgress.partnerAnswered,
+                    isRevealed: reflectionProgress.isRevealed,
+                  }
+                : null
+            }
+            totalStamps={totalStamps}
+            hasTodayStamp={hasTodayStamp}
+            isClaimingStamp={claimStamp.isPending}
+            onDdayPress={() => setShowDatePicker(true)}
+            onClaimStamp={handleClaimStamp}
           />
-        </View>
+        )}
       </ScrollView>
 
-      {isCoupleConnected && (
-        <Box px="xxl" style={styles.bottomCta}>
-          <Button
-            variant="primary"
-            size="large"
-            onPress={() => router.push('/footprint-create')}
-          >
-            {t('home:cta.create-walk')}
-          </Button>
-        </Box>
+      {showDatePicker && couple && (
+        <FirstMetDatePicker
+          currentDate={couple.firstMetDate}
+          onSave={(date) => {
+            updateFirstMetDate.mutate({ coupleId: couple.id, date });
+            setShowDatePicker(false);
+          }}
+          onClose={() => setShowDatePicker(false)}
+        />
       )}
     </View>
   );
@@ -229,16 +201,10 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingBottom: LAYOUT.sectionGap,
-  },
-  section: {
-    marginTop: SPACING.md,
-  },
-  illustrationArea: {
-    alignItems: 'center',
-    marginTop: SPACING.sm,
-  },
-  bottomCta: {
+    paddingTop: 12,
     paddingBottom: LAYOUT.bottomSafe,
+  },
+  noCoupleWrap: {
+    marginTop: 16,
   },
 });

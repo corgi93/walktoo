@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Column, Icon, Row, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
-import { WalkDiary } from '@/types/diary';
+import { getWalkLocationSummary, WalkDiary } from '@/types/diary';
 import { formatDate, parseLocalDate } from '@/utils/date';
 
 // ─── Types ──────────────────────────────────────────────
@@ -81,7 +81,7 @@ function LockedFeedCard({
           <Row style={styles.locationRow}>
             <Icon name="map-pin" size={13} color={theme.colors.gray500} />
             <Text variant="headingSmall" color="textSecondary" ml="xs">
-              {diary.locationName}
+              {getWalkLocationSummary(diary)}
             </Text>
           </Row>
         </Column>
@@ -179,7 +179,7 @@ function RevealedFeedCard({
           <Row style={styles.locationRow}>
             <Icon name="map-pin" size={13} color={theme.colors.primary} />
             <Text variant="headingSmall" ml="xs">
-              {diary.locationName}
+              {getWalkLocationSummary(diary)}
             </Text>
           </Row>
         </Column>

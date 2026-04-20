@@ -22,6 +22,7 @@ import type { WalkDiary } from '@/types/diary';
 import { addMonths, getCurrentYearMonth, getLocalToday, getMonthKey } from '@/utils/date';
 
 type ViewMode = 'calendar' | 'list';
+type KindFilter = 'all' | 'together' | 'each';
 
 // ─── Screen ─────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export default function RecordsScreen() {
   const { couple, isCoupleConnected } = usePartnerDerivation();
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [kindFilter, setKindFilter] = useState<KindFilter>('all');
 
   if (!isCoupleConnected) {
     return <RecordsNoCoupleFallback insets={insets} />;
@@ -44,6 +46,8 @@ export default function RecordsScreen() {
       insets={insets}
       viewMode={viewMode}
       onChangeViewMode={setViewMode}
+      kindFilter={kindFilter}
+      onChangeKindFilter={setKindFilter}
     />
   );
 }
@@ -58,6 +62,8 @@ function RecordsContent({
   insets,
   viewMode,
   onChangeViewMode,
+  kindFilter,
+  onChangeKindFilter,
 }: {
   year: number;
   month: number;
@@ -66,6 +72,8 @@ function RecordsContent({
   insets: { top: number; bottom: number; left: number; right: number };
   viewMode: ViewMode;
   onChangeViewMode: (mode: ViewMode) => void;
+  kindFilter: KindFilter;
+  onChangeKindFilter: (f: KindFilter) => void;
 }) {
   const { t } = useTranslation(['home', 'calendar']);
   const router = useRouter();
@@ -77,14 +85,20 @@ function RecordsContent({
     month,
   );
 
+  // kind 필터 적용
+  const filteredWalks = useMemo(() => {
+    if (kindFilter === 'all') return walks;
+    return walks.filter((w) => w.kind === kindFilter);
+  }, [walks, kindFilter]);
+
   // 산책 날짜 맵 (셀 인디케이터 + tap lookup)
   const walksByDate = useMemo(() => {
     const map = new Map<string, WalkDiary>();
-    for (const w of walks) {
+    for (const w of filteredWalks) {
       map.set(w.date, w);
     }
     return map;
-  }, [walks]);
+  }, [filteredWalks]);
 
   const walkDateSet = useMemo(() => new Set(walksByDate.keys()), [walksByDate]);
   const stampDateSet = useMemo(() => new Set(stamps), [stamps]);
@@ -111,6 +125,7 @@ function RecordsContent({
           id: walk.id,
           date: walk.date,
           locationName: walk.locationName,
+          kind: walk.kind,
           isRevealed: String(walk.isRevealed),
           myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
           partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
@@ -171,9 +186,12 @@ function RecordsContent({
           onTapMonth={() => setShowPicker(true)}
         />
 
+        {/* 같이/각자 필터 */}
+        <KindFilterBar value={kindFilter} onChange={onChangeKindFilter} />
+
         {/* 한 줄 요약 strip — 산책·발자국·회고 inline */}
         <MonthStrip
-          walksCount={walks.length}
+          walksCount={filteredWalks.length}
           stampsCount={stamps.length}
           reflection={reflection}
           isCurrentMonth={isCurrentMonth}
@@ -200,7 +218,7 @@ function RecordsContent({
           </>
         ) : (
           <View style={styles.listMode}>
-            {walks.length === 0 ? (
+            {filteredWalks.length === 0 ? (
               <Box px="xxl">
                 <Text variant="bodySmall" color="textMuted" align="center">
                   {t('home:records-tab.walks-empty')}
@@ -208,7 +226,7 @@ function RecordsContent({
               </Box>
             ) : (
               <FootprintTimeline
-                diaries={walks}
+                diaries={filteredWalks}
                 myName={myName}
                 partnerName={partnerName}
                 onItemPress={handleItemPress}
@@ -230,6 +248,75 @@ function RecordsContent({
     </View>
   );
 }
+
+// ─── KindFilterBar (같이/각자 필터) ─────────────────────
+
+function KindFilterBar({
+  value,
+  onChange,
+}: {
+  value: KindFilter;
+  onChange: (v: KindFilter) => void;
+}) {
+  const { t } = useTranslation('home');
+  const items: { key: KindFilter; label: string; icon?: 'heart' | 'sun' }[] = [
+    { key: 'all', label: t('records-tab.filter-all') },
+    { key: 'together', label: t('records-tab.filter-together'), icon: 'heart' },
+    { key: 'each', label: t('records-tab.filter-each'), icon: 'sun' },
+  ];
+
+  return (
+    <Row px="xxl" style={filterStyles.container}>
+      {items.map((item) => {
+        const active = value === item.key;
+        return (
+          <Pressable
+            key={item.key}
+            onPress={() => onChange(item.key)}
+            style={[filterStyles.chip, active && filterStyles.chipActive]}
+            hitSlop={4}
+          >
+            {item.icon && (
+              <Icon
+                name={item.icon}
+                size={12}
+                color={active ? theme.colors.white : theme.colors.primary}
+              />
+            )}
+            <Text
+              variant="caption"
+              color={active ? 'white' : 'text'}
+              style={{ fontWeight: '600', marginLeft: item.icon ? 4 : 0 }}
+            >
+              {item.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
+const filterStyles = StyleSheet.create({
+  container: {
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+});
 
 // ─── ViewToggle (segmented control) ─────────────────────
 

@@ -121,6 +121,7 @@ export interface Database {
           location_name: string;
           steps: number;
           is_revealed: boolean;
+          kind: 'together' | 'each';
           created_at: string;
         };
         Insert: {
@@ -129,11 +130,13 @@ export interface Database {
           location_name: string;
           steps: number;
           is_revealed?: boolean;
+          kind?: 'together' | 'each';
         };
         Update: {
           location_name?: string;
           steps?: number;
           is_revealed?: boolean;
+          kind?: 'together' | 'each';
         };
         Relationships: [];
       };
@@ -144,6 +147,7 @@ export interface Database {
           user_id: string;
           memo: string;
           photos: string[];
+          location_name: string;
           written_at: string;
           diary_question_id: number | null;
           diary_answer: string;
@@ -155,6 +159,7 @@ export interface Database {
           user_id: string;
           memo: string;
           photos?: string[];
+          location_name?: string;
           diary_question_id?: number;
           diary_answer?: string;
           couple_question_id?: number;
@@ -163,6 +168,7 @@ export interface Database {
         Update: {
           memo?: string;
           photos?: string[];
+          location_name?: string;
           diary_answer?: string;
           couple_answer?: string;
         };

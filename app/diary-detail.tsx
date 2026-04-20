@@ -52,10 +52,14 @@ export default function DiaryDetailScreen() {
     id: string;
     date: string;
     locationName: string;
+    kind: string;
     isRevealed: string;
     myEntry: string;
     partnerEntry: string;
   }>();
+
+  const walkKind: 'together' | 'each' =
+    params.kind === 'each' ? 'each' : 'together';
 
   const walkId = params.id;
   const isRevealed = params.isRevealed === 'true';
@@ -81,6 +85,9 @@ export default function DiaryDetailScreen() {
   const [photos, setPhotos] = useState<string[]>(myEntry?.photos ?? []);
   const [diaryAnswer, setDiaryAnswer] = useState(myEntry?.diaryAnswer ?? '');
   const [coupleAnswer, setCoupleAnswer] = useState(myEntry?.coupleAnswer ?? '');
+  const [myLocationName, setMyLocationName] = useState(
+    myEntry?.locationName ?? '',
+  );
 
   const addEntry = useAddEntryMutation();
   const updateEntry = useUpdateEntryMutation();
@@ -115,6 +122,7 @@ export default function DiaryDetailScreen() {
     setPhotos(myEntry?.photos ?? []);
     setDiaryAnswer(myEntry?.diaryAnswer ?? '');
     setCoupleAnswer(myEntry?.coupleAnswer ?? '');
+    setMyLocationName(myEntry?.locationName ?? '');
     setIsEditing(true);
   };
   void memo; // memo 상태는 폼 초기화에 사용 (편집 시 photos/answers와 같이 reset)
@@ -165,6 +173,9 @@ export default function DiaryDetailScreen() {
           entryId: myEntry.id,
           memo: diaryAnswer.trim(),
           photos,
+          ...(walkKind === 'each' && {
+            locationName: myLocationName.trim(),
+          }),
           diaryAnswer: diaryAnswer.trim(),
           coupleAnswer: coupleAnswer.trim(),
         },
@@ -183,6 +194,9 @@ export default function DiaryDetailScreen() {
           walkId,
           memo: diaryAnswer.trim(),
           photos,
+          ...(walkKind === 'each' && {
+            locationName: myLocationName.trim(),
+          }),
           diaryQuestionId: diaryQuestion.id,
           diaryAnswer: diaryAnswer.trim(),
           coupleQuestionId: coupleQuestion.id,
@@ -236,7 +250,11 @@ export default function DiaryDetailScreen() {
               <Row style={styles.locationRow}>
                 <Icon name="map-pin" size={18} color={theme.colors.primary} />
                 <Text variant="headingLarge" ml="xs">
-                  {params.locationName}
+                  {walkKind === 'together'
+                    ? params.locationName
+                    : [myEntry?.locationName, partnerEntry?.locationName]
+                        .filter(Boolean)
+                        .join(' · ') || t('common:labels.each-day')}
                 </Text>
               </Row>
 
@@ -308,6 +326,12 @@ export default function DiaryDetailScreen() {
                       coupleQuestionContent={coupleQuestion.content}
                       coupleQuestionEmoji={coupleQuestion.emoji}
                       coupleQuestionCategory={coupleQuestion.categoryLabel}
+                      locationName={
+                        walkKind === 'each' ? myLocationName : undefined
+                      }
+                      onChangeLocationName={
+                        walkKind === 'each' ? setMyLocationName : undefined
+                      }
                       onAddPhoto={handleAddPhoto}
                       onRemovePhoto={handleRemovePhoto}
                       onChangeDiaryAnswer={setDiaryAnswer}
@@ -512,6 +536,8 @@ function EntryForm({
   coupleQuestionContent,
   coupleQuestionEmoji,
   coupleQuestionCategory,
+  locationName,
+  onChangeLocationName,
   onAddPhoto,
   onRemovePhoto,
   onChangeDiaryAnswer,
@@ -524,14 +550,38 @@ function EntryForm({
   coupleQuestionContent: string;
   coupleQuestionEmoji: string;
   coupleQuestionCategory: string;
+  /** kind='each'일 때만 전달 — 내 장소 입력 */
+  locationName?: string;
+  onChangeLocationName?: (t: string) => void;
   onAddPhoto: () => void;
   onRemovePhoto: (i: number) => void;
   onChangeDiaryAnswer: (t: string) => void;
   onChangeCoupleAnswer: (t: string) => void;
 }) {
   const { t } = useTranslation(['diary']);
+  const showLocationInput = locationName !== undefined && onChangeLocationName;
   return (
     <View style={styles.formArea}>
+      {showLocationInput && (
+        <>
+          <Row style={styles.formLabel}>
+            <Icon name="map-pin" size={12} color={theme.colors.gray600} />
+            <Text variant="caption" color="textSecondary" ml="xxs">
+              {t('diary:create.location-label-each')}
+            </Text>
+          </Row>
+          <View style={[styles.formLocationInputWrap]}>
+            <TextInput
+              style={styles.formLocationInput}
+              placeholder={t('diary:create.location-placeholder-each')}
+              placeholderTextColor={theme.colors.gray400}
+              value={locationName}
+              onChangeText={onChangeLocationName}
+              cursorColor={theme.colors.primary}
+            />
+          </View>
+        </>
+      )}
       {/* 사진 */}
       <Row style={styles.formLabel}>
         <Text style={{ fontSize: 12 }}>📷</Text>
@@ -828,6 +878,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xxs,
     marginBottom: SPACING.xs,
+  },
+  formLocationInputWrap: {
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
+    marginBottom: SPACING.md,
+  },
+  formLocationInput: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILY.pixel,
+    color: theme.colors.text,
+    padding: 0,
   },
   formPhotoRow: {
     gap: SPACING.sm,

@@ -8,7 +8,27 @@
   },
   "steps": {
     "today": "오늘의 걸음",
+    "today-label": "오늘의 걸음",
     "goal-suffix": "/ {{goal}}"
+  },
+  "today": {
+    "done": "기록됨",
+    "waiting-reveal": "둘 다 쓰면 열려요",
+    "empty-mine": "오늘을 남겨요",
+    "empty-partner": "기다리는 중…"
+  },
+  "reflection": {
+    "title": "이달의 우리",
+    "progress-hint": "진행도 {{pct}}%",
+    "revealed-hint": "💞 공개 완료"
+  },
+  "timeline": {
+    "title": "추억의 발자국",
+    "stamp-count": "{{count}}개의 기록"
+  },
+  "photobooth": {
+    "title": "포토부스",
+    "hint": "사진 꾸미기"
   },
   "mission": {
     "title": "오늘의 미션",
@@ -76,6 +96,9 @@
     "walks-section-title": "이 달의 산책",
     "walks-empty": "이 달엔 아직 산책 기록이 없어요",
     "picker-title": "월 선택",
-    "picker-today": "이번 달"
+    "picker-today": "이번 달",
+    "filter-all": "전체",
+    "filter-together": "같이",
+    "filter-each": "각자"
   }
 }
