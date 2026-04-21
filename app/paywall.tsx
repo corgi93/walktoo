@@ -154,48 +154,27 @@ export default function PaywallScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 브랜드 */}
-        <View style={styles.brandSection}>
-          <Text variant="headingLarge" color="primary" align="center">
-            {t('premium:shop.title')}
-          </Text>
-          <Text
-            variant="bodySmall"
-            color="textSecondary"
-            align="center"
-            mt="xs"
-          >
-            {t('premium:shop.tagline')}
-          </Text>
+        <Text variant="headingLarge" style={styles.pageTitle}>
+          {t('premium:shop.title')}
+        </Text>
+
+        <View style={styles.singlesGrid}>
+          {singles.map((pack) => (
+            <PackCard
+              key={pack.id}
+              pack={pack}
+              owned={unlocked.has(pack.id)}
+              available={
+                !!offering && !!findPackageByProductId(offering, pack.productId)
+              }
+              processing={processingPackId === pack.id}
+              onPress={() => handlePurchase(pack)}
+            />
+          ))}
         </View>
 
-        {/* 개별 팩 */}
-        <View style={styles.section}>
-          <Text variant="label" color="textMuted" style={styles.sectionLabel}>
-            {t('premium:shop.singles-title')}
-          </Text>
-          <View style={styles.singlesGrid}>
-            {singles.map((pack) => (
-              <PackCard
-                key={pack.id}
-                pack={pack}
-                owned={unlocked.has(pack.id)}
-                available={
-                  !!offering && !!findPackageByProductId(offering, pack.productId)
-                }
-                processing={processingPackId === pack.id}
-                onPress={() => handlePurchase(pack)}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* 번들 */}
         {bundle && (
           <View style={styles.section}>
-            <Text variant="label" color="textMuted" style={styles.sectionLabel}>
-              {t('premium:shop.bundle-title')}
-            </Text>
             <PackRowCard
               pack={bundle}
               owned={unlocked.has(bundle.id)}
@@ -209,12 +188,8 @@ export default function PaywallScreen() {
           </View>
         )}
 
-        {/* 평생팩 */}
         {lifetime && (
           <View style={styles.section}>
-            <Text variant="label" color="textMuted" style={styles.sectionLabel}>
-              {t('premium:shop.lifetime-title')}
-            </Text>
             <PackRowCard
               pack={lifetime}
               owned={unlocked.has(lifetime.id)}
@@ -228,16 +203,6 @@ export default function PaywallScreen() {
             />
           </View>
         )}
-
-        {/* 약관 */}
-        <Text
-          variant="caption"
-          color="textMuted"
-          align="center"
-          style={styles.finePrint}
-        >
-          {t('premium:fine-print')}
-        </Text>
       </ScrollView>
 
       {processingPackId && (
@@ -419,24 +384,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: SPACING.lg,
   },
-  brandSection: {
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.xl,
+  pageTitle: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   section: {
-    marginTop: SPACING.xl,
-  },
-  sectionLabel: {
-    marginBottom: SPACING.sm,
-    paddingHorizontal: 4,
+    marginTop: SPACING.md,
   },
   singlesGrid: {
     flexDirection: 'row',
     gap: SPACING.sm,
-  },
-  finePrint: {
-    marginTop: SPACING.xl,
-    paddingHorizontal: SPACING.md,
   },
   overlay: {
     position: 'absolute',

@@ -12,7 +12,7 @@ import { useGetMeQuery } from '@/hooks/services/user/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
-import { COMPONENT_SIZE, LAYOUT, SPACING } from '@/styles/type';
+import { LAYOUT, SPACING } from '@/styles/type';
 import { formatNumber } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
@@ -59,33 +59,26 @@ export default function ProfileScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
         }
       >
-        {/* ── Profile Card ── */}
-        <Box px="xxl">
-          <PixelCard style={styles.profileCard}>
-            <View style={styles.avatar}>
-              <Icon name="user" size={28} color={theme.colors.primary} />
+        {/* ── Name line ── */}
+        <Box px="xxl" style={styles.nameLine}>
+          <Text variant="headingMedium">
+            {me?.nickname ?? t('fallback-name')}
+          </Text>
+          {hasCoupleId ? (
+            <View style={styles.coupleStatus}>
+              <Icon name="heart" size={11} color={theme.colors.primary} />
+              <Text variant="caption" color="primary" ml="xxs">
+                {t('status.with-partner')}
+              </Text>
             </View>
-
-            <Text variant="headingMedium" mt="md">
-              {me?.nickname ?? t('fallback-name')}
-            </Text>
-
-            {hasCoupleId ? (
-              <View style={styles.coupleStatus}>
-                <Icon name="heart" size={12} color={theme.colors.primary} />
-                <Text variant="caption" color="primary" ml="xs">
-                  {t('status.with-partner')}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.soloStatus}>
-                <Icon name="user" size={12} color={theme.colors.gray500} />
-                <Text variant="caption" color="textMuted" ml="xs">
-                  {t('status.solo')}
-                </Text>
-              </View>
-            )}
-          </PixelCard>
+          ) : (
+            <View style={styles.soloStatus}>
+              <Icon name="user" size={11} color={theme.colors.gray500} />
+              <Text variant="caption" color="textMuted" ml="xxs">
+                {t('status.solo')}
+              </Text>
+            </View>
+          )}
         </Box>
 
         {hasCoupleId ? (
@@ -280,34 +273,26 @@ const styles = StyleSheet.create({
   section: {
     marginTop: LAYOUT.sectionGap,
   },
-  profileCard: {
+  nameLine: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: LAYOUT.bottomSafe,
-  },
-  avatar: {
-    width: COMPONENT_SIZE.avatarLarge,
-    height: COMPONENT_SIZE.avatarLarge,
-    borderRadius: 8,
-    backgroundColor: theme.colors.primarySurface,
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingBottom: SPACING.xs,
   },
   coupleStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: LAYOUT.itemGap,
     backgroundColor: theme.colors.primarySurface,
     paddingHorizontal: LAYOUT.itemGapMd,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: theme.radius.full,
   },
   soloStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: LAYOUT.itemGap,
     backgroundColor: theme.colors.gray100,
     paddingHorizontal: LAYOUT.itemGapMd,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: theme.radius.full,
   },
   statCard: {

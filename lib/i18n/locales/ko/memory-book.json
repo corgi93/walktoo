@@ -1,32 +1,21 @@
 {
   "title": "추억 뽑기",
-  "cover": {
-    "title": "우리의 다이어리",
-    "subtitle": "둘이 쌓은 1년치 기록을 한 권으로"
-  },
   "balance": {
-    "credits-label": "뽑을 수 있는 권수",
+    "credits-label": "뽑을 권수",
     "credits-unit": "권",
     "stamps-label": "모은 발자국",
     "stamps-unit": "개"
   },
   "cta": {
-    "export-with-credit": "한 권 뽑기 (크레딧 사용)",
-    "export-no-credit": "한 권 뽑기",
-    "export-hint": "고화질 PDF로 내려받을 수 있어요"
+    "export-with-credit": "한 권 뽑기",
+    "export-no-credit": "한 권 뽑기"
   },
   "redeem": {
-    "title": "발자국으로 교환하기",
-    "headline": "발자국 {{cost}}개 = 회고북 1권",
+    "headline": "발자국 {{cost}}개 = 1권",
     "subhead": "올해 {{redeemed}}/{{cap}}권 교환",
-    "action": "1권 교환하기",
-    "cap-reached": "올해 교환 한도 도달",
+    "cap-reached": "올해 교환 한도 다 사용",
     "need-more": "{{remain}}개 더 필요해요"
   },
-  "purchase": {
-    "title": "바로 구매하기"
-  },
-  "fine-print": "결제 환불은 Apple/Google 정책에 따라 처리됩니다. 발자국 교환은 연 2권까지.",
   "toast": {
     "purchase-success": "회고북 크레딧 {{count}}권이 추가되었어요 ✨",
     "purchase-failed": "결제에 실패했어요. 잠시 후 다시 시도해주세요.",

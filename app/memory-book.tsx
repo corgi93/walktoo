@@ -168,128 +168,95 @@ export default function MemoryBookScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 표지 미리보기 (placeholder) */}
+        {/* 잔액 + 뽑기 CTA (한 카드로 압축) */}
         <Box px="xxl">
-          <PixelCard style={styles.coverCard} bg={theme.colors.primarySurface}>
-            <Icon name="book-open" size={40} color={theme.colors.primary} />
-            <Text variant="headingMedium" color="primary" mt="md" align="center">
-              {t('memory-book:cover.title')}
-            </Text>
-            <Text variant="caption" color="textSecondary" mt="xs" align="center">
-              {t('memory-book:cover.subtitle')}
-            </Text>
-          </PixelCard>
-        </Box>
-
-        {/* 크레딧 잔액 카드 */}
-        <Box px="xxl" style={styles.section}>
           <PixelCard style={styles.balanceCard}>
-            <View style={styles.balanceRow}>
+            <Row style={styles.balanceRow}>
               <View style={styles.balanceCol}>
-                <Text variant="caption" color="textMuted">
+                <Text variant="caption" color="textMuted" style={styles.smallLabel}>
                   {t('memory-book:balance.credits-label')}
                 </Text>
-                <Text variant="displaySmall" color="primary" style={styles.bigNum}>
-                  {creditsRemaining}
-                </Text>
-                <Text variant="caption" color="textMuted">
-                  {t('memory-book:balance.credits-unit')}
-                </Text>
+                <Row style={styles.numRow}>
+                  <Text variant="displaySmall" color="primary" style={styles.bigNum}>
+                    {creditsRemaining}
+                  </Text>
+                  <Text variant="caption" color="textMuted" ml="xxs">
+                    {t('memory-book:balance.credits-unit')}
+                  </Text>
+                </Row>
               </View>
-              <View style={styles.balanceDivider} />
               <View style={styles.balanceCol}>
-                <Text variant="caption" color="textMuted">
+                <Text variant="caption" color="textMuted" style={styles.smallLabel}>
                   {t('memory-book:balance.stamps-label')}
                 </Text>
-                <Text variant="displaySmall" color="secondary" style={styles.bigNum}>
-                  {totalStamps.toLocaleString()}
-                </Text>
-                <Text variant="caption" color="textMuted">
-                  {t('memory-book:balance.stamps-unit')}
-                </Text>
+                <Row style={styles.numRow}>
+                  <Text variant="displaySmall" color="secondary" style={styles.bigNum}>
+                    {totalStamps.toLocaleString()}
+                  </Text>
+                  <Text variant="caption" color="textMuted" ml="xxs">
+                    {t('memory-book:balance.stamps-unit')}
+                  </Text>
+                </Row>
               </View>
-            </View>
+            </Row>
 
-            {/* 뽑기 CTA */}
-            <View style={styles.exportCta}>
-              <Button
-                variant="primary"
-                size="large"
-                onPress={handleExport}
-                disabled={creditsRemaining < 1 || processing === 'export'}
-              >
-                {creditsRemaining > 0
-                  ? t('memory-book:cta.export-with-credit')
-                  : t('memory-book:cta.export-no-credit')}
-              </Button>
-              <Text variant="caption" color="textMuted" mt="xs" align="center">
-                {t('memory-book:cta.export-hint')}
-              </Text>
-            </View>
+            <Button
+              variant="primary"
+              size="large"
+              onPress={handleExport}
+              disabled={creditsRemaining < 1 || processing === 'export'}
+            >
+              {creditsRemaining > 0
+                ? t('memory-book:cta.export-with-credit')
+                : t('memory-book:cta.export-no-credit')}
+            </Button>
           </PixelCard>
         </Box>
 
-        {/* 스탬프로 교환 */}
+        {/* 발자국 교환 — 한 줄 row */}
         <Box px="xxl" style={styles.section}>
-          <Text variant="label" color="textMuted" style={styles.sectionLabel}>
-            {t('memory-book:redeem.title')}
-          </Text>
-          <PixelCard style={styles.optionCard} bg={theme.colors.surfaceWarm}>
-            <Row style={styles.optionRow}>
-              <View style={styles.optionIconWrap}>
-                <Icon name="footprint" size={22} color={theme.colors.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyMedium" style={{ fontWeight: '700' }}>
-                  {t('memory-book:redeem.headline', {
-                    cost: BOOK_ECONOMY.STAMP_COST_PER_BOOK,
-                  })}
-                </Text>
-                <Text variant="caption" color="textMuted" mt="xxs">
-                  {t('memory-book:redeem.subhead', {
-                    redeemed: redeemedThisYear,
-                    cap: BOOK_ECONOMY.ANNUAL_REDEEM_CAP,
-                  })}
-                </Text>
-              </View>
-            </Row>
-            <Pressable
-              style={[
-                styles.redeemBtn,
-                (!canRedeemMore || !hasEnoughStamps) && styles.redeemBtnDisabled,
-              ]}
-              onPress={handleRedeem}
-              disabled={
-                !canRedeemMore || !hasEnoughStamps || processing === 'redeem'
-              }
-            >
-              <Text
-                variant="bodySmall"
-                color={canRedeemMore && hasEnoughStamps ? 'white' : 'textMuted'}
-                style={{ fontWeight: '700' }}
-              >
+          <Pressable
+            style={[
+              styles.redeemRow,
+              (!canRedeemMore || !hasEnoughStamps) && styles.redeemRowDisabled,
+            ]}
+            onPress={handleRedeem}
+            disabled={
+              !canRedeemMore || !hasEnoughStamps || processing === 'redeem'
+            }
+          >
+            <Icon name="footprint" size={18} color={theme.colors.accent} />
+            <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+              <Text variant="bodySmall" style={{ fontWeight: '600' }}>
+                {t('memory-book:redeem.headline', {
+                  cost: BOOK_ECONOMY.STAMP_COST_PER_BOOK,
+                })}
+              </Text>
+              <Text variant="caption" color="textMuted">
                 {!canRedeemMore
                   ? t('memory-book:redeem.cap-reached')
                   : !hasEnoughStamps
                     ? t('memory-book:redeem.need-more', {
                         remain: Math.max(0, requiredStamps - totalStamps),
                       })
-                    : t('memory-book:redeem.action')}
+                    : t('memory-book:redeem.subhead', {
+                        redeemed: redeemedThisYear,
+                        cap: BOOK_ECONOMY.ANNUAL_REDEEM_CAP,
+                      })}
               </Text>
-            </Pressable>
-          </PixelCard>
+            </View>
+            {canRedeemMore && hasEnoughStamps && (
+              <Icon name="chevron-right" size={16} color={theme.colors.primary} />
+            )}
+          </Pressable>
         </Box>
 
-        {/* 결제 구매 */}
+        {/* 바로 구매 */}
         <Box px="xxl" style={styles.section}>
-          <Text variant="label" color="textMuted" style={styles.sectionLabel}>
-            {t('memory-book:purchase.title')}
-          </Text>
           {singlePack && (
             <PurchaseRow
               emoji={singlePack.emoji}
               name={singlePack.name}
-              description={singlePack.description}
               priceKrw={singlePack.priceKrw}
               processing={processing === singlePack.id}
               onPress={() =>
@@ -301,7 +268,6 @@ export default function MemoryBookScreen() {
             <PurchaseRow
               emoji={triplePack.emoji}
               name={triplePack.name}
-              description={triplePack.description}
               priceKrw={triplePack.priceKrw}
               badge={triplePack.badge}
               processing={processing === triplePack.id}
@@ -311,15 +277,6 @@ export default function MemoryBookScreen() {
             />
           )}
         </Box>
-
-        <Text
-          variant="caption"
-          color="textMuted"
-          align="center"
-          style={styles.finePrint}
-        >
-          {t('memory-book:fine-print')}
-        </Text>
       </ScrollView>
 
       {processing && (
@@ -336,7 +293,6 @@ export default function MemoryBookScreen() {
 function PurchaseRow({
   emoji,
   name,
-  description,
   priceKrw,
   badge,
   processing,
@@ -344,7 +300,6 @@ function PurchaseRow({
 }: {
   emoji: string;
   name: string;
-  description: string;
   priceKrw: number;
   badge?: string;
   processing: boolean;
@@ -352,35 +307,29 @@ function PurchaseRow({
 }) {
   return (
     <Pressable onPress={onPress} disabled={processing} style={styles.purchaseWrap}>
-      <PixelCard style={styles.purchaseCard}>
-        <Row style={styles.purchaseInner}>
-          <Text style={styles.purchaseEmoji}>{emoji}</Text>
-          <View style={{ flex: 1 }}>
-            <Row style={{ alignItems: 'center' }}>
-              <Text variant="bodyMedium" style={{ fontWeight: '700' }}>
-                {name}
-              </Text>
-              {badge && (
-                <View style={styles.purchaseBadge}>
-                  <Text
-                    variant="caption"
-                    color="primary"
-                    style={{ fontSize: 9, fontWeight: '700' }}
-                  >
-                    {badge}
-                  </Text>
-                </View>
-              )}
-            </Row>
-            <Text variant="caption" color="textMuted" mt="xxs">
-              {description}
+      <Row style={styles.purchaseInner}>
+        <Text style={styles.purchaseEmoji}>{emoji}</Text>
+        <View style={{ flex: 1 }}>
+          <Row style={{ alignItems: 'center' }}>
+            <Text variant="bodyMedium" style={{ fontWeight: '600' }}>
+              {name}
             </Text>
-          </View>
-          <Text variant="bodyLarge" color="primary" style={styles.purchasePrice}>
-            ₩{priceKrw.toLocaleString('ko-KR')}
-          </Text>
-        </Row>
-      </PixelCard>
+            {badge && (
+              <Text
+                variant="caption"
+                color="primary"
+                ml="sm"
+                style={{ fontSize: 10, fontWeight: '600' }}
+              >
+                {badge}
+              </Text>
+            )}
+          </Row>
+        </View>
+        <Text variant="bodyLarge" color="primary" style={styles.purchasePrice}>
+          ₩{priceKrw.toLocaleString('ko-KR')}
+        </Text>
+      </Row>
     </Pressable>
   );
 }
@@ -401,108 +350,65 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingTop: SPACING.md,
   },
-  coverCard: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xxl,
-  },
   section: {
-    marginTop: SPACING.xl,
-  },
-  sectionLabel: {
-    marginBottom: SPACING.sm,
-    paddingHorizontal: 4,
+    marginTop: SPACING.md,
   },
 
   // Balance
   balanceCard: {
     padding: LAYOUT.cardPx,
+    gap: SPACING.md,
   },
   balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
+    gap: SPACING.lg,
   },
   balanceCol: {
     flex: 1,
-    alignItems: 'center',
   },
-  balanceDivider: {
-    width: 1,
-    backgroundColor: theme.colors.border,
-    opacity: 0.4,
-    marginHorizontal: SPACING.md,
+  smallLabel: {
+    fontSize: 10,
+  },
+  numRow: {
+    alignItems: 'baseline',
+    marginTop: 2,
   },
   bigNum: {
     fontFamily: FONT_FAMILY.pixel,
     fontWeight: '800',
-    marginTop: 2,
-  },
-  exportCta: {
-    marginTop: SPACING.lg,
   },
 
-  // Redeem
-  optionCard: {
-    padding: LAYOUT.cardPx,
-  },
-  optionRow: {
+  // Redeem (row)
+  redeemRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
-    marginBottom: SPACING.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.md,
   },
-  optionIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: theme.colors.primaryLight,
-  },
-  redeemBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.colors.primary,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-  },
-  redeemBtnDisabled: {
-    backgroundColor: theme.colors.gray100,
+  redeemRowDisabled: {
+    opacity: 0.5,
   },
 
   // Purchase
   purchaseWrap: {
-    marginBottom: SPACING.sm,
-  },
-  purchaseCard: {
-    padding: 0,
+    marginBottom: SPACING.xs,
   },
   purchaseInner: {
     alignItems: 'center',
-    gap: SPACING.md,
-    padding: LAYOUT.cardPx,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   purchaseEmoji: {
-    fontSize: 28,
-  },
-  purchaseBadge: {
-    marginLeft: SPACING.xs,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    backgroundColor: theme.colors.primarySurface,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
+    fontSize: 22,
   },
   purchasePrice: {
     fontWeight: '700',
-  },
-
-  // Fine print
-  finePrint: {
-    marginTop: SPACING.xl,
-    paddingHorizontal: SPACING.xl,
   },
 
   // Overlay
