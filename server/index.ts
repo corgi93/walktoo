@@ -20,6 +20,8 @@ export { entitlementsService } from './entitlements';
 export type { EntitlementStatus } from './entitlements';
 export { packsService } from './packs';
 export type { PackEntitlement } from './packs';
+export { bookCreditsService } from './book-credits';
+export type { BookCreditsStatus } from './book-credits';
 
 // Supabase client (직접 접근이 필요한 경우)
 export { supabase } from './client';

@@ -182,6 +182,17 @@ CREATE TABLE IF NOT EXISTS public.couple_schedules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 1-13. couple_book_credits (회고북 크레딧 — 결제 구매 + 스탬프 교환 합산)
+--   credits_remaining: 아직 안 쓴 회고북 뽑기 권수
+--   stamps_redeemed_year: 해당 연도에 스탬프로 교환한 권수 (연 상한 체크용)
+CREATE TABLE IF NOT EXISTS public.couple_book_credits (
+  couple_id             UUID PRIMARY KEY REFERENCES public.couples(id) ON DELETE CASCADE,
+  credits_remaining     INTEGER NOT NULL DEFAULT 0,
+  stamps_redeemed_year  INTEGER NOT NULL DEFAULT 0,
+  last_redemption_year  INTEGER,
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- 1-12. couple_pack_entitlements (커플 단위 꾸미기 팩 소유권)
 --   decoration_packs 카탈로그는 클라이언트 constants에 하드코딩.
 --   'lifetime' 팩은 pack_id='lifetime' 한 row만 insert하고,
@@ -244,6 +255,7 @@ ALTER TABLE public.monthly_reflections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reflection_answers  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.couple_schedules    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.couple_pack_entitlements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.couple_book_credits     ENABLE ROW LEVEL SECURITY;
 
 -- 멱등 RLS 헬퍼: 있으면 DROP → 재생성
 -- (CREATE POLICY에는 IF NOT EXISTS가 없어서 DO 블록으로 처리)
@@ -455,6 +467,15 @@ DO $$ BEGIN
     );
 
   -- INSERT/UPDATE는 RPC(mark_pack_purchased)를 통해서만 — 직접 허용하지 않음.
+
+  -- ── couple_book_credits ──
+  DROP POLICY IF EXISTS "book_credits_select" ON public.couple_book_credits;
+  CREATE POLICY "book_credits_select" ON public.couple_book_credits
+    FOR SELECT USING (
+      couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  -- INSERT/UPDATE는 RPC (add/redeem/consume) 전용.
 
 END $$;
 
@@ -790,6 +811,149 @@ BEGIN
 END;
 $$;
 
+-- ─── 회고북 크레딧 ─────────────────────────────────────
+
+-- 6-10. 회고북 크레딧 조회 (없으면 0으로 간주)
+CREATE OR REPLACE FUNCTION public.get_book_credits()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_credits INTEGER := 0;
+  v_redeemed INTEGER := 0;
+  v_year INTEGER;
+  v_last_year INTEGER;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('credits', 0, 'redeemed_this_year', 0);
+  END IF;
+  SELECT credits_remaining, stamps_redeemed_year, last_redemption_year
+  INTO v_credits, v_redeemed, v_last_year
+  FROM public.couple_book_credits WHERE couple_id = v_couple_id;
+  v_year := EXTRACT(YEAR FROM now())::INTEGER;
+  -- 해가 바뀌면 자동으로 0으로 리셋 (stale row)
+  IF v_last_year IS DISTINCT FROM v_year THEN
+    v_redeemed := 0;
+  END IF;
+  RETURN jsonb_build_object(
+    'credits', COALESCE(v_credits, 0),
+    'redeemed_this_year', COALESCE(v_redeemed, 0)
+  );
+END;
+$$;
+
+-- 6-11. 결제 성공 시 크레딧 추가 (클라이언트에서 RC 결제 완료 후 호출)
+--       count: 단권=1, 3권팩=3
+CREATE OR REPLACE FUNCTION public.add_book_credits(p_count INTEGER)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_year INTEGER;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  IF p_count < 1 OR p_count > 10 THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'invalid_count');
+  END IF;
+  v_year := EXTRACT(YEAR FROM now())::INTEGER;
+  INSERT INTO public.couple_book_credits (couple_id, credits_remaining, last_redemption_year)
+  VALUES (v_couple_id, p_count, v_year)
+  ON CONFLICT (couple_id) DO UPDATE SET
+    credits_remaining = public.couple_book_credits.credits_remaining + p_count,
+    updated_at = now();
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 6-12. 스탬프로 회고북 크레딧 교환 (1,000 스탬프 = 1권, 연 2권 한도)
+CREATE OR REPLACE FUNCTION public.redeem_stamps_for_book()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_total_stamps INTEGER;
+  v_redeemed INTEGER := 0;
+  v_year INTEGER;
+  v_last_year INTEGER;
+  v_annual_cap CONSTANT INTEGER := 2;
+  v_cost_per_book CONSTANT INTEGER := 1000;
+  v_already_consumed_stamps INTEGER;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  v_year := EXTRACT(YEAR FROM now())::INTEGER;
+  SELECT stamps_redeemed_year, last_redemption_year
+  INTO v_redeemed, v_last_year
+  FROM public.couple_book_credits WHERE couple_id = v_couple_id;
+  -- 연 변경 시 카운터 리셋
+  IF v_last_year IS DISTINCT FROM v_year THEN
+    v_redeemed := 0;
+  END IF;
+  IF v_redeemed >= v_annual_cap THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'annual_cap_reached');
+  END IF;
+  -- 가용 스탬프 확인 (이미 교환한 만큼은 차감된 것으로 간주)
+  SELECT COALESCE(SUM(count), 0) INTO v_total_stamps
+    FROM public.memory_stamps WHERE couple_id = v_couple_id;
+  -- 이미 교환에 쓴 스탬프: 같은 해 교환 횟수 × cost
+  -- (모든 연도 합산 아닌 누적 기준 — 단순화: 교환 시점 기준 가능여부만 체크)
+  v_already_consumed_stamps := 0; -- 실질적으로 스탬프는 감소시키지 않고, 교환 횟수만 cap
+  -- 대신: "현재 스탬프 >= (교환 예정 cost)" + 연 cap 체크
+  IF v_total_stamps < v_cost_per_book * (v_redeemed + 1) THEN
+    RETURN jsonb_build_object(
+      'success', false, 'reason', 'insufficient_stamps',
+      'required', v_cost_per_book * (v_redeemed + 1),
+      'current', v_total_stamps
+    );
+  END IF;
+  -- 크레딧 추가 + 카운터 증가
+  INSERT INTO public.couple_book_credits (
+    couple_id, credits_remaining, stamps_redeemed_year, last_redemption_year
+  )
+  VALUES (v_couple_id, 1, 1, v_year)
+  ON CONFLICT (couple_id) DO UPDATE SET
+    credits_remaining = public.couple_book_credits.credits_remaining + 1,
+    stamps_redeemed_year = (
+      CASE WHEN public.couple_book_credits.last_redemption_year IS DISTINCT FROM v_year
+           THEN 1
+           ELSE public.couple_book_credits.stamps_redeemed_year + 1 END
+    ),
+    last_redemption_year = v_year,
+    updated_at = now();
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 6-13. 회고북 뽑기 시 크레딧 소비
+CREATE OR REPLACE FUNCTION public.consume_book_credit()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_credits INTEGER := 0;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  SELECT credits_remaining INTO v_credits
+    FROM public.couple_book_credits WHERE couple_id = v_couple_id;
+  IF COALESCE(v_credits, 0) < 1 THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_credits');
+  END IF;
+  UPDATE public.couple_book_credits
+    SET credits_remaining = credits_remaining - 1, updated_at = now()
+    WHERE couple_id = v_couple_id;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
 -- 6-9. 프리미엄 자격 확인
 CREATE OR REPLACE FUNCTION public.is_entitled()
 RETURNS BOOLEAN
@@ -816,5 +980,9 @@ $$;
 GRANT EXECUTE ON FUNCTION public.start_trial_if_needed()        TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT)   TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_pack_purchased(TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_book_credits()             TO authenticated;
+GRANT EXECUTE ON FUNCTION public.add_book_credits(INTEGER)      TO authenticated;
+GRANT EXECUTE ON FUNCTION public.redeem_stamps_for_book()       TO authenticated;
+GRANT EXECUTE ON FUNCTION public.consume_book_credit()          TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_entitled()                  TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_reflection_progress(UUID)  TO authenticated;

@@ -30,6 +30,10 @@
     "title": "포토부스",
     "hint": "사진 꾸미기"
   },
+  "memory-book": {
+    "title": "추억 뽑기",
+    "hint": "다이어리로 만들기"
+  },
   "mission": {
     "title": "오늘의 미션",
     "progress-percent": "{{percent}}%",

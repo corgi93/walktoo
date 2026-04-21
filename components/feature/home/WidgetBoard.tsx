@@ -141,10 +141,10 @@ export function WidgetBoard({
         />
       </View>
 
-      {/* Row 4 ─ 포토부스 */}
+      {/* Row 4 ─ 포토부스 · 다이어리 뽑기 */}
       <View style={styles.row}>
         <PhotoBoothMiniWidget onPress={() => router.push('/photo-booth')} />
-        <View style={{ flex: 1 }} />
+        <MemoryBookMiniWidget onPress={() => router.push('/memory-book')} />
       </View>
     </View>
   );
@@ -629,6 +629,24 @@ function PhotoBoothMiniWidget({ onPress }: { onPress: () => void }) {
   );
 }
 
+// ─── 회고북 뽑기 ─────────────────────────────────────────
+
+function MemoryBookMiniWidget({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation('home');
+
+  return (
+    <Pressable style={[styles.widget, styles.memoryBook]} onPress={onPress}>
+      <MiniIconBadge name="book-open" />
+      <Text variant="bodySmall" color="text" style={{ fontWeight: '600' }}>
+        {t('memory-book.title')}
+      </Text>
+      <Text variant="caption" color="primary" style={{ fontSize: 10 }}>
+        {t('memory-book.hint')}
+      </Text>
+    </Pressable>
+  );
+}
+
 // ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -728,6 +746,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySurface,
   },
   photoBooth: {
+    gap: 4,
+    backgroundColor: theme.colors.primarySurface,
+  },
+  memoryBook: {
     gap: 4,
     backgroundColor: theme.colors.primarySurface,
   },

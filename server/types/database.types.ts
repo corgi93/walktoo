@@ -246,6 +246,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      couple_book_credits: {
+        Row: {
+          couple_id: string;
+          credits_remaining: number;
+          stamps_redeemed_year: number;
+          last_redemption_year: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          credits_remaining?: number;
+          stamps_redeemed_year?: number;
+          last_redemption_year?: number | null;
+        };
+        Update: {
+          credits_remaining?: number;
+          stamps_redeemed_year?: number;
+          last_redemption_year?: number | null;
+        };
+        Relationships: [];
+      };
       couple_pack_entitlements: {
         Row: {
           id: string;
@@ -343,6 +364,36 @@ export interface Database {
           success: boolean;
           reason?: 'no_couple';
           id?: string;
+        };
+      };
+      get_book_credits: {
+        Args: Record<string, never>;
+        Returns: {
+          credits: number;
+          redeemed_this_year: number;
+        };
+      };
+      add_book_credits: {
+        Args: { p_count: number };
+        Returns: {
+          success: boolean;
+          reason?: 'no_couple' | 'invalid_count';
+        };
+      };
+      redeem_stamps_for_book: {
+        Args: Record<string, never>;
+        Returns: {
+          success: boolean;
+          reason?: 'no_couple' | 'annual_cap_reached' | 'insufficient_stamps';
+          required?: number;
+          current?: number;
+        };
+      };
+      consume_book_credit: {
+        Args: Record<string, never>;
+        Returns: {
+          success: boolean;
+          reason?: 'no_couple' | 'no_credits';
         };
       };
       is_entitled: {
