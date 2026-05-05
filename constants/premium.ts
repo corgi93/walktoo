@@ -19,9 +19,15 @@ export const PREMIUM = {
   /** 무료 체험 기간 */
   TRIAL_DAYS: 7,
 
-  /** 사진 업로드 한도 */
-  PHOTO_LIMIT_FREE: 5,
-  PHOTO_LIMIT_PREMIUM: 20,
+  /**
+   * 사진 업로드 한도 (커플당 한 산책에 첨부 가능한 매수)
+   *
+   * 두 사람이 합쳐서 4장까지 — 한 명이 다 채우거나, 2+2로 나누거나,
+   * 둘이 같이 채우는 형태 모두 지원.
+   * 다이어리 표시 레이아웃이 4슬롯 디자인이라 4가 상한.
+   */
+  PHOTO_LIMIT_FREE: 4,
+  PHOTO_LIMIT_PREMIUM: 4,
 
   /** 가격 fallback (RevenueCat offering이 정상 fetch되면 그쪽 우선) */
   PRICE_KRW: 19_900,

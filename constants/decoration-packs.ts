@@ -13,31 +13,13 @@
 
 export const LIFETIME_PACK_ID = 'lifetime' as const;
 
-/** 회고북 교환/소비 파라미터 */
-export const BOOK_ECONOMY = {
-  /** 스탬프 1권 교환 비용 */
-  STAMP_COST_PER_BOOK: 1_000,
-  /** 스탬프 교환 연 최대 권수 (cannibalize 방지) */
-  ANNUAL_REDEEM_CAP: 2,
-  /** 단권 구매 시 지급되는 크레딧 */
-  SINGLE_CREDITS: 1,
-  /** 3권팩 구매 시 지급되는 크레딧 */
-  TRIPLE_CREDITS: 3,
-} as const;
-
-/** 회고북 상품 id들 — 구매 분기용 */
-export const BOOK_PACK_IDS = {
-  SINGLE: 'memory-book-single',
-  TRIPLE: 'memory-book-triple',
-} as const;
-
 export interface DecorationPack {
   /** 내부 식별자 (DB · 클라이언트 로직 키) */
   id: string;
   /** RevenueCat/스토어 product identifier */
   productId: string;
-  /** 카테고리 (개별 팩 / 번들 / 평생팩 / 회고북 크레딧) */
-  kind: 'single' | 'bundle' | 'lifetime' | 'book' | 'book-bundle';
+  /** 카테고리 (개별 팩 / 번들 / 평생팩) */
+  kind: 'single' | 'bundle' | 'lifetime';
   /** 표시명 */
   name: string;
   /** 한 줄 설명 */
@@ -90,25 +72,6 @@ export const DECORATION_PACKS: readonly DecorationPack[] = [
     priceKrw: 2_900,
     includes: ['polaroid', 'washi', 'doodle'],
     badge: '약 19% 할인',
-  },
-  {
-    id: BOOK_PACK_IDS.SINGLE,
-    productId: 'com.walktoo.book.single',
-    kind: 'book',
-    name: '회고북 한 권',
-    description: '1년치 추억을 한 권의 다이어리로',
-    emoji: '📖',
-    priceKrw: 2_900,
-  },
-  {
-    id: BOOK_PACK_IDS.TRIPLE,
-    productId: 'com.walktoo.book.triple',
-    kind: 'book-bundle',
-    name: '회고북 3권 묶음',
-    description: '기념일마다 뽑아 선물하세요',
-    emoji: '🎁',
-    priceKrw: 6_900,
-    badge: '약 23% 할인',
   },
   // NOTE(release phase 1): 평생팩은 초기 출시에서 숨김.
   // 가볍게 시작하는 전략 — 추후 제품 라인업 충분해지면 재도입.

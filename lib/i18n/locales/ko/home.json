@@ -30,9 +30,23 @@
     "title": "포토부스",
     "hint": "사진 꾸미기"
   },
-  "memory-book": {
+  "memory-draw": {
     "title": "추억 뽑기",
-    "hint": "다이어리로 만들기"
+    "subtitle": "오늘의 한 장면을 뽑아봐",
+    "cta": "TAP",
+    "count": "{{count}}개의 추억",
+    "screen-title": "추억 뽑기",
+    "screen-sub": "지나간 한 장면을 다시 만나봐",
+    "empty-title": "아직 뽑을 추억이 없어요",
+    "empty-hint": "산책 기록을 남기면 여기서 다시 만날 수 있어요",
+    "empty-cta": "오늘의 산책 기록하기",
+    "rolling": "✦ 뽑는 중..",
+    "again": "다시 뽑기 ♡",
+    "open": "이 산책 보기",
+    "no-photo": "사진 없이 글로 남긴 날",
+    "no-teaser": "그날의 이야기를 기다리는 중…",
+    "q-prefix": "Q.",
+    "card-stamp": "MEMORY #{{num}}"
   },
   "mission": {
     "title": "오늘의 미션",
@@ -102,7 +116,7 @@
     "picker-title": "월 선택",
     "picker-today": "이번 달",
     "filter-all": "전체",
-    "filter-together": "같이",
+    "filter-together": "우리",
     "filter-each": "각자"
   }
 }

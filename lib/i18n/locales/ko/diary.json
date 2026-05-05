@@ -11,10 +11,10 @@
   "create": {
     "title": "오늘의 기록",
     "kind-label": "오늘은 어떤 하루였어요?",
-    "kind-together": "같이 보낸 날",
+    "kind-together": "우리의 하루",
     "kind-together-hint": "데이트 · 산책",
-    "kind-each": "각자의 하루",
-    "kind-each-hint": "회사 · 친구 · 휴식",
+    "kind-each": "오늘의 나",
+    "kind-each-hint": "셀카 · 일상 인증",
     "location-label": "오늘의 데이트 장소",
     "location-label-each": "오늘 어디서?",
     "location-placeholder": "한강공원, 경복궁, 홍대...",

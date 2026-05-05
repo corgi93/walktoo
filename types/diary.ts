@@ -1,3 +1,5 @@
+import type { Coords, ProviderId } from '@/lib/location';
+
 // ─── Footprint Entry (각 사람의 기록) ───────────────────
 
 export interface FootprintEntry {
@@ -8,6 +10,12 @@ export interface FootprintEntry {
   photos: string[];
   /** kind='each'일 때 각자 장소 (회사/카페/집 등). 'together'일 때는 빈 문자열 */
   locationName: string;
+  /** 좌표 (옵션) — 지도 마커로 선택했을 때만. 텍스트만 입력 시 undefined */
+  locationCoords?: Coords;
+  /** 도로명/지번 주소 (옵션) — 검색 결과에서 채워짐 */
+  locationAddress?: string;
+  /** 어떤 provider에서 picked 됐는지 (naver/google) */
+  locationSource?: ProviderId;
   writtenAt: string;
   /** 다이어리 질문 인덱스 (0~14) */
   diaryQuestionId?: number;
@@ -47,6 +55,12 @@ export interface WalkDiary {
   coupleId: string;
   date: string;
   locationName: string;
+  /** 좌표 — together일 때 walk-level 좌표 (옵션) */
+  locationCoords?: Coords;
+  /** 주소 (옵션) */
+  locationAddress?: string;
+  /** Provider attribution */
+  locationSource?: ProviderId;
   /** together=함께 보낸 날, each=각자의 하루 */
   kind: WalkKind;
   /** 내 기록 */
@@ -63,6 +77,12 @@ export interface WalkDiary {
 export interface CreateWalkDiaryInput {
   date: string;
   locationName: string;
+  /** 좌표 (옵션) — 검색 결과에서 선택했을 때만 */
+  locationCoords?: Coords;
+  /** 주소 (옵션) */
+  locationAddress?: string;
+  /** Provider attribution */
+  locationSource?: ProviderId;
   /** together=함께 보낸 날, each=각자의 하루 */
   kind: WalkKind;
   memo: string;

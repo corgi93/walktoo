@@ -11,6 +11,8 @@ import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { formatDday, formatSteps } from '@/utils/date';
 
+import { MemoryDrawWidget } from './MemoryDrawWidget';
+import { MiniCalendarWidget } from './MiniCalendarWidget';
 import { BOY_FRAMES, GIRL_FRAMES, WalkingSprite } from './WalkIllustration';
 
 type CharacterType = 'boy' | 'girl';
@@ -97,7 +99,20 @@ export function WidgetBoard({
         onPress={onDdayPress}
       />
 
-      {/* Row 1 ─ 나의 오늘 · 상대의 오늘 */}
+      {/* Row 1 ─ 발걸음 + 오늘의 미션 (맨 위) */}
+      <StepsWidget
+        myName={myName}
+        partnerName={partnerName}
+        myCharacter={myCharacter}
+        partnerCharacter={partnerCharacter}
+        mySteps={mySteps}
+        partnerSteps={partnerSteps}
+        hasTodayStamp={hasTodayStamp}
+        isClaimingStamp={isClaimingStamp}
+        onClaimStamp={onClaimStamp}
+      />
+
+      {/* Row 2 ─ 각자 사진 (오늘의 나 · 상대의 오늘) */}
       <View style={styles.row}>
         <TodayPolaroidWidget
           name={myName}
@@ -116,20 +131,13 @@ export function WidgetBoard({
         />
       </View>
 
-      {/* Row 2 ─ 걸음 + 오늘의 미션 (통합 위젯) */}
-      <StepsWidget
-        myName={myName}
-        partnerName={partnerName}
-        myCharacter={myCharacter}
-        partnerCharacter={partnerCharacter}
-        mySteps={mySteps}
-        partnerSteps={partnerSteps}
-        hasTodayStamp={hasTodayStamp}
-        isClaimingStamp={isClaimingStamp}
-        onClaimStamp={onClaimStamp}
-      />
+      {/* Row 3 ─ 캘린더 */}
+      <MiniCalendarWidget />
 
-      {/* Row 3 ─ 이달의 우리 · 추억의 발자국 */}
+      {/* 추억 뽑기 ─ 가챠 hero 카드 */}
+      <MemoryDrawWidget />
+
+      {/* Row 4 ─ 이달의 우리 · 추억의 발자국 */}
       <View style={styles.row}>
         <ReflectionMiniWidget
           progress={reflectionProgress}
@@ -139,12 +147,6 @@ export function WidgetBoard({
           totalStamps={totalStamps}
           onPress={() => router.push('/reflection-timeline')}
         />
-      </View>
-
-      {/* Row 4 ─ 포토부스 · 다이어리 뽑기 */}
-      <View style={styles.row}>
-        <PhotoBoothMiniWidget onPress={() => router.push('/photo-booth')} />
-        <MemoryBookMiniWidget onPress={() => router.push('/memory-book')} />
       </View>
     </View>
   );
@@ -611,42 +613,6 @@ function FootprintTimelineWidget({
   );
 }
 
-// ─── 포토부스 ────────────────────────────────────────────
-
-function PhotoBoothMiniWidget({ onPress }: { onPress: () => void }) {
-  const { t } = useTranslation('home');
-
-  return (
-    <Pressable style={[styles.widget, styles.photoBooth]} onPress={onPress}>
-      <MiniIconBadge name="camera" />
-      <Text variant="bodySmall" color="text" style={{ fontWeight: '600' }}>
-        {t('photobooth.title')}
-      </Text>
-      <Text variant="caption" color="textMuted" style={{ fontSize: 10 }}>
-        {t('photobooth.hint')}
-      </Text>
-    </Pressable>
-  );
-}
-
-// ─── 회고북 뽑기 ─────────────────────────────────────────
-
-function MemoryBookMiniWidget({ onPress }: { onPress: () => void }) {
-  const { t } = useTranslation('home');
-
-  return (
-    <Pressable style={[styles.widget, styles.memoryBook]} onPress={onPress}>
-      <MiniIconBadge name="book-open" />
-      <Text variant="bodySmall" color="text" style={{ fontWeight: '600' }}>
-        {t('memory-book.title')}
-      </Text>
-      <Text variant="caption" color="primary" style={{ fontSize: 10 }}>
-        {t('memory-book.hint')}
-      </Text>
-    </Pressable>
-  );
-}
-
 // ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -742,14 +708,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySurface,
   },
   timeline: {
-    gap: 4,
-    backgroundColor: theme.colors.primarySurface,
-  },
-  photoBooth: {
-    gap: 4,
-    backgroundColor: theme.colors.primarySurface,
-  },
-  memoryBook: {
     gap: 4,
     backgroundColor: theme.colors.primarySurface,
   },

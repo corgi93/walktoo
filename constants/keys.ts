@@ -41,7 +41,4 @@ export const QUERY_KEYS = {
   packs: {
     owned: ['packs', 'owned'] as const,
   },
-  bookCredits: {
-    status: ['book-credits', 'status'] as const,
-  },
 };

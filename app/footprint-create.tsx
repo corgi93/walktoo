@@ -2,31 +2,37 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
-import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
-import { PREMIUM } from '@/constants/premium';
+import { LocationPicker } from '@/components/feature/diary/LocationPicker';
+import {
+  EachPhotoStrip,
+  ScrapbookSaveButton,
+  ThemeBg,
+  ThemedDiaryCard,
+  ThemedHandwriteInput,
+  ThemedTitle,
+  ThemePicker,
+} from '@/components/feature/diary/scrapbook';
+import { useDiaryTheme } from '@/hooks/useDiaryTheme';
+import type { Coords, ProviderId } from '@/lib/location';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
-import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
 import { theme } from '@/styles/theme';
-import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
+import { LAYOUT, SPACING } from '@/styles/type';
 import { formatDate, getLocalToday, parseLocalDate } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
@@ -36,23 +42,38 @@ export default function FootprintCreateScreen() {
   const router = useRouter();
   const { t } = useTranslation(['diary', 'common', 'premium']);
 
-  const { couple, isCoupleConnected } = usePartnerDerivation();
-  const { isEntitled } = useEntitlement();
+  const { couple, isCoupleConnected, myName } = usePartnerDerivation();
   const dialog = useDialogStore();
   const photoBooth = usePhotoBoothStore();
 
-  const photoLimit = isEntitled
-    ? PREMIUM.PHOTO_LIMIT_PREMIUM
-    : PREMIUM.PHOTO_LIMIT_FREE;
+  // ─── 다꾸 테마 ────────────────────────────────────────
+  const { theme: dt, themeId, setTheme } = useDiaryTheme();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const [date, setDate] = useState(getLocalToday());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  // 날짜는 항상 오늘 (선택 UI 제거)
+  const date = getLocalToday();
   const [locationName, setLocationName] = useState('');
+  const [locationCoords, setLocationCoords] = useState<Coords | undefined>();
+  const [locationAddress, setLocationAddress] = useState<string | undefined>();
+  const [locationSource, setLocationSource] = useState<ProviderId | undefined>();
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [diaryAnswer, setDiaryAnswer] = useState('');
-  const [coupleAnswer, setCoupleAnswer] = useState('');
+  // coupleAnswer — 폼에선 입력 X, 항상 빈 문자열로 저장 (DB 호환)
+  const coupleAnswer = '';
   const [photos, setPhotos] = useState<string[]>([]);
-  // each = 각자의 하루, together = 같이 보낸 날. 일상 기록이 메인 플로우라 default=each
-  const [kind, setKind] = useState<'each' | 'together'>('each');
+  // 단순화: 항상 'each' (오늘의 나) — kind 선택 UI 제거됨
+  // DB 호환을 위해 kind 필드는 유지, 'together' 모드는 추후 별도 진입점에서 추가 가능
+  const kind: 'each' | 'together' = 'each';
+
+  // 사진 한도 — 오늘의 나는 1장 고정
+  const photoLimit = 1;
+
+  // kind 변경 시 사진 트리밍 (each ← together 전환 시 4장 → 1장)
+  useEffect(() => {
+    setPhotos((prev) =>
+      prev.length > photoLimit ? prev.slice(0, photoLimit) : prev,
+    );
+  }, [photoLimit]);
 
   // 오늘의 질문 (날짜 변경 시 자동 갱신)
   const { diaryQuestion, coupleQuestion } = getDailyQuestions(
@@ -122,16 +143,9 @@ export default function FootprintCreateScreen() {
   });
 
   const handleAddPhoto = async () => {
-    // 무료 사용자가 사진 한도 도달 시 페이월 안내
-    if (!isEntitled && photos.length >= PREMIUM.PHOTO_LIMIT_FREE) {
-      dialog.confirm(
-        t('premium:gate.photos-title'),
-        t('premium:gate.photos-description', {
-          limit: PREMIUM.PHOTO_LIMIT_PREMIUM,
-        }),
-        () => router.push('/paywall'),
-        t('premium:gate.go-paywall'),
-      );
+    if (photos.length >= photoLimit) {
+      // 한도 도달 — each(1장) / together(4장) 모두 동일 패턴
+      dialog.alert('', `사진은 ${photoLimit}장까지만 첨부할 수 있어요`);
       return;
     }
 
@@ -163,17 +177,15 @@ export default function FootprintCreateScreen() {
   };
 
   const handleSave = () => {
-    // each 모드는 장소 생략 가능 (각자의 하루 = 어디든 OK)
-    if (kind === 'together' && !locationName.trim()) {
-      dialog.alert('', t('diary:create.location-required'));
-      return;
-    }
-
+    // 오늘의 나(each) — 장소 생략 가능
     createDiary.mutate(
       {
         date,
         kind,
         locationName: locationName.trim(),
+        locationCoords,
+        locationAddress,
+        locationSource,
         memo: diaryAnswer.trim(), // 하위호환: memo에도 저장
         photos,
         diaryQuestionId: diaryQuestion.id,
@@ -194,14 +206,49 @@ export default function FootprintCreateScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* ── 헤더 ── */}
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, backgroundColor: dt.bg },
+      ]}
+    >
+      <ThemeBg theme={dt} />
+      {/* ── 헤더 ── 다크 테마는 ink가 검정에 가까워 안보임 → paper로 반전 */}
       <Row px="xxl" style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Icon name="x" size={22} color={theme.colors.text} />
+          <Icon
+            name="x"
+            size={22}
+            color={dt.isDark ? dt.paper : dt.ink}
+          />
         </Pressable>
-        <Text variant="headingMedium">{t('diary:create.title')}</Text>
-        <View style={{ width: 32 }} />
+        <View style={styles.titleWrap}>
+          <ThemedTitle
+            theme={dt}
+            text="DIARY"
+            sub={t('diary:create.title')}
+            size={24}
+          />
+        </View>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={() => setPickerOpen(true)}
+          hitSlop={8}
+          style={[
+            styles.themeBtn,
+            { backgroundColor: dt.paper, borderColor: dt.line },
+          ]}
+        >
+          <Text style={[styles.themeBtnEmoji, { color: dt.ink }]}>
+            {dt.emoji}
+          </Text>
+          <Text
+            variant="caption"
+            style={{ color: dt.ink, fontWeight: '600' }}
+          >
+            테마
+          </Text>
+        </Pressable>
       </Row>
 
       {/* ── 커플 미연결 시 — 차단 안내 ── */}
@@ -234,15 +281,17 @@ export default function FootprintCreateScreen() {
         </View>
       ) : (
         <>
-          {/* ── 안내 배너 ── */}
-          <Box px="xxl" style={styles.bannerSection}>
-            <View style={styles.infoBanner}>
-              <Icon name="lock" size={14} color={theme.colors.gray500} />
-              <Text variant="caption" color="textSecondary" ml="sm" style={{ flex: 1 }}>
-                {t('diary:create.info-banner')}
-              </Text>
-            </View>
-          </Box>
+          {/* ── 안내 — 한 줄 미니멀 힌트 ── */}
+          <Row px="xxl" style={styles.hintRow}>
+            <Icon name="lock" size={11} color={dt.inkSoft} />
+            <Text
+              variant="caption"
+              ml="xs"
+              style={{ color: dt.inkSoft, fontFamily: dt.bodyFont, flex: 1 }}
+            >
+              {t('diary:create.info-banner')}
+            </Text>
+          </Row>
 
           <KeyboardAvoidingView
             style={{ flex: 1 }}
@@ -253,273 +302,220 @@ export default function FootprintCreateScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* ── 오늘은? (같이/각자) ── */}
-              <Box px="xxl">
-                <Text variant="label" color="textSecondary" mb="sm">
-                  {t('diary:create.kind-label')}
-                </Text>
-                <Row style={styles.kindRow}>
-                  <Pressable
-                    style={[
-                      styles.kindChip,
-                      kind === 'each' && styles.kindChipActive,
-                    ]}
-                    onPress={() => setKind('each')}
-                  >
-                    <View
-                      style={[
-                        styles.kindIconBadge,
-                        kind === 'each' && styles.kindIconBadgeActive,
-                      ]}
-                    >
-                      <Icon
-                        name="sun"
-                        size={16}
-                        color={theme.colors.primary}
-                      />
-                    </View>
-                    <Text
-                      variant="bodySmall"
-                      color={kind === 'each' ? 'primary' : 'text'}
-                      style={styles.kindLabel}
-                    >
-                      {t('diary:create.kind-each')}
-                    </Text>
-                    <Text variant="caption" color="textMuted">
-                      {t('diary:create.kind-each-hint')}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.kindChip,
-                      kind === 'together' && styles.kindChipActive,
-                    ]}
-                    onPress={() => setKind('together')}
-                  >
-                    <View
-                      style={[
-                        styles.kindIconBadge,
-                        kind === 'together' && styles.kindIconBadgeActive,
-                      ]}
-                    >
-                      <Icon
-                        name="heart"
-                        size={16}
-                        color={theme.colors.primary}
-                      />
-                    </View>
-                    <Text
-                      variant="bodySmall"
-                      color={kind === 'together' ? 'primary' : 'text'}
-                      style={styles.kindLabel}
-                    >
-                      {t('diary:create.kind-together')}
-                    </Text>
-                    <Text variant="caption" color="textMuted">
-                      {t('diary:create.kind-together-hint')}
-                    </Text>
-                  </Pressable>
-                </Row>
-              </Box>
-
-              {/* ── 날짜 ── */}
+              {/* 날짜·종류 선택 제거 — 항상 오늘의 '오늘의 나'(each)로 기록 */}
+              {/* ── 오늘 날짜 표시 (read-only, picker 없음) + 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>
-                <Pressable
-                  style={styles.dateCard}
-                  onPress={() => setShowDatePicker(true)}
+                <View
+                  style={[
+                    styles.fieldCard,
+                    { backgroundColor: dt.paper, borderColor: dt.line },
+                  ]}
                 >
-                  <Icon name="calendar" size={18} color={theme.colors.gray600} />
-                  <Text variant="bodyMedium" color="text" ml="sm">
+                  <Icon name="calendar" size={15} color={dt.inkSoft} />
+                  <Text
+                    style={[
+                      styles.fieldValue,
+                      { color: dt.ink, fontFamily: dt.bodyFont, fontWeight: dt.bodyWeight },
+                    ]}
+                  >
                     {formattedDate}
                   </Text>
-                  <View style={{ marginLeft: 'auto' }}>
-                    <Icon name="chevron-down" size={14} color={theme.colors.gray400} />
-                  </View>
-                </Pressable>
-              </Box>
-
-              {/* ── 장소 ── */}
-              <Box px="xxl" style={styles.fieldSection}>
-                <Row style={styles.fieldLabel}>
-                  <Icon name="map-pin" size={14} color={theme.colors.gray600} />
-                  <Text variant="label" color="textSecondary">
-                    {kind === 'each'
-                      ? t('diary:create.location-label-each')
-                      : t('diary:create.location-label')}
-                  </Text>
-                </Row>
-                <View style={styles.inputCard}>
-                  <TextInput
-                    style={styles.locationInput}
-                    placeholder={
-                      kind === 'each'
-                        ? t('diary:create.location-placeholder-each')
-                        : t('diary:create.location-placeholder')
-                    }
-                    placeholderTextColor={theme.colors.gray400}
-                    value={locationName}
-                    onChangeText={setLocationName}
-                    cursorColor={theme.colors.primary}
-                  />
                 </View>
+
+                <Pressable
+                  onPress={() => setLocationPickerOpen(true)}
+                  style={[
+                    styles.fieldCard,
+                    {
+                      backgroundColor: dt.paper,
+                      borderColor: dt.line,
+                      marginTop: SPACING.sm,
+                    },
+                  ]}
+                >
+                  <Icon
+                    name={locationCoords ? 'map-pin' : 'search'}
+                    size={15}
+                    color={locationCoords ? dt.accent : dt.inkSoft}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.fieldValue,
+                        {
+                          color: locationName ? dt.ink : dt.inkSoft,
+                          fontFamily: dt.bodyFont,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {locationName ||
+                        t('diary:create.location-placeholder-each')}
+                    </Text>
+                    {locationAddress && (
+                      <Text
+                        variant="caption"
+                        numberOfLines={1}
+                        style={{
+                          color: dt.inkSoft,
+                          fontFamily: dt.bodyFont,
+                          marginTop: 2,
+                        }}
+                      >
+                        {locationAddress}
+                      </Text>
+                    )}
+                  </View>
+                  <Icon name="chevron-right" size={14} color={dt.inkSoft} />
+                </Pressable>
               </Box>
 
               {/* ── 사진 업로드 ── */}
               <Box px="xxl" style={styles.fieldSection}>
-                <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Row style={styles.fieldLabel}>
-                    <Icon name="camera" size={14} color={theme.colors.gray600} />
-                    <Text variant="label" color="textSecondary">
-                      {t('diary:create.photo-label')}
-                    </Text>
-                  </Row>
-                  <Text variant="caption" color="textMuted">
-                    {photos.length}/5
+                <Row style={styles.sectionHeader}>
+                  <Text
+                    style={[
+                      styles.sectionLabel,
+                      { color: dt.inkSoft, fontFamily: dt.bodyFont },
+                    ]}
+                  >
+                    {t('diary:create.photo-label')}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.sectionMeta,
+                      { color: dt.inkSoft, fontFamily: dt.monoFont },
+                    ]}
+                  >
+                    {photos.length}/{photoLimit}
                   </Text>
                 </Row>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.photoRow}
-                  style={styles.photoScroll}
-                >
-                  {photos.length < 5 && (
-                    <Pressable style={styles.photoAdd} onPress={handleAddPhoto}>
-                      <Icon name="image-plus" size={24} color={theme.colors.gray400} />
-                      <Text variant="caption" color="textMuted" mt="xs">
-                        {t('diary:create.photo-add')}
-                      </Text>
-                    </Pressable>
-                  )}
+                <EachPhotoStrip
+                  theme={dt}
+                  myPhoto={photos[0]}
+                  editable
+                  onAddMyPhoto={() => handleAddPhoto()}
+                  onRemoveMyPhoto={() => handleRemovePhoto(0)}
+                />
 
-                  {photos.map((uri, i) => (
-                    <View key={i} style={styles.photoThumbWrapper}>
-                      <Image source={{ uri }} style={styles.photoThumb} />
-                      <Pressable
-                        style={styles.photoRemove}
-                        onPress={() => handleRemovePhoto(i)}
-                        hitSlop={4}
-                      >
-                        <View style={styles.removeBtn}>
-                          <Icon name="x" size={10} color={theme.colors.white} />
-                        </View>
-                      </Pressable>
-                    </View>
-                  ))}
-                </ScrollView>
-
-                {/* 포토부스 버튼 */}
+                {/* 포토부스 — 텍스트 링크 톤 */}
                 {photos.length > 0 && (
-                  <Pressable style={styles.photoBoothBtn} onPress={handleOpenPhotoBooth}>
-                    <Icon name="grid" size={14} color={theme.colors.primary} />
-                    <Text variant="label" color="primary" ml="xs">
+                  <Pressable
+                    onPress={handleOpenPhotoBooth}
+                    style={styles.photoBoothLink}
+                  >
+                    <Icon name="grid" size={12} color={dt.accent} />
+                    <Text
+                      style={[
+                        styles.photoBoothLinkText,
+                        { color: dt.accent, fontFamily: dt.bodyFont },
+                      ]}
+                    >
                       {t('diary:create.photobooth-button')}
                     </Text>
                   </Pressable>
                 )}
               </Box>
 
-              {/* ── 📝 다이어리 질문 ── */}
+              {/* ── by. 작성자 — 카드 사이 시그니처 ── */}
+              <View
+                style={[
+                  styles.byTag,
+                  {
+                    transform:
+                      dt.id === 'grid_minimal' ? [] : [{ rotate: '-0.6deg' }],
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.byTagText,
+                    { color: dt.inkSoft, fontFamily: dt.bodyFont },
+                  ]}
+                >
+                  by.{' '}
+                  <Text style={{ color: dt.accent, fontWeight: '700' }}>
+                    {myName}
+                  </Text>
+                </Text>
+              </View>
+
+              {/* ── 📓 오늘의 한 줄 — Q 없이 평이한 freeform 입력 ── */}
               <Box px="xxl" style={styles.fieldSection}>
-                <Row style={styles.fieldLabel}>
-                  <Text style={{ fontSize: 14 }}>📝</Text>
-                  <Text variant="label" color="textSecondary">
-                    {t('diary:create.diary-section-title')}
-                  </Text>
-                </Row>
-                <View style={styles.questionPrompt}>
-                  <Text variant="bodySmall" color="primary">
-                    {t('diary:create.diary-prompt-prefix')} {diaryQuestion.content}
-                  </Text>
-                </View>
-                <View style={styles.memoCard}>
-                  <TextInput
-                    style={styles.memoInput}
-                    placeholder={t('diary:create.diary-placeholder')}
-                    placeholderTextColor={theme.colors.gray400}
+                <ThemedDiaryCard
+                  theme={dt}
+                  title="📓 오늘의 한 줄"
+                  question=""
+                  rotate={0.4}
+                >
+                  <ThemedHandwriteInput
+                    theme={dt}
                     value={diaryAnswer}
                     onChangeText={setDiaryAnswer}
-                    multiline
-                    textAlignVertical="top"
-                    cursorColor={theme.colors.primary}
+                    placeholder="오늘 너에게 들려주고 싶은 한 마디 ✿"
+                    minLines={2}
                   />
-                </View>
+                </ThemedDiaryCard>
               </Box>
 
-              {/* ── 💌 오늘의 질문 ── */}
-              <Box px="xxl" style={styles.fieldSection}>
-                <Row style={styles.fieldLabel}>
-                  <Text style={{ fontSize: 14 }}>💌</Text>
-                  <Text variant="label" color="textSecondary">
-                    {t('diary:create.couple-section-title')}
-                  </Text>
-                  <View style={styles.categoryChip}>
-                    <Text style={{ fontSize: 10 }}>{coupleQuestion.emoji}</Text>
-                    <Text variant="caption" color="textMuted" ml="xxs">
-                      {coupleQuestion.categoryLabel}
-                    </Text>
-                  </View>
-                </Row>
-                <View style={styles.questionPrompt}>
-                  <Text variant="bodySmall" color="primary">
-                    {t('diary:create.diary-prompt-prefix')} {coupleQuestion.content}
-                  </Text>
-                </View>
-                <View style={styles.memoCard}>
-                  <TextInput
-                    style={styles.memoInput}
-                    placeholder={t('diary:create.couple-placeholder')}
-                    placeholderTextColor={theme.colors.gray400}
-                    value={coupleAnswer}
-                    onChangeText={setCoupleAnswer}
-                    multiline
-                    textAlignVertical="top"
-                    cursorColor={theme.colors.primary}
-                  />
-                </View>
-              </Box>
+              {/* 커플 질문 섹션 제거 — 단순화. 추후 별도 진입점(우리의 하루 모드) 추가 시 부활 */}
             </ScrollView>
 
             {/* ── 저장 버튼 ── */}
             <Box
               px="xxl"
-              style={[styles.bottomBar, { paddingBottom: insets.bottom + LAYOUT.headerPy }]}
+              style={[
+                styles.bottomBar,
+                {
+                  paddingBottom: insets.bottom + LAYOUT.headerPy,
+                  backgroundColor: dt.bg,
+                  borderTopColor: dt.line,
+                },
+              ]}
             >
-              <Button
-                variant="primary"
-                size="large"
+              <ScrapbookSaveButton
+                theme={dt}
+                label={t('diary:create.submit')}
+                loading={createDiary.isPending}
+                loadingLabel={t('diary:create.submitting')}
                 onPress={handleSave}
                 disabled={createDiary.isPending}
-              >
-                {createDiary.isPending ? (
-                  <Row style={styles.savingRow}>
-                    <ActivityIndicator size="small" color={theme.colors.white} />
-                    <Text variant="bodyMedium" color="white">
-                      {t('diary:create.submitting')}
-                    </Text>
-                  </Row>
-                ) : (
-                  t('diary:create.submit')
-                )}
-              </Button>
+              />
             </Box>
           </KeyboardAvoidingView>
         </>
       )}
 
-      {/* ── 날짜 선택 모달 (최상위 레벨로 렌더링) ── */}
-      {showDatePicker && (
-        <SimpleDatePicker
-          currentDate={date}
-          onSave={(d) => {
-            setDate(d);
-            setShowDatePicker(false);
-          }}
-          onClose={() => setShowDatePicker(false)}
-          title={t('diary:create.date-picker-title')}
-          maxDate={new Date()}
-        />
-      )}
+      {/* 날짜는 항상 오늘이므로 SimpleDatePicker 제거됨 */}
+
+      <ThemePicker
+        open={pickerOpen}
+        currentId={themeId}
+        onPick={(id) => {
+          setTheme(id);
+          setPickerOpen(false);
+        }}
+        onClose={() => setPickerOpen(false)}
+      />
+
+      <LocationPicker
+        open={locationPickerOpen}
+        initialQuery={locationName}
+        onPick={(loc) => {
+          setLocationName(loc.name);
+          setLocationCoords(loc.coords);
+          setLocationAddress(loc.address);
+          setLocationSource(loc.source);
+        }}
+        onPickPlainText={(name) => {
+          setLocationName(name);
+          // 텍스트만 입력한 경우 좌표·주소·source 모두 클리어
+          setLocationCoords(undefined);
+          setLocationAddress(undefined);
+          setLocationSource(undefined);
+        }}
+        onClose={() => setLocationPickerOpen(false)}
+      />
     </View>
   );
 }
@@ -537,178 +533,111 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: LAYOUT.headerPy,
   },
-  bannerSection: {
-    marginTop: SPACING.xs,
-  },
-  infoBanner: {
+  themeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primarySurface,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: LAYOUT.cardPx,
-    paddingVertical: LAYOUT.itemGap,
+    gap: 4,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
+    borderWidth: 1,
+    borderRadius: theme.radius.sm,
+  },
+  titleWrap: {
+    marginLeft: SPACING.sm,
+  },
+  byTag: {
+    alignSelf: 'center',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xxs,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xs,
+  },
+  byTagText: {
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.2,
+  },
+  themeBtnEmoji: {
+    fontSize: 13,
+  },
+  hintRow: {
+    alignItems: 'center',
+    paddingTop: SPACING.xs,
   },
   scroll: {
     paddingTop: LAYOUT.sectionGap,
     paddingBottom: LAYOUT.bottomSafe,
   },
   fieldSection: {
-    marginTop: LAYOUT.sectionGapLg,
+    marginTop: LAYOUT.sectionGap,
   },
-  fieldLabel: {
+  sectionHeader: {
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: SPACING.xs,
     marginBottom: LAYOUT.itemGap,
   },
-  dateCard: {
+  sectionLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.2,
+  },
+  sectionMeta: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  /* ── 폼 필드 — 다이어리 테마 paper 위 통일 ── */
+  fieldCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceWarm,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: LAYOUT.cardPx,
-    paddingVertical: LAYOUT.cardPy,
-  },
-  kindRow: {
     gap: SPACING.sm,
-  },
-  kindChip: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceWarm,
-    borderRadius: theme.radius.md,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.sm,
-    gap: SPACING.xxs,
-  },
-  kindChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySurface,
-  },
-  kindIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.xxs,
-  },
-  kindIconBadgeActive: {
-    borderColor: theme.colors.primary,
-  },
-  kindLabel: {
-    fontWeight: '600',
-  },
-  inputCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceWarm,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: LAYOUT.cardPx,
-    paddingVertical: LAYOUT.cardPy,
-  },
-  locationInput: {
-    flex: 1,
-    fontSize: SPACING.lg - 1,
-    fontFamily: FONT_FAMILY.pixel,
-    color: theme.colors.text,
-    paddingVertical: 4,
-    lineHeight: 22,
-  },
-  photoScroll: {
-    marginTop: LAYOUT.itemGap,
-  },
-  photoRow: {
-    gap: LAYOUT.itemGapMd,
-    paddingTop: 8,
-    paddingRight: 8,
-  },
-  photoAdd: {
-    width: 88,
-    height: 88,
-    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: theme.colors.gray400,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  photoThumbWrapper: {
-    position: 'relative',
-  },
-  photoThumb: {
-    width: 88,
-    height: 88,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.gray100,
-  },
-  photoRemove: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-  },
-  removeBtn: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: theme.colors.error,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoBoothBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: LAYOUT.itemGapMd,
-    paddingVertical: SPACING.sm,
-    backgroundColor: theme.colors.primarySurface,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
-  },
-  questionPrompt: {
-    backgroundColor: theme.colors.primarySurface,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: LAYOUT.cardPx,
-    paddingVertical: SPACING.sm,
-    marginBottom: SPACING.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.gray100,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xxs,
-    borderRadius: theme.radius.sm,
-    marginLeft: 'auto',
-  },
-  memoCard: {
-    backgroundColor: theme.colors.surfaceWarm,
-    borderRadius: theme.radius.md,
-    padding: LAYOUT.cardPx,
-    minHeight: 140,
-  },
-  memoInput: {
-    fontSize: SPACING.lg - 1,
-    fontFamily: FONT_FAMILY.pixel,
-    lineHeight: 22,
-    color: theme.colors.text,
+  fieldValue: {
     flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  fieldInput: {
+    paddingVertical: 0,
+  },
+  /* ── 세그먼트 토글 ── */
+  segment: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    padding: 3,
+  },
+  segmentItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm + 1,
+  },
+  segmentLabel: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  photoBoothLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.xs,
+  },
+  photoBoothLinkText: {
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
   },
   bottomBar: {
     paddingTop: LAYOUT.headerPy,
     borderTopWidth: 2,
     borderTopColor: theme.colors.border,
-  },
-  savingRow: {
-    alignItems: 'center',
-    gap: LAYOUT.itemGap,
   },
   noCoupleArea: {
     flex: 1,

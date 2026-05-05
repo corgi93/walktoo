@@ -7,30 +7,25 @@ import { useTranslation } from 'react-i18next';
 import { Box, Icon, Row, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
-  CalendarGrid,
   CalendarMonthNav,
   MonthYearPicker,
 } from '@/components/feature/calendar';
 import { FootprintTimeline } from '@/components/feature/diary';
-import { MonthStrip, RecentWalksWidget } from '@/components/feature/records';
 import { useCalendarMonthQuery } from '@/hooks/services/calendar/query';
-import { useReflectionProgressQuery } from '@/hooks/services/reflections/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
-import { addMonths, getCurrentYearMonth, getLocalToday, getMonthKey } from '@/utils/date';
+import { addMonths, getCurrentYearMonth } from '@/utils/date';
 
-type ViewMode = 'calendar' | 'list';
 type KindFilter = 'all' | 'together' | 'each';
 
 // ─── Screen ─────────────────────────────────────────────
 
 export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
-  const { couple, isCoupleConnected } = usePartnerDerivation();
+  const { isCoupleConnected } = usePartnerDerivation();
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
-  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
 
   if (!isCoupleConnected) {
@@ -42,10 +37,7 @@ export default function RecordsScreen() {
       year={year}
       month={month}
       onChangeYearMonth={setYearMonth}
-      coupleStartDate={couple?.startDate}
       insets={insets}
-      viewMode={viewMode}
-      onChangeViewMode={setViewMode}
       kindFilter={kindFilter}
       onChangeKindFilter={setKindFilter}
     />
@@ -58,32 +50,24 @@ function RecordsContent({
   year,
   month,
   onChangeYearMonth,
-  coupleStartDate,
   insets,
-  viewMode,
-  onChangeViewMode,
   kindFilter,
   onChangeKindFilter,
 }: {
   year: number;
   month: number;
   onChangeYearMonth: (next: { year: number; month: number }) => void;
-  coupleStartDate?: string;
   insets: { top: number; bottom: number; left: number; right: number };
-  viewMode: ViewMode;
-  onChangeViewMode: (mode: ViewMode) => void;
   kindFilter: KindFilter;
   onChangeKindFilter: (f: KindFilter) => void;
 }) {
   const { t } = useTranslation(['home', 'calendar']);
   const router = useRouter();
-  const { myName, partnerName } = usePartnerDerivation();
+  const { couple, myName, partnerName } = usePartnerDerivation();
   const [showPicker, setShowPicker] = useState(false);
+  const coupleStartDate = couple?.startDate;
 
-  const { walks, stamps, reflection, isLoading } = useCalendarMonthQuery(
-    year,
-    month,
-  );
+  const { walks, stamps } = useCalendarMonthQuery(year, month);
 
   // kind 필터 적용
   const filteredWalks = useMemo(() => {
@@ -91,60 +75,8 @@ function RecordsContent({
     return walks.filter((w) => w.kind === kindFilter);
   }, [walks, kindFilter]);
 
-  // 산책 날짜 맵 (셀 인디케이터 + tap lookup)
-  const walksByDate = useMemo(() => {
-    const map = new Map<string, WalkDiary>();
-    for (const w of filteredWalks) {
-      map.set(w.date, w);
-    }
-    return map;
-  }, [filteredWalks]);
-
-  const walkDateSet = useMemo(() => new Set(walksByDate.keys()), [walksByDate]);
-  const stampDateSet = useMemo(() => new Set(stamps), [stamps]);
-
-  const todayMonthKey = getLocalToday().slice(0, 7);
-  const currentMonthKey = getMonthKey(year, month);
-  const isCurrentMonth = todayMonthKey === currentMonthKey;
-  const today = getLocalToday();
-
-  // 현재 월 회고 진행 상태 (워딩 분기용)
-  const { data: reflectionProgress } = useReflectionProgressQuery(
-    isCurrentMonth ? reflection?.id : undefined,
-  );
-
   const handlePrev = () => onChangeYearMonth(addMonths(year, month, -1));
   const handleNext = () => onChangeYearMonth(addMonths(year, month, +1));
-
-  const handleSelectDay = (yyyyMmDd: string) => {
-    const walk = walksByDate.get(yyyyMmDd);
-    if (walk) {
-      router.push({
-        pathname: '/diary-detail',
-        params: {
-          id: walk.id,
-          date: walk.date,
-          locationName: walk.locationName,
-          kind: walk.kind,
-          isRevealed: String(walk.isRevealed),
-          myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
-          partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
-        },
-      });
-      return;
-    }
-    if (yyyyMmDd === today) {
-      router.push('/footprint-create');
-    }
-  };
-
-  const handleReflectionCta = () => {
-    if (isCurrentMonth) {
-      router.push('/reflection');
-    } else if (reflection?.isRevealed) {
-      router.push({ pathname: '/reflection', params: { id: reflection.id } });
-    }
-  };
 
   const handleItemPress = (walk: WalkDiary) => {
     router.push({
@@ -162,12 +94,11 @@ function RecordsContent({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 탭 헤더 + 뷰 토글 */}
+      {/* 탭 헤더 */}
       <Row px="xxl" style={styles.header}>
         <Text variant="headingLarge" color="primary">
           {t('home:records-tab.title')}
         </Text>
-        <ViewToggle viewMode={viewMode} onChange={onChangeViewMode} />
       </Row>
 
       <ScrollView
@@ -186,54 +117,43 @@ function RecordsContent({
           onTapMonth={() => setShowPicker(true)}
         />
 
-        {/* 같이/각자 필터 */}
+        {/* 우리/각자 필터 */}
         <KindFilterBar value={kindFilter} onChange={onChangeKindFilter} />
 
-        {/* 한 줄 요약 strip — 산책·발자국·회고 inline */}
-        <MonthStrip
-          walksCount={filteredWalks.length}
-          stampsCount={stamps.length}
-          reflection={reflection}
-          isCurrentMonth={isCurrentMonth}
-          myAnsweredCount={reflectionProgress?.myAnswered}
-          onPressReflection={handleReflectionCta}
-          onPressReflectionTimeline={() => router.push('/reflection-timeline')}
-        />
-
-        {viewMode === 'calendar' ? (
-          <>
-            <View style={[isLoading && styles.dimmed]}>
-              <CalendarGrid
-                year={year}
-                month={month}
-                walkDates={walkDateSet}
-                stampDates={stampDateSet}
-                coupleStartDate={coupleStartDate}
-                onSelectDay={handleSelectDay}
-              />
-            </View>
-
-            {/* 최근 산책 3개 horizontal — 월이 아니라 전체 최신 3개 */}
-            <RecentWalksWidget limit={3} />
-          </>
-        ) : (
-          <View style={styles.listMode}>
-            {filteredWalks.length === 0 ? (
-              <Box px="xxl">
-                <Text variant="bodySmall" color="textMuted" align="center">
-                  {t('home:records-tab.walks-empty')}
-                </Text>
-              </Box>
-            ) : (
-              <FootprintTimeline
-                diaries={filteredWalks}
-                myName={myName}
-                partnerName={partnerName}
-                onItemPress={handleItemPress}
-              />
-            )}
+        {/* 산책·발자국 카운트 (회고 관련 제거됨 — 기록에 집중) */}
+        <Row px="xxl" style={styles.statRow}>
+          <View style={styles.stat}>
+            <Icon name="footprint" size={14} color={theme.colors.primary} />
+            <Text variant="caption" color="textSecondary" ml="xxs">
+              산책 {filteredWalks.length}
+            </Text>
           </View>
-        )}
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Icon name="star" size={14} color={theme.colors.accent} />
+            <Text variant="caption" color="textSecondary" ml="xxs">
+              발자국 {stamps.length}
+            </Text>
+          </View>
+        </Row>
+
+        {/* 리스트 전용 — 달력 토글 제거 */}
+        <View style={styles.listMode}>
+          {filteredWalks.length === 0 ? (
+            <Box px="xxl">
+              <Text variant="bodySmall" color="textMuted" align="center">
+                {t('home:records-tab.walks-empty')}
+              </Text>
+            </Box>
+          ) : (
+            <FootprintTimeline
+              diaries={filteredWalks}
+              myName={myName}
+              partnerName={partnerName}
+              onItemPress={handleItemPress}
+            />
+          )}
+        </View>
       </ScrollView>
 
       {showPicker && (
@@ -318,72 +238,6 @@ const filterStyles = StyleSheet.create({
   },
 });
 
-// ─── ViewToggle (segmented control) ─────────────────────
-
-function ViewToggle({
-  viewMode,
-  onChange,
-}: {
-  viewMode: ViewMode;
-  onChange: (mode: ViewMode) => void;
-}) {
-  return (
-    <Row style={toggleStyles.container}>
-      <Pressable
-        style={[
-          toggleStyles.button,
-          viewMode === 'calendar' && toggleStyles.buttonActive,
-        ]}
-        onPress={() => onChange('calendar')}
-        hitSlop={4}
-      >
-        <Icon
-          name="calendar"
-          size={14}
-          color={
-            viewMode === 'calendar' ? theme.colors.white : theme.colors.gray500
-          }
-        />
-      </Pressable>
-      <Pressable
-        style={[
-          toggleStyles.button,
-          viewMode === 'list' && toggleStyles.buttonActive,
-        ]}
-        onPress={() => onChange('list')}
-        hitSlop={4}
-      >
-        <Icon
-          name="list"
-          size={14}
-          color={
-            viewMode === 'list' ? theme.colors.white : theme.colors.gray500
-          }
-        />
-      </Pressable>
-    </Row>
-  );
-}
-
-const toggleStyles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.gray100,
-    borderRadius: theme.radius.sm,
-    padding: 2,
-    gap: 2,
-  },
-  button: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-});
-
 // ─── No Couple Fallback ─────────────────────────────────
 
 function RecordsNoCoupleFallback({
@@ -432,11 +286,22 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
   },
-  dimmed: {
-    opacity: 0.5,
-  },
   listMode: {
     marginTop: SPACING.md,
+  },
+  statRow: {
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  stat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: theme.colors.gray300,
   },
   fallbackBody: {
     flex: 1,

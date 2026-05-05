@@ -30,7 +30,6 @@ import koPermission from './locales/ko/permission.json';
 import koPremium from './locales/ko/premium.json';
 import koProfile from './locales/ko/profile.json';
 import koQuestion from './locales/ko/question.json';
-import koMemoryBook from './locales/ko/memory-book.json';
 import koPostcard from './locales/ko/postcard.json';
 import koReflection from './locales/ko/reflection.json';
 
@@ -88,7 +87,6 @@ export const NAMESPACES = [
   'premium',
   'calendar',
   'postcard',
-  'memory-book',
 ] as const;
 
 const resources = {
@@ -107,7 +105,6 @@ const resources = {
     premium: koPremium,
     calendar: koCalendar,
     postcard: koPostcard,
-    'memory-book': koMemoryBook,
   },
 };
 
