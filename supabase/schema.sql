@@ -74,6 +74,10 @@ CREATE TABLE IF NOT EXISTS public.walks (
   couple_id     UUID NOT NULL REFERENCES public.couples(id) ON DELETE CASCADE,
   date          DATE NOT NULL,
   location_name TEXT NOT NULL,
+  location_lat  DOUBLE PRECISION,
+  location_lng  DOUBLE PRECISION,
+  location_address TEXT,
+  location_source TEXT CHECK (location_source IS NULL OR location_source IN ('naver', 'google')),
   steps         INTEGER NOT NULL DEFAULT 0,
   is_revealed   BOOLEAN NOT NULL DEFAULT false,
   kind          TEXT NOT NULL DEFAULT 'together'
@@ -84,6 +88,23 @@ CREATE TABLE IF NOT EXISTS public.walks (
 -- 기존 배포를 위한 idempotent migration
 ALTER TABLE public.walks
   ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'together';
+
+ALTER TABLE public.walks
+  ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_address TEXT,
+  ADD COLUMN IF NOT EXISTS location_source TEXT;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'walks_location_source_check'
+  ) THEN
+    ALTER TABLE public.walks
+      ADD CONSTRAINT walks_location_source_check
+      CHECK (location_source IS NULL OR location_source IN ('naver', 'google'));
+  END IF;
+END $$;
 
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -106,6 +127,10 @@ CREATE TABLE IF NOT EXISTS public.footprint_entries (
   memo               TEXT NOT NULL DEFAULT '',
   photos             TEXT[] NOT NULL DEFAULT '{}',
   location_name      TEXT NOT NULL DEFAULT '',
+  location_lat       DOUBLE PRECISION,
+  location_lng       DOUBLE PRECISION,
+  location_address   TEXT,
+  location_source    TEXT CHECK (location_source IS NULL OR location_source IN ('naver', 'google')),
   diary_question_id  INTEGER,
   diary_answer       TEXT NOT NULL DEFAULT '',
   couple_question_id INTEGER,
@@ -117,6 +142,23 @@ CREATE TABLE IF NOT EXISTS public.footprint_entries (
 -- 기존 배포를 위한 idempotent migration
 ALTER TABLE public.footprint_entries
   ADD COLUMN IF NOT EXISTS location_name TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE public.footprint_entries
+  ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_address TEXT,
+  ADD COLUMN IF NOT EXISTS location_source TEXT;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'footprint_entries_location_source_check'
+  ) THEN
+    ALTER TABLE public.footprint_entries
+      ADD CONSTRAINT footprint_entries_location_source_check
+      CHECK (location_source IS NULL OR location_source IN ('naver', 'google'));
+  END IF;
+END $$;
 
 -- 1-5. notifications (알림)
 CREATE TABLE IF NOT EXISTS public.notifications (

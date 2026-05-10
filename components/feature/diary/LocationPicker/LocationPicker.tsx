@@ -6,15 +6,52 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  UIManager,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, Row, Text } from '@/components/base';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
-import type { PickedLocation, Place } from '@/lib/location';
+import {
+  selectLocationProvider,
+  type Coords,
+  type PickedLocation,
+  type Place,
+} from '@/lib/location';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
+
+// 네이티브 지도 SDK는 (1) NCP Client ID 환경변수가 있고 (2) 네이티브 view manager가
+// 실제로 dev client에 빌드되어 등록된 경우에만 lazy require.
+// 둘 중 하나라도 없으면 검색-only fallback (Expo Go / 미빌드된 dev client 안전).
+const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
+const HAS_NATIVE_NAVER_MAP =
+  !!NAVER_MAP_CLIENT_ID &&
+  // hasViewManagerConfig는 legacy/Fabric 모두에서 안전하게 false 반환 가능.
+  typeof UIManager.hasViewManagerConfig === 'function' &&
+  UIManager.hasViewManagerConfig('RNCNaverMapView') &&
+  UIManager.hasViewManagerConfig('RNCNaverMapMarker');
+
+const MapPickerView: React.ComponentType<{
+  coords?: Coords;
+  onMapTap?: (c: Coords) => void;
+  height?: number;
+}> | null = HAS_NATIVE_NAVER_MAP
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./MapPickerView').MapPickerView as React.ComponentType<{
+      coords?: Coords;
+      onMapTap?: (c: Coords) => void;
+      height?: number;
+    }>)
+  : null;
+
+if (NAVER_MAP_CLIENT_ID && !HAS_NATIVE_NAVER_MAP && __DEV__) {
+  console.warn(
+    '[LocationPicker] NAVER_MAP_CLIENT_ID는 설정됐지만 네이버 지도 네이티브 모듈이 없어요. ' +
+      'dev client를 재빌드하세요: `npx expo prebuild --clean && pnpm ios/android`',
+  );
+}
 
 interface LocationPickerProps {
   open: boolean;
@@ -44,17 +81,54 @@ export function LocationPicker({
 }: LocationPickerProps) {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState(initialQuery);
+  const [pendingPick, setPendingPick] = useState<PickedLocation | null>(null);
   const { results, isSearching, error, providerId } = useLocationSearch(query);
 
-  const handleSelect = (p: Place) => {
-    onPick({
+  const handleSelectFromList = (p: Place) => {
+    // 검색 결과 클릭 → 지도 SDK 있으면 미리보기 단계로, 없으면 즉시 onPick
+    const picked: PickedLocation = {
       name: p.name,
       coords: p.coords,
       address: p.address,
       source: p.source,
-    });
+    };
+    if (MapPickerView) {
+      setPendingPick(picked);
+    } else {
+      onPick(picked);
+      onClose();
+    }
+  };
+
+  const handleMapTap = async (coords: Coords) => {
+    // 사용자가 지도에서 핀 직접 떨어뜨림 → reverse geocode로 주소 채우기
+    const provider = selectLocationProvider();
+    try {
+      const place = await provider.reverseGeocode(coords);
+      setPendingPick({
+        name: place?.address || pendingPick?.name || '직접 선택한 위치',
+        coords,
+        address: place?.address,
+        source: place?.source ?? provider.id,
+      });
+    } catch {
+      // 역지오코딩 실패 시 좌표만 보존
+      setPendingPick({
+        name: pendingPick?.name || '직접 선택한 위치',
+        coords,
+        source: provider.id,
+      });
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!pendingPick) return;
+    onPick(pendingPick);
+    setPendingPick(null);
     onClose();
   };
+
+  const handleCancelPending = () => setPendingPick(null);
 
   const handlePlainText = () => {
     const trimmed = query.trim();
@@ -80,13 +154,66 @@ export function LocationPicker({
       >
         {/* 헤더 */}
         <Row px="lg" style={styles.header}>
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Icon name="x" size={22} color={theme.colors.text} />
+          <Pressable
+            onPress={pendingPick ? handleCancelPending : onClose}
+            hitSlop={8}
+          >
+            <Icon
+              name={pendingPick ? 'arrow-left' : 'x'}
+              size={22}
+              color={theme.colors.text}
+            />
           </Pressable>
           <Text variant="headingMedium" ml="md">
-            장소 선택
+            {pendingPick ? '위치 확인' : '장소 선택'}
           </Text>
         </Row>
+
+        {/* 지도 미리보기 단계 — 검색 결과 선택 후 / 핀 드롭 가능 */}
+        {pendingPick && MapPickerView && (
+          <View style={styles.mapStage}>
+            <MapPickerView
+              coords={pendingPick.coords}
+              onMapTap={handleMapTap}
+              height={280}
+            />
+            <View style={styles.pendingInfo}>
+              <Icon name="map-pin" size={16} color={theme.colors.primary} />
+              <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                <Text variant="bodyMedium" color="text" numberOfLines={1}>
+                  {pendingPick.name}
+                </Text>
+                {pendingPick.address && (
+                  <Text variant="caption" color="textMuted" numberOfLines={1}>
+                    {pendingPick.address}
+                  </Text>
+                )}
+                <Text
+                  variant="caption"
+                  color="textMuted"
+                  style={{ marginTop: 2 }}
+                >
+                  지도를 누르면 위치를 직접 옮길 수 있어요
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              style={[
+                styles.confirmBtn,
+                { paddingBottom: SPACING.md + insets.bottom },
+              ]}
+              onPress={handleConfirm}
+            >
+              <Text variant="bodyMedium" color="white" style={{ fontWeight: '700' }}>
+                이 위치로 저장
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* 검색 단계 — pendingPick 없을 때만 노출 */}
+        {!pendingPick && (
+          <>
 
         {/* 검색창 */}
         <View style={styles.searchBoxWrap}>
@@ -141,7 +268,7 @@ export function LocationPicker({
               )
             }
             renderItem={({ item }) => (
-              <PlaceRow place={item} onPress={() => handleSelect(item)} />
+              <PlaceRow place={item} onPress={() => handleSelectFromList(item)} />
             )}
             contentContainerStyle={styles.list}
           />
@@ -161,6 +288,8 @@ export function LocationPicker({
               「{query.trim()}」 그대로 사용
             </Text>
           </Pressable>
+        )}
+          </>
         )}
       </View>
     </RNModal>
@@ -307,5 +436,27 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySurface,
     borderTopWidth: 1,
     borderTopColor: theme.colors.primaryLight,
+  },
+  mapStage: {
+    flex: 1,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+  },
+  pendingInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: SPACING.md,
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryLight,
+  },
+  confirmBtn: {
+    marginTop: 'auto',
+    paddingVertical: SPACING.md,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

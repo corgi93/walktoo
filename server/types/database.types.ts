@@ -119,6 +119,10 @@ export interface Database {
           couple_id: string;
           date: string;
           location_name: string;
+          location_lat: number | null;
+          location_lng: number | null;
+          location_address: string | null;
+          location_source: 'naver' | 'google' | null;
           steps: number;
           is_revealed: boolean;
           kind: 'together' | 'each';
@@ -128,12 +132,20 @@ export interface Database {
           couple_id: string;
           date: string;
           location_name: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
+          location_address?: string | null;
+          location_source?: 'naver' | 'google' | null;
           steps: number;
           is_revealed?: boolean;
           kind?: 'together' | 'each';
         };
         Update: {
           location_name?: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
+          location_address?: string | null;
+          location_source?: 'naver' | 'google' | null;
           steps?: number;
           is_revealed?: boolean;
           kind?: 'together' | 'each';
@@ -148,6 +160,10 @@ export interface Database {
           memo: string;
           photos: string[];
           location_name: string;
+          location_lat: number | null;
+          location_lng: number | null;
+          location_address: string | null;
+          location_source: 'naver' | 'google' | null;
           written_at: string;
           diary_question_id: number | null;
           diary_answer: string;
@@ -160,6 +176,10 @@ export interface Database {
           memo: string;
           photos?: string[];
           location_name?: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
+          location_address?: string | null;
+          location_source?: 'naver' | 'google' | null;
           diary_question_id?: number;
           diary_answer?: string;
           couple_question_id?: number;
@@ -169,6 +189,10 @@ export interface Database {
           memo?: string;
           photos?: string[];
           location_name?: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
+          location_address?: string | null;
+          location_source?: 'naver' | 'google' | null;
           diary_answer?: string;
           couple_answer?: string;
         };

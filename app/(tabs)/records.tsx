@@ -1,6 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Modal as RNModal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -18,7 +24,25 @@ import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
 import { addMonths, getCurrentYearMonth } from '@/utils/date';
 
+// 네이버 지도 SDK는 NCP 키 + dev client 빌드 필요. 키 없으면 토글 자체 hide.
+const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
+
+const RecordsMapView: React.ComponentType<{
+  walks: readonly WalkDiary[];
+  myName: string;
+  partnerName: string;
+}> | null = NAVER_MAP_CLIENT_ID
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('@/components/feature/records/RecordsMapView')
+      .RecordsMapView as React.ComponentType<{
+      walks: readonly WalkDiary[];
+      myName: string;
+      partnerName: string;
+    }>)
+  : null;
+
 type KindFilter = 'all' | 'together' | 'each';
+type ViewMode = 'list' | 'map';
 
 // ─── Screen ─────────────────────────────────────────────
 
@@ -27,6 +51,7 @@ export default function RecordsScreen() {
   const { isCoupleConnected } = usePartnerDerivation();
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   if (!isCoupleConnected) {
     return <RecordsNoCoupleFallback insets={insets} />;
@@ -40,6 +65,8 @@ export default function RecordsScreen() {
       insets={insets}
       kindFilter={kindFilter}
       onChangeKindFilter={setKindFilter}
+      viewMode={viewMode}
+      onChangeViewMode={setViewMode}
     />
   );
 }
@@ -53,6 +80,8 @@ function RecordsContent({
   insets,
   kindFilter,
   onChangeKindFilter,
+  viewMode,
+  onChangeViewMode,
 }: {
   year: number;
   month: number;
@@ -60,11 +89,14 @@ function RecordsContent({
   insets: { top: number; bottom: number; left: number; right: number };
   kindFilter: KindFilter;
   onChangeKindFilter: (f: KindFilter) => void;
+  viewMode: ViewMode;
+  onChangeViewMode: (m: ViewMode) => void;
 }) {
   const { t } = useTranslation(['home', 'calendar']);
   const router = useRouter();
   const { couple, myName, partnerName } = usePartnerDerivation();
   const [showPicker, setShowPicker] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
   const coupleStartDate = couple?.startDate;
 
   const { walks, stamps } = useCalendarMonthQuery(year, month);
@@ -78,6 +110,14 @@ function RecordsContent({
   const handlePrev = () => onChangeYearMonth(addMonths(year, month, -1));
   const handleNext = () => onChangeYearMonth(addMonths(year, month, +1));
 
+  const handleAddRecord = (kind: 'together' | 'each') => {
+    setAddSheetOpen(false);
+    router.push({
+      pathname: '/footprint-create',
+      params: { kind },
+    });
+  };
+
   const handleItemPress = (walk: WalkDiary) => {
     router.push({
       pathname: '/diary-detail',
@@ -85,6 +125,7 @@ function RecordsContent({
         id: walk.id,
         date: walk.date,
         locationName: walk.locationName,
+        kind: walk.kind,
         isRevealed: String(walk.isRevealed),
         myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
         partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
@@ -94,11 +135,14 @@ function RecordsContent({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 탭 헤더 */}
+      {/* 탭 헤더 — 화면 제목과 보기 전환만 배치 */}
       <Row px="xxl" style={styles.header}>
         <Text variant="headingLarge" color="primary">
           {t('home:records-tab.title')}
         </Text>
+        {RecordsMapView && (
+          <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
+        )}
       </Row>
 
       <ScrollView
@@ -118,7 +162,11 @@ function RecordsContent({
         />
 
         {/* 우리/각자 필터 */}
-        <KindFilterBar value={kindFilter} onChange={onChangeKindFilter} />
+        <KindFilterBar
+          value={kindFilter}
+          onChange={onChangeKindFilter}
+          onAdd={() => setAddSheetOpen(true)}
+        />
 
         {/* 산책·발자국 카운트 (회고 관련 제거됨 — 기록에 집중) */}
         <Row px="xxl" style={styles.statRow}>
@@ -137,23 +185,31 @@ function RecordsContent({
           </View>
         </Row>
 
-        {/* 리스트 전용 — 달력 토글 제거 */}
-        <View style={styles.listMode}>
-          {filteredWalks.length === 0 ? (
-            <Box px="xxl">
-              <Text variant="bodySmall" color="textMuted" align="center">
-                {t('home:records-tab.walks-empty')}
-              </Text>
-            </Box>
-          ) : (
-            <FootprintTimeline
-              diaries={filteredWalks}
-              myName={myName}
-              partnerName={partnerName}
-              onItemPress={handleItemPress}
-            />
-          )}
-        </View>
+        {/* 리스트 / 지도 모드 */}
+        {viewMode === 'map' && RecordsMapView ? (
+          <RecordsMapView
+            walks={filteredWalks}
+            myName={myName}
+            partnerName={partnerName}
+          />
+        ) : (
+          <View style={styles.listMode}>
+            {filteredWalks.length === 0 ? (
+              <Box px="xxl">
+                <Text variant="bodySmall" color="textMuted" align="center">
+                  {t('home:records-tab.walks-empty')}
+                </Text>
+              </Box>
+            ) : (
+              <FootprintTimeline
+                diaries={filteredWalks}
+                myName={myName}
+                partnerName={partnerName}
+                onItemPress={handleItemPress}
+              />
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {showPicker && (
@@ -165,18 +221,234 @@ function RecordsContent({
           onClose={() => setShowPicker(false)}
         />
       )}
+
+      <AddRecordSheet
+        open={addSheetOpen}
+        bottomInset={insets.bottom}
+        onClose={() => setAddSheetOpen(false)}
+        onPick={handleAddRecord}
+      />
     </View>
   );
 }
 
 // ─── KindFilterBar (같이/각자 필터) ─────────────────────
 
+// ─── ViewToggle (리스트/지도) ────────────────────────────
+
+function ViewToggle({
+  mode,
+  onChange,
+}: {
+  mode: ViewMode;
+  onChange: (m: ViewMode) => void;
+}) {
+  return (
+    <Row style={toggleStyles.container}>
+      {(['list', 'map'] as const).map((m) => {
+        const active = mode === m;
+        return (
+          <Pressable
+            key={m}
+            onPress={() => onChange(m)}
+            style={[
+              toggleStyles.button,
+              active && toggleStyles.buttonActive,
+            ]}
+            hitSlop={4}
+          >
+            <Icon
+              name={m === 'list' ? 'list' : 'map-pin'}
+              size={13}
+              color={active ? theme.colors.white : theme.colors.gray500}
+            />
+            <Text
+              variant="caption"
+              style={{
+                color: active ? theme.colors.white : theme.colors.textSecondary,
+                fontWeight: active ? '700' : '500',
+                marginLeft: 4,
+              }}
+            >
+              {m === 'list' ? '리스트' : '지도'}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
+const toggleStyles = StyleSheet.create({
+  container: {
+    backgroundColor: theme.colors.gray100,
+    borderRadius: theme.radius.sm,
+    padding: 2,
+    gap: 2,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  buttonActive: {
+    backgroundColor: theme.colors.primary,
+  },
+});
+
+function AddRecordSheet({
+  open,
+  bottomInset,
+  onClose,
+  onPick,
+}: {
+  open: boolean;
+  bottomInset: number;
+  onClose: () => void;
+  onPick: (kind: 'together' | 'each') => void;
+}) {
+  return (
+    <RNModal
+      visible={open}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <Pressable style={sheetStyles.overlay} onPress={onClose}>
+        <Pressable
+          style={[sheetStyles.sheet, { paddingBottom: bottomInset + SPACING.lg }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <View style={sheetStyles.handle} />
+          <Text variant="headingSmall" style={sheetStyles.title}>
+            어떤 기록을 남길까요?
+          </Text>
+          <Text variant="bodySmall" color="textSecondary" style={sheetStyles.subtitle}>
+            지도에 남길 데이트는 우리의 하루로 기록해요.
+          </Text>
+
+          <Pressable
+            onPress={() => onPick('together')}
+            style={[sheetStyles.option, sheetStyles.optionPrimary]}
+          >
+            <View style={[sheetStyles.optionIcon, sheetStyles.optionIconPrimary]}>
+              <Icon name="heart" size={18} color={theme.colors.primary} />
+            </View>
+            <View style={sheetStyles.optionText}>
+              <Text variant="bodyMedium" style={sheetStyles.optionTitle}>
+                우리의 하루
+              </Text>
+              <Text variant="caption" color="textSecondary" style={sheetStyles.optionDesc}>
+                함께 간 장소를 지도 마커로 남겨요
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
+          </Pressable>
+
+          <Pressable
+            onPress={() => onPick('each')}
+            style={sheetStyles.option}
+          >
+            <View style={sheetStyles.optionIcon}>
+              <Icon name="sun" size={18} color={theme.colors.gray600} />
+            </View>
+            <View style={sheetStyles.optionText}>
+              <Text variant="bodyMedium" style={sheetStyles.optionTitle}>
+                오늘의 나
+              </Text>
+              <Text variant="caption" color="textSecondary" style={sheetStyles.optionDesc}>
+                각자의 일상을 가볍게 남겨요
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </RNModal>
+  );
+}
+
+const sheetStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(44, 44, 46, 0.42)',
+  },
+  sheet: {
+    paddingTop: SPACING.sm,
+    paddingHorizontal: LAYOUT.screenPx,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radius.xxl,
+    borderTopRightRadius: theme.radius.xxl,
+    borderTopWidth: 1,
+    borderColor: theme.colors.gray200,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.gray300,
+    marginBottom: SPACING.lg,
+  },
+  title: {
+    color: theme.colors.text,
+  },
+  subtitle: {
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.lg,
+  },
+  option: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceWarm,
+    borderWidth: 1,
+    borderColor: theme.colors.gray200,
+    marginTop: SPACING.sm,
+  },
+  optionPrimary: {
+    backgroundColor: theme.colors.primarySurface,
+    borderColor: theme.colors.primaryLight,
+  },
+  optionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.gray100,
+  },
+  optionIconPrimary: {
+    backgroundColor: theme.colors.white,
+  },
+  optionText: {
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  optionTitle: {
+    color: theme.colors.text,
+    fontWeight: '700',
+  },
+  optionDesc: {
+    marginTop: 2,
+  },
+});
+
 function KindFilterBar({
   value,
   onChange,
+  onAdd,
 }: {
   value: KindFilter;
   onChange: (v: KindFilter) => void;
+  onAdd: () => void;
 }) {
   const { t } = useTranslation('home');
   const items: { key: KindFilter; label: string; icon?: 'heart' | 'sun' }[] = [
@@ -187,54 +459,96 @@ function KindFilterBar({
 
   return (
     <Row px="xxl" style={filterStyles.container}>
-      {items.map((item) => {
-        const active = value === item.key;
-        return (
-          <Pressable
-            key={item.key}
-            onPress={() => onChange(item.key)}
-            style={[filterStyles.chip, active && filterStyles.chipActive]}
-            hitSlop={4}
-          >
-            {item.icon && (
-              <Icon
-                name={item.icon}
-                size={12}
-                color={active ? theme.colors.white : theme.colors.primary}
-              />
-            )}
-            <Text
-              variant="caption"
-              color={active ? 'white' : 'text'}
-              style={{ fontWeight: '600', marginLeft: item.icon ? 4 : 0 }}
+      <View style={filterStyles.chipRow}>
+        {items.map((item) => {
+          const active = value === item.key;
+          return (
+            <Pressable
+              key={item.key}
+              onPress={() => onChange(item.key)}
+              style={[filterStyles.chip, active && filterStyles.chipActive]}
+              hitSlop={4}
             >
-              {item.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              {item.icon && (
+                <Icon
+                  name={item.icon}
+                  size={12}
+                  color={active ? theme.colors.white : theme.colors.primary}
+                />
+              )}
+              <Text
+                variant="caption"
+                color={active ? 'white' : 'text'}
+                style={filterStyles.chipText}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Pressable
+        onPress={onAdd}
+        style={filterStyles.addButton}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel="기록 추가"
+      >
+        <Icon name="plus" size={13} color={theme.colors.primary} />
+        <Text variant="caption" style={filterStyles.addText}>
+          추가
+        </Text>
+      </Pressable>
     </Row>
   );
 }
 
 const filterStyles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+    marginTop: SPACING.xxs,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACING.xs,
-    marginTop: SPACING.sm,
+    flexShrink: 1,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
+  chipText: {
+    fontWeight: '600',
+    marginLeft: 4,
+  },
   chipActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: theme.colors.primaryLight,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  addText: {
+    color: theme.colors.primaryDark,
+    fontWeight: '700',
   },
 });
 

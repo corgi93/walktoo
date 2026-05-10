@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -16,6 +16,7 @@ import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { LocationPicker } from '@/components/feature/diary/LocationPicker';
 import {
   EachPhotoStrip,
+  PhotoPage,
   ScrapbookSaveButton,
   ThemeBg,
   ThemedDiaryCard,
@@ -23,6 +24,7 @@ import {
   ThemedTitle,
   ThemePicker,
 } from '@/components/feature/diary/scrapbook';
+import { PREMIUM } from '@/constants/premium';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
 import type { Coords, ProviderId } from '@/lib/location';
 import { getDailyQuestions } from '@/constants/questions';
@@ -40,11 +42,14 @@ import { formatDate, getLocalToday, parseLocalDate } from '@/utils/date';
 export default function FootprintCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ kind?: string }>();
   const { t } = useTranslation(['diary', 'common', 'premium']);
 
   const { couple, isCoupleConnected, myName } = usePartnerDerivation();
   const dialog = useDialogStore();
-  const photoBooth = usePhotoBoothStore();
+  const photoBoothResultUri = usePhotoBoothStore((s) => s.resultUri);
+  const setPhotoBoothPhotos = usePhotoBoothStore((s) => s.setPhotos);
+  const resetPhotoBooth = usePhotoBoothStore((s) => s.reset);
 
   // ─── 다꾸 테마 ────────────────────────────────────────
   const { theme: dt, themeId, setTheme } = useDiaryTheme();
@@ -58,15 +63,14 @@ export default function FootprintCreateScreen() {
   const [locationSource, setLocationSource] = useState<ProviderId | undefined>();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [diaryAnswer, setDiaryAnswer] = useState('');
-  // coupleAnswer — 폼에선 입력 X, 항상 빈 문자열로 저장 (DB 호환)
-  const coupleAnswer = '';
+  const [coupleAnswer, setCoupleAnswer] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
-  // 단순화: 항상 'each' (오늘의 나) — kind 선택 UI 제거됨
-  // DB 호환을 위해 kind 필드는 유지, 'together' 모드는 추후 별도 진입점에서 추가 가능
-  const kind: 'each' | 'together' = 'each';
+  const kind: 'each' | 'together' =
+    params.kind === 'together' ? 'together' : 'each';
+  const isTogether = kind === 'together';
 
-  // 사진 한도 — 오늘의 나는 1장 고정
-  const photoLimit = 1;
+  // 사진 한도 — 오늘의 나 1장, 우리의 하루 4장
+  const photoLimit = isTogether ? PREMIUM.PHOTO_LIMIT_FREE : 1;
 
   // kind 변경 시 사진 트리밍 (each ← together 전환 시 4장 → 1장)
   useEffect(() => {
@@ -119,11 +123,11 @@ export default function FootprintCreateScreen() {
   // 포토부스에서 돌아왔을 때 결과 이미지 반영
   useFocusEffect(
     useCallback(() => {
-      if (photoBooth.resultUri) {
-        setPhotos((prev) => [...prev, photoBooth.resultUri!].slice(0, 5));
-        photoBooth.reset();
+      if (photoBoothResultUri) {
+        setPhotos((prev) => [...prev, photoBoothResultUri].slice(0, 5));
+        resetPhotoBooth();
       }
-    }, [photoBooth.resultUri]),
+    }, [photoBoothResultUri, resetPhotoBooth]),
   );
 
   const handleOpenPhotoBooth = () => {
@@ -131,7 +135,7 @@ export default function FootprintCreateScreen() {
       dialog.alert('', t('diary:create.photo-need-first'));
       return;
     }
-    photoBooth.setPhotos(photos);
+    setPhotoBoothPhotos(photos);
     router.push('/photo-booth');
   };
 
@@ -177,7 +181,11 @@ export default function FootprintCreateScreen() {
   };
 
   const handleSave = () => {
-    // 오늘의 나(each) — 장소 생략 가능
+    if (isTogether && !locationName.trim()) {
+      dialog.alert('', t('diary:create.location-required'));
+      return;
+    }
+
     createDiary.mutate(
       {
         date,
@@ -302,7 +310,6 @@ export default function FootprintCreateScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* 날짜·종류 선택 제거 — 항상 오늘의 '오늘의 나'(each)로 기록 */}
               {/* ── 오늘 날짜 표시 (read-only, picker 없음) + 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>
                 <View
@@ -350,7 +357,11 @@ export default function FootprintCreateScreen() {
                       numberOfLines={1}
                     >
                       {locationName ||
-                        t('diary:create.location-placeholder-each')}
+                        t(
+                          isTogether
+                            ? 'diary:create.location-placeholder'
+                            : 'diary:create.location-placeholder-each',
+                        )}
                     </Text>
                     {locationAddress && (
                       <Text
@@ -390,13 +401,24 @@ export default function FootprintCreateScreen() {
                     {photos.length}/{photoLimit}
                   </Text>
                 </Row>
-                <EachPhotoStrip
-                  theme={dt}
-                  myPhoto={photos[0]}
-                  editable
-                  onAddMyPhoto={() => handleAddPhoto()}
-                  onRemoveMyPhoto={() => handleRemovePhoto(0)}
-                />
+                {isTogether ? (
+                  <PhotoPage
+                    theme={dt}
+                    photos={photos}
+                    editable
+                    onAddPhoto={() => handleAddPhoto()}
+                    onRemovePhoto={(slotIdx) => handleRemovePhoto(slotIdx)}
+                    quoteSeed={date}
+                  />
+                ) : (
+                  <EachPhotoStrip
+                    theme={dt}
+                    myPhoto={photos[0]}
+                    editable
+                    onAddMyPhoto={() => handleAddPhoto()}
+                    onRemoveMyPhoto={() => handleRemovePhoto(0)}
+                  />
+                )}
 
                 {/* 포토부스 — 텍스트 링크 톤 */}
                 {photos.length > 0 && (
@@ -440,25 +462,46 @@ export default function FootprintCreateScreen() {
                 </Text>
               </View>
 
-              {/* ── 📓 오늘의 한 줄 — Q 없이 평이한 freeform 입력 ── */}
+              {/* ── 📓 다이어리 ── */}
               <Box px="xxl" style={styles.fieldSection}>
                 <ThemedDiaryCard
                   theme={dt}
-                  title="📓 오늘의 한 줄"
-                  question=""
+                  title={isTogether ? '오늘의 다이어리' : '📓 오늘의 한 줄'}
+                  question={isTogether ? diaryQuestion.content : ''}
                   rotate={0.4}
                 >
                   <ThemedHandwriteInput
                     theme={dt}
                     value={diaryAnswer}
                     onChangeText={setDiaryAnswer}
-                    placeholder="오늘 너에게 들려주고 싶은 한 마디 ✿"
-                    minLines={2}
+                    placeholder={
+                      isTogether
+                        ? t('diary:detail.form.diary-placeholder')
+                        : '오늘 너에게 들려주고 싶은 한 마디 ✿'
+                    }
+                    minLines={isTogether ? 3 : 2}
                   />
                 </ThemedDiaryCard>
               </Box>
 
-              {/* 커플 질문 섹션 제거 — 단순화. 추후 별도 진입점(우리의 하루 모드) 추가 시 부활 */}
+              {isTogether && (
+                <Box px="xxl" style={styles.fieldSection}>
+                  <ThemedDiaryCard
+                    theme={dt}
+                    title={`${coupleQuestion.emoji} 커플 질문`}
+                    question={coupleQuestion.content}
+                    rotate={-0.35}
+                  >
+                    <ThemedHandwriteInput
+                      theme={dt}
+                      value={coupleAnswer}
+                      onChangeText={setCoupleAnswer}
+                      placeholder={t('diary:detail.form.couple-placeholder')}
+                      minLines={3}
+                    />
+                  </ThemedDiaryCard>
+                </Box>
+              )}
             </ScrollView>
 
             {/* ── 저장 버튼 ── */}

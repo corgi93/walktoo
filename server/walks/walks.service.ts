@@ -4,6 +4,18 @@ import { notificationsService } from '../notifications/notifications.service';
 import type { FootprintEntryRow } from '../types/database.types';
 import { walksRepository, type WalkWithEntries } from './walks.repository';
 
+const isLocationSchemaCacheError = (error: unknown): boolean => {
+  const message =
+    typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message?: unknown }).message ?? '')
+      : '';
+
+  return (
+    message.includes('schema cache') &&
+    /location_(lat|lng|address|source)/.test(message)
+  );
+};
+
 // ─── Row → Domain Type 변환 ────────────────────────────
 
 const toFootprintEntry = (row: FootprintEntryRow & { profiles?: { nickname: string } | null }): FootprintEntry => ({
@@ -13,6 +25,12 @@ const toFootprintEntry = (row: FootprintEntryRow & { profiles?: { nickname: stri
   memo: row.memo,
   photos: row.photos,
   locationName: row.location_name ?? '',
+  locationCoords:
+    row.location_lat != null && row.location_lng != null
+      ? { lat: row.location_lat, lng: row.location_lng }
+      : undefined,
+  locationAddress: row.location_address ?? undefined,
+  locationSource: row.location_source ?? undefined,
   writtenAt: row.written_at,
   diaryQuestionId: row.diary_question_id ?? undefined,
   diaryAnswer: row.diary_answer || undefined,
@@ -34,6 +52,12 @@ const toWalkDiary = (
     coupleId: row.couple_id,
     date: row.date,
     locationName: row.location_name,
+    locationCoords:
+      row.location_lat != null && row.location_lng != null
+        ? { lat: row.location_lat, lng: row.location_lng }
+        : undefined,
+    locationAddress: row.location_address ?? undefined,
+    locationSource: row.location_source ?? undefined,
     kind: row.kind ?? 'together',
     myEntry: myEntry ? toFootprintEntry(myEntry) : undefined,
     partnerEntry: partnerEntry ? toFootprintEntry(partnerEntry) : undefined,
@@ -121,27 +145,71 @@ export const walksService = {
     // 1. 산책 레코드 생성
     //    - together: walk.location_name에 공용 장소 저장
     //    - each:     walk.location_name은 빈값, entry.location_name에 각자 장소
-    const { data: walk, error: walkError } = await walksRepository.create({
+    const walkInput = {
       couple_id: coupleId,
       date: input.date,
       location_name: input.kind === 'together' ? input.locationName : '',
+      location_lat: input.kind === 'together' ? input.locationCoords?.lat : undefined,
+      location_lng: input.kind === 'together' ? input.locationCoords?.lng : undefined,
+      location_address: input.kind === 'together' ? input.locationAddress : undefined,
+      location_source: input.kind === 'together' ? input.locationSource : undefined,
       steps: 0, // legacy 컬럼 (더 이상 사용하지 않음)
       kind: input.kind,
-    });
+    };
+
+    let { data: walk, error: walkError } = await walksRepository.create(walkInput);
+
+    if (walkError && isLocationSchemaCacheError(walkError)) {
+      const { data: fallbackWalk, error: fallbackError } =
+        await walksRepository.create({
+          couple_id: coupleId,
+          date: input.date,
+          location_name: input.kind === 'together' ? input.locationName : '',
+          steps: 0,
+          kind: input.kind,
+        });
+
+      walk = fallbackWalk;
+      walkError = fallbackError;
+    }
+
     if (walkError) throw walkError;
 
     // 2. 내 발자취 엔트리 생성
-    const { error: entryError } = await walksRepository.createEntry({
+    const entryInput = {
       walk_id: walk.id,
       user_id: currentUserId,
       memo: input.memo,
       photos: input.photos,
       location_name: input.kind === 'each' ? input.locationName : '',
+      location_lat: input.kind === 'each' ? input.locationCoords?.lat : undefined,
+      location_lng: input.kind === 'each' ? input.locationCoords?.lng : undefined,
+      location_address: input.kind === 'each' ? input.locationAddress : undefined,
+      location_source: input.kind === 'each' ? input.locationSource : undefined,
       diary_question_id: input.diaryQuestionId,
       diary_answer: input.diaryAnswer,
       couple_question_id: input.coupleQuestionId,
       couple_answer: input.coupleAnswer,
-    });
+    };
+
+    let { error: entryError } = await walksRepository.createEntry(entryInput);
+
+    if (entryError && isLocationSchemaCacheError(entryError)) {
+      const { error: fallbackError } = await walksRepository.createEntry({
+        walk_id: walk.id,
+        user_id: currentUserId,
+        memo: input.memo,
+        photos: input.photos,
+        location_name: input.kind === 'each' ? input.locationName : '',
+        diary_question_id: input.diaryQuestionId,
+        diary_answer: input.diaryAnswer,
+        couple_question_id: input.coupleQuestionId,
+        couple_answer: input.coupleAnswer,
+      });
+
+      entryError = fallbackError;
+    }
+
     if (entryError) throw entryError;
 
     // 상대방에게 알림 (비동기, 실패해도 무시)
