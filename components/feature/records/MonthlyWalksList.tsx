@@ -15,7 +15,7 @@ interface MonthlyWalksListProps {
 
 /**
  * 이 달의 산책 수직 리스트.
- * RecentWalksWidget의 3개 horizontal 카드 패턴과 달리, 월 전체를 세로로 나열.
+ * 월 전체 산책 기록을 세로 타임라인으로 나열.
  * 기록 탭 전용.
  */
 export function MonthlyWalksList({ walks }: MonthlyWalksListProps) {

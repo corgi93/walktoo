@@ -11,8 +11,8 @@ import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { formatDday, formatSteps } from '@/utils/date';
 
+import { HomeMapWidget } from './HomeMapWidget';
 import { MemoryDrawWidget } from './MemoryDrawWidget';
-import { MiniCalendarWidget } from './MiniCalendarWidget';
 import { BOY_FRAMES, GIRL_FRAMES, WalkingSprite } from './WalkIllustration';
 
 type CharacterType = 'boy' | 'girl';
@@ -27,6 +27,7 @@ const FRAMES_MAP: Record<CharacterType, typeof BOY_FRAMES> = {
 interface WidgetBoardProps {
   firstMetDate?: string;
   todayWalk?: WalkDiary;
+  recentWalks: readonly WalkDiary[];
   myName: string;
   partnerName: string;
   myCharacter?: CharacterType;
@@ -44,11 +45,14 @@ interface WidgetBoardProps {
   isClaimingStamp: boolean;
   onDdayPress: () => void;
   onClaimStamp: () => void;
+  onMapInteractionStart?: () => void;
+  onMapInteractionEnd?: () => void;
 }
 
 export function WidgetBoard({
   firstMetDate,
   todayWalk,
+  recentWalks,
   myName,
   partnerName,
   myCharacter = 'boy',
@@ -61,6 +65,8 @@ export function WidgetBoard({
   isClaimingStamp,
   onDdayPress,
   onClaimStamp,
+  onMapInteractionStart,
+  onMapInteractionEnd,
 }: WidgetBoardProps) {
   const router = useRouter();
 
@@ -131,8 +137,12 @@ export function WidgetBoard({
         />
       </View>
 
-      {/* Row 3 ─ 캘린더 */}
-      <MiniCalendarWidget />
+      {/* Row 3 ─ 우리 지도 */}
+      <HomeMapWidget
+        walks={recentWalks}
+        onMapInteractionStart={onMapInteractionStart}
+        onMapInteractionEnd={onMapInteractionEnd}
+      />
 
       {/* 추억 뽑기 ─ 가챠 hero 카드 */}
       <MemoryDrawWidget />

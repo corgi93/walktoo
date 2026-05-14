@@ -429,6 +429,7 @@ export default function DiaryDetailScreen() {
                       coupleQuestionContent={coupleQuestion.content}
                       coupleQuestionEmoji={coupleQuestion.emoji}
                       coupleQuestionCategory={coupleQuestion.categoryLabel}
+                      photoLimit={photoLimit}
                       locationName={
                         walkKind === 'each' ? myLocationName : undefined
                       }
@@ -620,6 +621,7 @@ function EntryForm({
   coupleQuestionContent,
   coupleQuestionEmoji,
   coupleQuestionCategory,
+  photoLimit,
   locationName,
   walkKind,
   onChangeLocationName,
@@ -636,6 +638,7 @@ function EntryForm({
   coupleQuestionContent: string;
   coupleQuestionEmoji: string;
   coupleQuestionCategory: string;
+  photoLimit: number;
   /** kind='each'일 때만 전달 — 내 장소 입력 */
   locationName?: string;
   /** 산책 종류 — each면 다이어리 Q 없이 freeform + 커플 Q 숨김 */
@@ -693,7 +696,7 @@ function EntryForm({
             fontFamily: dt.monoFont,
           }}
         >
-          {photos.length}/{walkKind === 'each' ? 1 : PREMIUM.PHOTO_LIMIT_FREE}
+          {photos.length}/{photoLimit}
         </Text>
       </Row>
 

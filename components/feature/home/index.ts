@@ -1,10 +1,6 @@
-export { DdaySection } from './DdaySection';
-export { DualStepsMissionCard } from './DualStepsMissionCard';
 export { FirstMetDatePicker } from './FirstMetDatePicker';
-export { HeroStatCard } from './HeroStatCard';
+export { HomeMapWidget } from './HomeMapWidget';
 export { HomeTopBar } from './HomeTopBar';
 export { MemoryDrawWidget } from './MemoryDrawWidget';
-export { MiniCalendarWidget } from './MiniCalendarWidget';
-export { ReflectionWidget } from './ReflectionWidget';
 export { WalkIllustration } from './WalkIllustration';
 export { WidgetBoard } from './WidgetBoard';

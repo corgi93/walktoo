@@ -19,6 +19,7 @@ import type premium from './locales/ko/premium.json';
 import type profile from './locales/ko/profile.json';
 import type question from './locales/ko/question.json';
 import type reflection from './locales/ko/reflection.json';
+import type schedule from './locales/ko/schedule.json';
 
 declare module 'react-i18next' {
   interface CustomTypeOptions {
@@ -37,6 +38,7 @@ declare module 'react-i18next' {
       error: typeof error;
       premium: typeof premium;
       calendar: typeof calendar;
+      schedule: typeof schedule;
     };
   }
 }

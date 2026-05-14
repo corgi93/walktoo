@@ -60,9 +60,9 @@
 ## Native Maps
 
 - 장소 검색의 기본 fallback은 검색-only + 텍스트 입력이다. 지도 SDK가 없거나 키가 없을 때 앱이 깨지면 안 된다.
-- 네이버 지도 SDK는 `@mj-studio/react-native-naver-map`를 사용한다.
-- `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`가 있을 때만 `app.config.ts`에서 config plugin을 추가한다.
-- 네이티브 지도 view는 dev client에 실제로 빌드되어 있어야 한다. 키만 있고 native view manager가 없으면 fallback을 유지한다.
+- 네이버 지도는 `react-native-webview` 안에서 Maps JavaScript API로 표시한다.
+- `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`와 `EXPO_PUBLIC_NAVER_MAP_WEB_BASE_URL` 둘 다 필요하다.
+- `EXPO_PUBLIC_NAVER_MAP_WEB_BASE_URL`은 실제 서버 URL이 아니라 NCP Web 서비스 URL 검증용 origin이다.
 - 지도 기능 변경 후에는 iOS/Android dev client 재빌드 필요 여부를 사용자에게 알려야 한다.
 
 ## Environment

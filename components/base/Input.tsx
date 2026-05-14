@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 
 import { theme } from '@/styles/theme';
-import { COMPONENT_SIZE } from '@/styles/type';
+import { COMPONENT_SIZE, FONT_FAMILY } from '@/styles/type';
 
 import Text from './Text';
 
@@ -108,9 +108,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    fontFamily: FONT_FAMILY.pixel,
     fontSize: 16,
     color: theme.colors.text,
     paddingVertical: 0,
+    includeFontPadding: false,
   },
 });
 

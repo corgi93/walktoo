@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal as RNModal,
   Pressable,
@@ -17,29 +17,13 @@ import {
   MonthYearPicker,
 } from '@/components/feature/calendar';
 import { FootprintTimeline } from '@/components/feature/diary';
+import { RecordsMapView } from '@/components/feature/records/RecordsMapView';
 import { useCalendarMonthQuery } from '@/hooks/services/calendar/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
 import { addMonths, getCurrentYearMonth } from '@/utils/date';
-
-// 네이버 지도 SDK는 NCP 키 + dev client 빌드 필요. 키 없으면 토글 자체 hide.
-const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
-
-const RecordsMapView: React.ComponentType<{
-  walks: readonly WalkDiary[];
-  myName: string;
-  partnerName: string;
-}> | null = NAVER_MAP_CLIENT_ID
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('@/components/feature/records/RecordsMapView')
-      .RecordsMapView as React.ComponentType<{
-      walks: readonly WalkDiary[];
-      myName: string;
-      partnerName: string;
-    }>)
-  : null;
 
 type KindFilter = 'all' | 'together' | 'each';
 type ViewMode = 'list' | 'map';
@@ -97,6 +81,8 @@ function RecordsContent({
   const { couple, myName, partnerName } = usePartnerDerivation();
   const [showPicker, setShowPicker] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
+  const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coupleStartDate = couple?.startDate;
 
   const { walks, stamps } = useCalendarMonthQuery(year, month);
@@ -133,6 +119,33 @@ function RecordsContent({
     });
   };
 
+  const lockMapScroll = useCallback(() => {
+    if (mapInteractionTimer.current) {
+      clearTimeout(mapInteractionTimer.current);
+      mapInteractionTimer.current = null;
+    }
+    setIsMapInteracting(true);
+  }, []);
+
+  const unlockMapScroll = useCallback(() => {
+    if (mapInteractionTimer.current) {
+      clearTimeout(mapInteractionTimer.current);
+    }
+    mapInteractionTimer.current = setTimeout(() => {
+      setIsMapInteracting(false);
+      mapInteractionTimer.current = null;
+    }, 300);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (mapInteractionTimer.current) {
+        clearTimeout(mapInteractionTimer.current);
+      }
+    },
+    [],
+  );
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* 탭 헤더 — 화면 제목과 보기 전환만 배치 */}
@@ -140,12 +153,12 @@ function RecordsContent({
         <Text variant="headingLarge" color="primary">
           {t('home:records-tab.title')}
         </Text>
-        {RecordsMapView && (
-          <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
-        )}
+        <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
       </Row>
 
       <ScrollView
+        scrollEnabled={!isMapInteracting}
+        nestedScrollEnabled={false}
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: insets.bottom + LAYOUT.sectionGap },
@@ -186,11 +199,13 @@ function RecordsContent({
         </Row>
 
         {/* 리스트 / 지도 모드 */}
-        {viewMode === 'map' && RecordsMapView ? (
+        {viewMode === 'map' ? (
           <RecordsMapView
             walks={filteredWalks}
             myName={myName}
             partnerName={partnerName}
+            onMapInteractionStart={lockMapScroll}
+            onMapInteractionEnd={unlockMapScroll}
           />
         ) : (
           <View style={styles.listMode}>

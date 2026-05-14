@@ -109,7 +109,7 @@ export async function create(
 
   if (error || !data) {
     console.warn('[schedules] create error:', error?.message);
-    return null;
+    throw new Error(error?.message ?? 'create_failed');
   }
 
   return fromRow(data);
@@ -138,7 +138,7 @@ export async function update(
 
   if (error || !data) {
     console.warn('[schedules] update error:', error?.message);
-    return null;
+    throw new Error(error?.message ?? 'update_failed');
   }
 
   return fromRow(data);
@@ -154,7 +154,7 @@ export async function remove(id: string): Promise<boolean> {
 
   if (error) {
     console.warn('[schedules] remove error:', error.message);
-    return false;
+    throw new Error(error.message);
   }
   return true;
 }

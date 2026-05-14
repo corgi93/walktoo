@@ -37,8 +37,11 @@ EXPO_PUBLIC_LOCATION_PROVIDER=naver
 EXPO_PUBLIC_NAVER_DEV_CLIENT_ID=
 EXPO_PUBLIC_NAVER_DEV_CLIENT_SECRET=
 
-# (Phase 2) 네이버 Cloud Platform Maps
+# 네이버 Cloud Platform Maps WebView
 EXPO_PUBLIC_NAVER_MAP_CLIENT_ID=
+# 앱 WebView에서 사용할 origin. 실제 서버를 띄우는 URL이 아니라
+# NCP Maps JavaScript API의 Web 서비스 URL에 등록할 origin입니다.
+EXPO_PUBLIC_NAVER_MAP_WEB_BASE_URL=
 EXPO_PUBLIC_NCP_API_KEY_ID=
 EXPO_PUBLIC_NCP_API_KEY=
 
@@ -54,9 +57,9 @@ EXPO_PUBLIC_GOOGLE_MAPS_KEY=
 3. WEB 설정 + iOS/Android 번들 ID 등록
 4. Client ID / Client Secret → `.env`에 추가
 
-### 네이버 Cloud Platform — 지도 SDK (Phase 2)
+### 네이버 Cloud Platform — Maps JavaScript API
 1. https://www.ncloud.com → Console → AI·NAVER API → Maps
-2. Application 등록 → iOS bundle id (`com.walktoo.app`), Android package (`com.walktoo.app`)
+2. Application 등록 → Web 서비스 URL에 `EXPO_PUBLIC_NAVER_MAP_WEB_BASE_URL` 값 등록
 3. Client ID 발급 → `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`
 4. (역지오코딩용) Sub Account → API Gateway → Authentication Key 발급
 
@@ -91,12 +94,11 @@ npx supabase gen types typescript --project-id YOUR_PROJECT > server/types/datab
 - [x] 텍스트만 입력 fallback
 - [x] footprint-create 통합
 
-## Phase 2 (네이티브 지도)
-- [ ] `@mj-studio/react-native-naver-map` 설치 (네이버용)
-- [ ] `react-native-maps` 설치 (구글용)
-- [ ] LocationPicker에 지도 미리보기 + 핀 드롭 추가
-- [ ] `expo prebuild` + dev client 재빌드
-- [ ] DB 마이그레이션 적용 + walks.service.ts에 coords 매핑
+## Phase 2 ✅ (지도 WebView)
+- [x] 네이버 Maps JavaScript API를 WebView로 표시
+- [x] LocationPicker 지도 미리보기 + 핀 드롭
+- [x] 기록/홈 지도 마커 표시
+- [x] DB 마이그레이션 적용 + walks.service.ts에 coords 매핑
 
 ## Phase 3 (서버 프록시)
 현재 `EXPO_PUBLIC_NAVER_DEV_CLIENT_SECRET`이 클라이언트에 노출됨.

@@ -48,7 +48,6 @@ const getPurchases = (): PurchasesModule | null => {
     return purchasesRef;
   } catch (e) {
     if (__DEV__) {
-      // eslint-disable-next-line no-console
       console.warn(
         '[RevenueCat] react-native-purchases unavailable. ' +
           'Rebuild dev client to enable purchases.',
@@ -73,7 +72,6 @@ let initialized = false;
 export const initRevenueCat = async (userId: string): Promise<void> => {
   if (!API_KEY) {
     if (__DEV__) {
-      // eslint-disable-next-line no-console
       console.warn('[RevenueCat] API key missing — SDK disabled');
     }
     return;
@@ -127,20 +125,6 @@ export const findLifetimePackage = (
   return matched ?? null;
 };
 
-/**
- * product identifier 로 패키지 찾기. 개별 꾸미기 팩 조회 용도.
- * RC 콘솔에 해당 product가 등록 안 돼있으면 null 반환 (UI는 "곧 출시"로 표시).
- */
-export const findPackageByProductId = (
-  offering: PurchasesOffering,
-  productId: string,
-): PurchasesPackage | null => {
-  const matched = offering.availablePackages.find(
-    (p) => p.product.identifier === productId,
-  );
-  return matched ?? null;
-};
-
 // ─── 구매 / 복원 ─────────────────────────────────────────
 
 export interface PurchaseOutcome {
@@ -169,36 +153,6 @@ export const purchaseLifetime = async (
     const hasEntitlement = hasActiveEntitlement(result.customerInfo);
     const appUserId = await Purchases.getAppUserID();
     return { ok: hasEntitlement, hasEntitlement, appUserId };
-  } catch (e: unknown) {
-    const err = e as { userCancelled?: boolean; message?: string };
-    if (err.userCancelled) {
-      return { ok: false, userCancelled: true };
-    }
-    return { ok: false, errorMessage: err.message ?? 'unknown' };
-  }
-};
-
-/**
- * 개별 꾸미기 팩 구매 (non-consumable).
- *
- * lifetime과 달리 ENTITLEMENT_ID 활성화는 검사하지 않음 — 팩별 소유권은
- * 서버 DB (`couple_pack_entitlements`)로 관리. RC는 영수증/결제만 담당.
- * 호출부에서 ok=true면 markPackPurchased RPC로 DB에 기록해야 함.
- */
-export const purchasePack = async (
-  pkg: PurchasesPackage,
-): Promise<PurchaseOutcome> => {
-  if (!initialized) {
-    return { ok: false, errorMessage: 'sdk-unavailable' };
-  }
-  const Purchases = getPurchases();
-  if (!Purchases) {
-    return { ok: false, errorMessage: 'sdk-unavailable' };
-  }
-  try {
-    await Purchases.purchasePackage(pkg);
-    const appUserId = await Purchases.getAppUserID();
-    return { ok: true, appUserId };
   } catch (e: unknown) {
     const err = e as { userCancelled?: boolean; message?: string };
     if (err.userCancelled) {

@@ -6,8 +6,8 @@
  *    - 지역 검색 API: X-Naver-Client-Id, X-Naver-Client-Secret
  *    - 환경변수: EXPO_PUBLIC_NAVER_DEV_CLIENT_ID, EXPO_PUBLIC_NAVER_DEV_CLIENT_SECRET
  *
- * 2. **Naver Cloud Platform (NCP)** (https://www.ncloud.com) — Phase 2 (네이티브 지도 SDK용)
- *    - Maps SDK 클라이언트: ncpKeyId
+ * 2. **Naver Cloud Platform (NCP)** (https://www.ncloud.com) — 지도 WebView + Reverse Geocoding
+ *    - Maps JavaScript API 클라이언트: ncpKeyId
  *    - 환경변수: EXPO_PUBLIC_NAVER_MAP_CLIENT_ID
  *    - 역지오코딩 (Reverse Geocoding) API도 NCP에 있음
  *

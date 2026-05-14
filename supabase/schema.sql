@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   push_token            TEXT,
   -- premium
   has_premium           BOOLEAN NOT NULL DEFAULT false,
-  premium_trial_ends_at TIMESTAMPTZ,
   premium_purchased_at  TIMESTAMPTZ,
   revenuecat_user_id    TEXT,
   --
@@ -224,6 +223,14 @@ CREATE TABLE IF NOT EXISTS public.couple_schedules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 1-11. couple_memos (커플 공유 메모장)
+CREATE TABLE IF NOT EXISTS public.couple_memos (
+  couple_id  UUID PRIMARY KEY REFERENCES public.couples(id) ON DELETE CASCADE,
+  content    TEXT NOT NULL DEFAULT '' CHECK (char_length(content) <= 5000),
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- 1-13. couple_book_credits (회고북 크레딧 — 결제 구매 + 스탬프 교환 합산)
 --   credits_remaining: 아직 안 쓴 회고북 뽑기 권수
 --   stamps_redeemed_year: 해당 연도에 스탬프로 교환한 권수 (연 상한 체크용)
@@ -233,22 +240,6 @@ CREATE TABLE IF NOT EXISTS public.couple_book_credits (
   stamps_redeemed_year  INTEGER NOT NULL DEFAULT 0,
   last_redemption_year  INTEGER,
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- 1-12. couple_pack_entitlements (커플 단위 꾸미기 팩 소유권)
---   decoration_packs 카탈로그는 클라이언트 constants에 하드코딩.
---   'lifetime' 팩은 pack_id='lifetime' 한 row만 insert하고,
---   클라이언트에서 "* 포함"으로 해석해 모든 팩 unlock.
---   번들 구매 시엔 includes의 각 pack_id 별로 row 생성.
---   커플 중 한 명이 구매하면 양쪽 모두 적용 (couple_id 공유).
-CREATE TABLE IF NOT EXISTS public.couple_pack_entitlements (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  couple_id             UUID NOT NULL REFERENCES public.couples(id) ON DELETE CASCADE,
-  pack_id               TEXT NOT NULL,
-  purchased_by          UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  revenuecat_product_id TEXT,
-  purchased_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(couple_id, pack_id)
 );
 
 -- 1-11. reflection_answers (회고 답변)
@@ -279,7 +270,6 @@ CREATE INDEX IF NOT EXISTS idx_monthly_reflections_couple   ON public.monthly_re
 CREATE INDEX IF NOT EXISTS idx_reflection_answers_reflection ON public.reflection_answers(reflection_id);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_couple_date  ON public.couple_schedules(couple_id, date);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_owner        ON public.couple_schedules(owner_id);
-CREATE INDEX IF NOT EXISTS idx_pack_entitlements_couple      ON public.couple_pack_entitlements(couple_id);
 
 
 -- ────────────────────────────────────────────────────────────
@@ -296,7 +286,7 @@ ALTER TABLE public.memory_stamps       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.monthly_reflections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reflection_answers  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.couple_schedules    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.couple_pack_entitlements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.couple_memos        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.couple_book_credits     ENABLE ROW LEVEL SECURITY;
 
 -- 멱등 RLS 헬퍼: 있으면 DROP → 재생성
@@ -501,14 +491,29 @@ DO $$ BEGIN
   CREATE POLICY "couple_schedules_delete" ON public.couple_schedules
     FOR DELETE USING (owner_id = auth.uid());
 
-  -- ── couple_pack_entitlements ──
-  DROP POLICY IF EXISTS "pack_entitlements_select" ON public.couple_pack_entitlements;
-  CREATE POLICY "pack_entitlements_select" ON public.couple_pack_entitlements
+  -- ── couple_memos ──
+  DROP POLICY IF EXISTS "couple_memos_select" ON public.couple_memos;
+  CREATE POLICY "couple_memos_select" ON public.couple_memos
     FOR SELECT USING (
       couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
     );
 
-  -- INSERT/UPDATE는 RPC(mark_pack_purchased)를 통해서만 — 직접 허용하지 않음.
+  DROP POLICY IF EXISTS "couple_memos_insert" ON public.couple_memos;
+  CREATE POLICY "couple_memos_insert" ON public.couple_memos
+    FOR INSERT WITH CHECK (
+      updated_by = auth.uid()
+      AND couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  DROP POLICY IF EXISTS "couple_memos_update" ON public.couple_memos;
+  CREATE POLICY "couple_memos_update" ON public.couple_memos
+    FOR UPDATE USING (
+      couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    )
+    WITH CHECK (
+      updated_by = auth.uid()
+      AND couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
 
   -- ── couple_book_credits ──
   DROP POLICY IF EXISTS "book_credits_select" ON public.couple_book_credits;
@@ -530,6 +535,16 @@ DROP TRIGGER IF EXISTS trg_couple_schedules_updated_at ON public.couple_schedule
 CREATE TRIGGER trg_couple_schedules_updated_at
   BEFORE UPDATE ON public.couple_schedules
   FOR EACH ROW EXECUTE FUNCTION public.set_couple_schedules_updated_at();
+
+-- couple_memos updated_at 트리거
+CREATE OR REPLACE FUNCTION public.set_couple_memos_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+DROP TRIGGER IF EXISTS trg_couple_memos_updated_at ON public.couple_memos;
+CREATE TRIGGER trg_couple_memos_updated_at
+  BEFORE UPDATE ON public.couple_memos
+  FOR EACH ROW EXECUTE FUNCTION public.set_couple_memos_updated_at();
 
 
 -- ────────────────────────────────────────────────────────────
@@ -788,22 +803,6 @@ BEGIN
 END;
 $$;
 
--- 6-7. 프리미엄 트라이얼 시작
-CREATE OR REPLACE FUNCTION public.start_trial_if_needed()
-RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_existing TIMESTAMPTZ;
-BEGIN
-  SELECT premium_trial_ends_at INTO v_existing FROM public.profiles WHERE id = auth.uid();
-  IF v_existing IS NOT NULL THEN
-    RETURN jsonb_build_object('started', false, 'trial_ends_at', v_existing);
-  END IF;
-  UPDATE public.profiles SET premium_trial_ends_at = now() + interval '7 days'
-  WHERE id = auth.uid() RETURNING premium_trial_ends_at INTO v_existing;
-  RETURN jsonb_build_object('started', true, 'trial_ends_at', v_existing);
-END;
-$$;
-
 -- 6-8. 프리미엄 구매 마킹
 CREATE OR REPLACE FUNCTION public.mark_premium_purchased(p_revenuecat_user_id TEXT)
 RETURNS jsonb
@@ -820,36 +819,6 @@ BEGIN
     WHERE id = v_couple_id;
   END IF;
   RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- 6-8b. 꾸미기 팩 구매 기록 (RevenueCat 결제 완료 후 앱에서 호출)
---       pack_id가 'lifetime' 이면 1 row만 저장 — 클라이언트에서 '* 포함'으로 해석
---       번들은 앱에서 각 sub-pack_id에 대해 여러 번 호출
-CREATE OR REPLACE FUNCTION public.mark_pack_purchased(
-  p_pack_id TEXT,
-  p_revenuecat_product_id TEXT
-)
-RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_couple_id UUID;
-  v_entitlement_id UUID;
-BEGIN
-  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
-  IF v_couple_id IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
-  END IF;
-  INSERT INTO public.couple_pack_entitlements (
-    couple_id, pack_id, purchased_by, revenuecat_product_id
-  )
-  VALUES (v_couple_id, p_pack_id, auth.uid(), p_revenuecat_product_id)
-  ON CONFLICT (couple_id, pack_id) DO UPDATE SET
-    purchased_by = EXCLUDED.purchased_by,
-    revenuecat_product_id = EXCLUDED.revenuecat_product_id,
-    purchased_at = now()
-  RETURNING id INTO v_entitlement_id;
-  RETURN jsonb_build_object('success', true, 'id', v_entitlement_id);
 END;
 $$;
 
@@ -1001,15 +970,14 @@ CREATE OR REPLACE FUNCTION public.is_entitled()
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
 DECLARE
-  v_trial_ends TIMESTAMPTZ; v_my_premium BOOLEAN; v_couple_premium BOOLEAN;
+  v_my_premium BOOLEAN; v_couple_premium BOOLEAN;
 BEGIN
-  SELECT premium_trial_ends_at, has_premium INTO v_trial_ends, v_my_premium
+  SELECT has_premium INTO v_my_premium
   FROM public.profiles WHERE id = auth.uid();
   IF v_my_premium THEN RETURN true; END IF;
   SELECT c.has_premium INTO v_couple_premium FROM public.couples c
   JOIN public.profiles p ON p.couple_id = c.id WHERE p.id = auth.uid() LIMIT 1;
   IF COALESCE(v_couple_premium, false) THEN RETURN true; END IF;
-  IF v_trial_ends IS NOT NULL AND v_trial_ends > now() THEN RETURN true; END IF;
   RETURN false;
 END;
 $$;
@@ -1019,9 +987,7 @@ $$;
 -- 7. GRANTS
 -- ────────────────────────────────────────────────────────────
 
-GRANT EXECUTE ON FUNCTION public.start_trial_if_needed()        TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT)   TO authenticated;
-GRANT EXECUTE ON FUNCTION public.mark_pack_purchased(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_book_credits()             TO authenticated;
 GRANT EXECUTE ON FUNCTION public.add_book_credits(INTEGER)      TO authenticated;
 GRANT EXECUTE ON FUNCTION public.redeem_stamps_for_book()       TO authenticated;

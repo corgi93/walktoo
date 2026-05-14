@@ -1,6 +1,5 @@
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import type { EventSubscription } from 'expo-modules-core';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
@@ -31,8 +30,10 @@ export function useNotificationSetup() {
   const savePushToken = useSavePushTokenMutation();
   const router = useRouter();
 
-  const notificationListener = useRef<EventSubscription>(null);
-  const responseListener = useRef<EventSubscription>(null);
+  const notificationListener =
+    useRef<ReturnType<typeof Notifications.addNotificationReceivedListener> | null>(null);
+  const responseListener =
+    useRef<ReturnType<typeof Notifications.addNotificationResponseReceivedListener> | null>(null);
 
   useEffect(() => {
     // 1. 푸시 토큰 등록
@@ -70,7 +71,7 @@ export function useNotificationSetup() {
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [me?.id]);
+  }, [me?.id, router, savePushToken]);
 }
 
 // ─── 푸시 토큰 등록 ──────────────────────────────────────

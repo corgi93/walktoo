@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -76,6 +76,37 @@ export default function HomeScreen() {
     [monthWalks, today],
   );
 
+  // 홈 지도 조작 중에는 상위 ScrollView가 드래그를 가져가지 않게 잠근다.
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
+  const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const lockMapScroll = useCallback(() => {
+    if (mapInteractionTimer.current) {
+      clearTimeout(mapInteractionTimer.current);
+      mapInteractionTimer.current = null;
+    }
+    setIsMapInteracting(true);
+  }, []);
+
+  const unlockMapScroll = useCallback(() => {
+    if (mapInteractionTimer.current) {
+      clearTimeout(mapInteractionTimer.current);
+    }
+    mapInteractionTimer.current = setTimeout(() => {
+      setIsMapInteracting(false);
+      mapInteractionTimer.current = null;
+    }, 300);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (mapInteractionTimer.current) {
+        clearTimeout(mapInteractionTimer.current);
+      }
+    },
+    [],
+  );
+
   // 걸음수 ────────────────────────────────────────────────
   const { steps: mySteps } = usePedometer();
   const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
@@ -135,6 +166,7 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!isMapInteracting}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -153,6 +185,7 @@ export default function HomeScreen() {
           <WidgetBoard
             firstMetDate={couple?.firstMetDate}
             todayWalk={todayWalk}
+            recentWalks={monthWalks ?? []}
             myName={myName}
             partnerName={partnerName}
             myCharacter={myCharacter}
@@ -174,6 +207,8 @@ export default function HomeScreen() {
             isClaimingStamp={claimStamp.isPending}
             onDdayPress={() => setShowDatePicker(true)}
             onClaimStamp={handleClaimStamp}
+            onMapInteractionStart={lockMapScroll}
+            onMapInteractionEnd={unlockMapScroll}
           />
         )}
       </ScrollView>

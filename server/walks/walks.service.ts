@@ -174,6 +174,7 @@ export const walksService = {
     }
 
     if (walkError) throw walkError;
+    if (!walk) throw new Error('산책 기록을 생성하지 못했어요');
 
     // 2. 내 발자취 엔트리 생성
     const entryInput = {

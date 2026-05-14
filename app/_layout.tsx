@@ -10,7 +10,6 @@ import { GlobalDialog } from "@/components/base/GlobalDialog";
 import { GlobalLoadingBar, LoadingOverlay } from "@/components/base";
 import { PopupProvider } from "@/components/composite/popup/PopupProvider";
 import { ToastProvider } from "@/components/composite/toast/ToastProvider";
-import { useStartTrialMutation } from "@/hooks/services/entitlements/mutation";
 import { useGetMeQuery } from "@/hooks/services/user/query";
 import { useNotificationSetup } from "@/hooks/useNotification";
 import { useStepSync } from "@/hooks/useStepSync";
@@ -137,11 +136,10 @@ function StepSyncInitializer() {
 // ─── Entitlement Initializer ─────────────────────────────
 // 로그인 후:
 //  1) RevenueCat SDK를 me.id로 초기화 (API 키 없으면 graceful skip)
-//  2) 7일 무료 트라이얼 시작 (서버 RPC가 idempotent라 매번 호출해도 안전)
+//  2) 결제 상태는 useEntitlement에서 RevenueCat/Supabase self-healing으로 동기화
 
 function EntitlementInitializer() {
   const { data: me } = useGetMeQuery();
-  const startTrial = useStartTrialMutation();
   const initializedFor = useRef<string | null>(null);
 
   useEffect(() => {
@@ -149,8 +147,6 @@ function EntitlementInitializer() {
     if (initializedFor.current === me.id) return;
     initializedFor.current = me.id;
     void initRevenueCat(me.id);
-    startTrial.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id]);
 
   return null;

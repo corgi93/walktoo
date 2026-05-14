@@ -25,6 +25,13 @@ export const QUERY_KEYS = {
     byMonth: (year: number, month: number) =>
       ['stamps', 'month', year, month] as const,
   },
+  schedule: {
+    byMonth: (year: number, month: number) =>
+      ['schedule', 'month', year, month] as const,
+  },
+  coupleMemo: {
+    detail: ['coupleMemo', 'detail'] as const,
+  },
   reflection: {
     current: ['reflection', 'current'] as const,
     detail: (id: string) => ['reflection', 'detail', id] as const,
@@ -37,8 +44,5 @@ export const QUERY_KEYS = {
   },
   entitlement: {
     status: ['entitlement', 'status'] as const,
-  },
-  packs: {
-    owned: ['packs', 'owned'] as const,
   },
 };

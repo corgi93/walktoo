@@ -9,96 +9,80 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import type { PurchasesOffering } from 'react-native-purchases';
+import type { PurchasesPackage } from 'react-native-purchases';
 
 import { Icon, PixelCard, Row, Text } from '@/components/base';
 import { useToast } from '@/components/composite/toast/ToastProvider';
+import { PREMIUM } from '@/constants/premium';
+import { useMarkPremiumPurchasedMutation } from '@/hooks/services/entitlements/mutation';
+import { useEntitlement } from '@/hooks/useEntitlement';
 import {
-  DECORATION_PACKS,
-  LIFETIME_PACK_ID,
-  type DecorationPack,
-} from '@/constants/decoration-packs';
-import { useMarkPackPurchasedMutation } from '@/hooks/services/packs/mutation';
-import { useUnlockedPacks } from '@/hooks/services/packs/query';
-import {
-  findPackageByProductId,
+  findLifetimePackage,
   getCurrentOffering,
   isRevenueCatReady,
-  purchasePack,
+  purchaseLifetime,
   restorePurchases,
 } from '@/lib/revenuecat';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
-
-// ─── Component ──────────────────────────────────────────
 
 export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
   const { t } = useTranslation(['premium', 'common']);
+  const { isEntitled } = useEntitlement();
+  const markPremium = useMarkPremiumPurchasedMutation();
 
-  const markPack = useMarkPackPurchasedMutation();
-  const { unlocked } = useUnlockedPacks();
-
-  const [offering, setOffering] = useState<PurchasesOffering | null>(null);
-  const [processingPackId, setProcessingPackId] = useState<string | null>(null);
+  const [lifetimePackage, setLifetimePackage] =
+    useState<PurchasesPackage | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  // ─── offering fetch (한 번) ───
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const o = await getCurrentOffering();
-      if (cancelled) return;
-      if (o) setOffering(o);
+      const offering = await getCurrentOffering();
+      if (cancelled || !offering) return;
+      setLifetimePackage(findLifetimePackage(offering));
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // ─── 팩 하나 구매 ───
-  const handlePurchase = async (pack: DecorationPack) => {
-    if (processingPackId) return;
-    if (unlocked.has(pack.id)) {
+  const price =
+    lifetimePackage?.product.priceString ??
+    `₩${PREMIUM.PRICE_KRW.toLocaleString('ko-KR')}`;
+
+  const handlePurchase = async () => {
+    if (isPurchasing) return;
+    if (isEntitled) {
       toast.info(t('premium:result.already-owned'));
       return;
     }
-    if (!isRevenueCatReady()) {
+    if (!isRevenueCatReady() || !lifetimePackage) {
       toast.error(t('premium:result.sdk-unavailable'));
-      return;
-    }
-    if (!offering) {
-      toast.error(t('premium:result.sdk-unavailable'));
-      return;
-    }
-    const rcPackage = findPackageByProductId(offering, pack.productId);
-    if (!rcPackage) {
-      toast.info(t('premium:result.coming-soon'));
       return;
     }
 
-    setProcessingPackId(pack.id);
-    const outcome = await purchasePack(rcPackage);
+    setIsPurchasing(true);
+    const outcome = await purchaseLifetime(lifetimePackage);
     if (outcome.userCancelled) {
-      setProcessingPackId(null);
+      setIsPurchasing(false);
       return;
     }
-    if (!outcome.ok) {
-      setProcessingPackId(null);
+    if (!outcome.ok || !outcome.appUserId) {
+      setIsPurchasing(false);
       toast.error(t('premium:result.failed'));
       return;
     }
 
-    // DB에 소유권 기록
-    const sync = await markPack.mutateAsync({
-      packId: pack.id,
-      revenuecatProductId: pack.productId,
-    });
-    setProcessingPackId(null);
+    const sync = await markPremium.mutateAsync(outcome.appUserId);
+    setIsPurchasing(false);
     if (sync.success) {
       toast.success(t('premium:result.success'));
+      router.back();
     } else {
       toast.error(t('premium:result.failed'));
     }
@@ -110,29 +94,27 @@ export default function PaywallScreen() {
       toast.error(t('premium:result.sdk-unavailable'));
       return;
     }
+
     setIsRestoring(true);
     const outcome = await restorePurchases();
-    setIsRestoring(false);
-
-    if (!outcome.ok) {
-      if (!outcome.hasEntitlement) {
-        toast.info(t('premium:result.no-purchases'));
-      } else {
-        toast.error(t('premium:result.failed'));
-      }
+    if (!outcome.ok || !outcome.appUserId) {
+      setIsRestoring(false);
+      toast.info(t('premium:result.no-purchases'));
       return;
     }
-    // TODO: 복원 시 RC entitlements를 훑어서 pack별 DB 동기화
-    toast.success(t('premium:result.restored'));
-  };
 
-  const singles = DECORATION_PACKS.filter((p) => p.kind === 'single');
-  const bundle = DECORATION_PACKS.find((p) => p.kind === 'bundle');
-  const lifetime = DECORATION_PACKS.find((p) => p.id === LIFETIME_PACK_ID);
+    const sync = await markPremium.mutateAsync(outcome.appUserId);
+    setIsRestoring(false);
+    if (sync.success) {
+      toast.success(t('premium:result.restored'));
+      router.back();
+    } else {
+      toast.error(t('premium:result.failed'));
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 헤더 */}
       <Row px="xxl" style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon name="x" size={22} color={theme.colors.text} />
@@ -154,221 +136,90 @@ export default function PaywallScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="headingLarge" style={styles.pageTitle}>
-          {t('premium:shop.title')}
+        <View style={styles.hero}>
+          <Text style={styles.crown}>👑</Text>
+          <Text variant="headingLarge" color="primary" align="center">
+            {t('premium:brand')}
+          </Text>
+          <Text variant="bodySmall" color="textSecondary" align="center" mt="sm">
+            {t('premium:tagline')}
+          </Text>
+        </View>
+
+        <PixelCard style={styles.priceCard} bg={theme.colors.primarySurface}>
+          <Text variant="caption" color="primary" align="center">
+            {t('premium:price.lifetime-label')}
+          </Text>
+          <Text variant="displayMedium" color="primary" align="center" mt="sm">
+            {price}
+          </Text>
+          <Text variant="caption" color="textSecondary" align="center" mt="sm">
+            {t('premium:price.one-time-note')}
+          </Text>
+        </PixelCard>
+
+        <View style={styles.benefits}>
+          <BenefitItem
+            title={t('premium:benefits.photos-title')}
+            icon="camera"
+          />
+          <BenefitItem title={t('premium:benefits.couple-title')} icon="heart" />
+          <BenefitItem title={t('premium:benefits.one-time-title')} icon="check-circle" />
+          <BenefitItem title={t('premium:benefits.restore-title')} icon="unlock" />
+        </View>
+
+        <Pressable
+          onPress={handlePurchase}
+          disabled={isPurchasing || isEntitled}
+          style={[
+            styles.purchaseButton,
+            (isPurchasing || isEntitled) && styles.buttonDisabled,
+          ]}
+        >
+          {isPurchasing ? (
+            <ActivityIndicator color={theme.colors.white} />
+          ) : (
+            <>
+              <Icon
+                name={isEntitled ? 'check' : 'heart'}
+                size={18}
+                color={theme.colors.white}
+              />
+              <Text variant="bodyMedium" color="white" ml="sm" weight="700">
+                {isEntitled
+                  ? t('premium:menu.active')
+                  : t('premium:actions.purchase')}
+              </Text>
+            </>
+          )}
+        </Pressable>
+
+        <Text variant="caption" color="textMuted" align="center">
+          {t('premium:fine-print')}
         </Text>
-
-        <View style={styles.singlesGrid}>
-          {singles.map((pack) => (
-            <PackCard
-              key={pack.id}
-              pack={pack}
-              owned={unlocked.has(pack.id)}
-              available={
-                !!offering && !!findPackageByProductId(offering, pack.productId)
-              }
-              processing={processingPackId === pack.id}
-              onPress={() => handlePurchase(pack)}
-            />
-          ))}
-        </View>
-
-        {bundle && (
-          <View style={styles.section}>
-            <PackRowCard
-              pack={bundle}
-              owned={unlocked.has(bundle.id)}
-              available={
-                !!offering && !!findPackageByProductId(offering, bundle.productId)
-              }
-              processing={processingPackId === bundle.id}
-              onPress={() => handlePurchase(bundle)}
-              accent="warm"
-            />
-          </View>
-        )}
-
-        {lifetime && (
-          <View style={styles.section}>
-            <PackRowCard
-              pack={lifetime}
-              owned={unlocked.has(lifetime.id)}
-              available={
-                !!offering &&
-                !!findPackageByProductId(offering, lifetime.productId)
-              }
-              processing={processingPackId === lifetime.id}
-              onPress={() => handlePurchase(lifetime)}
-              accent="primary"
-            />
-          </View>
-        )}
       </ScrollView>
-
-      {processingPackId && (
-        <View style={styles.overlay} pointerEvents="none">
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      )}
     </View>
   );
 }
 
-// ─── Pack Card (개별 팩 — 3열 그리드) ───────────────────
-
-function PackCard({
-  pack,
-  owned,
-  available,
-  processing,
-  onPress,
+function BenefitItem({
+  title,
+  icon,
 }: {
-  pack: DecorationPack;
-  owned: boolean;
-  available: boolean;
-  processing: boolean;
-  onPress: () => void;
+  title: string;
+  icon: 'camera' | 'heart' | 'check-circle' | 'unlock';
 }) {
-  const { t } = useTranslation('premium');
-  const disabled = owned || processing;
-
   return (
-    <Pressable
-      style={[cardStyles.cell, owned && cardStyles.cellOwned]}
-      onPress={onPress}
-      disabled={disabled}
-    >
-      <Text style={cardStyles.emoji}>{pack.emoji}</Text>
-      <Text
-        variant="bodySmall"
-        color="text"
-        align="center"
-        numberOfLines={1}
-        style={{ fontWeight: '600' }}
-      >
-        {pack.name}
-      </Text>
-      <Text
-        variant="caption"
-        color="textMuted"
-        align="center"
-        numberOfLines={2}
-        mt="xxs"
-        style={{ fontSize: 10, minHeight: 26 }}
-      >
-        {pack.description}
-      </Text>
-
-      <View style={cardStyles.priceRow}>
-        {owned ? (
-          <View style={cardStyles.ownedBadge}>
-            <Icon name="check" size={10} color={theme.colors.secondary} />
-            <Text
-              variant="caption"
-              color="secondary"
-              ml="xxs"
-              style={{ fontWeight: '600', fontSize: 10 }}
-            >
-              {t('shop.owned')}
-            </Text>
-          </View>
-        ) : !available ? (
-          <Text variant="caption" color="textMuted" style={{ fontSize: 10 }}>
-            {t('shop.coming-soon')}
-          </Text>
-        ) : (
-          <Text variant="caption" color="primary" style={{ fontWeight: '700' }}>
-            {formatKRW(pack.priceKrw)}
-          </Text>
-        )}
+    <View style={styles.benefitItem}>
+      <View style={styles.benefitIcon}>
+        <Icon name={icon} size={17} color={theme.colors.primary} />
       </View>
-    </Pressable>
+      <Text variant="bodySmall" color="text" weight="700" style={{ flex: 1 }}>
+        {title}
+      </Text>
+    </View>
   );
 }
-
-// ─── Pack Row Card (번들/평생팩 — full-width) ───────────
-
-function PackRowCard({
-  pack,
-  owned,
-  available,
-  processing,
-  onPress,
-  accent,
-}: {
-  pack: DecorationPack;
-  owned: boolean;
-  available: boolean;
-  processing: boolean;
-  onPress: () => void;
-  accent: 'primary' | 'warm';
-}) {
-  const { t } = useTranslation('premium');
-  const disabled = owned || processing;
-  const bg =
-    accent === 'primary' ? theme.colors.primarySurface : theme.colors.surfaceWarm;
-
-  return (
-    <Pressable onPress={onPress} disabled={disabled}>
-      <PixelCard style={rowStyles.card} bg={bg}>
-        <Row style={rowStyles.inner}>
-          <Text style={rowStyles.emoji}>{pack.emoji}</Text>
-          <View style={{ flex: 1 }}>
-            <Row style={{ alignItems: 'center' }}>
-              <Text variant="bodyMedium" color="text" style={{ fontWeight: '700' }}>
-                {pack.name}
-              </Text>
-              {pack.badge && (
-                <View style={rowStyles.badge}>
-                  <Text
-                    variant="caption"
-                    color="primary"
-                    style={{ fontSize: 9, fontWeight: '700' }}
-                  >
-                    {pack.badge}
-                  </Text>
-                </View>
-              )}
-            </Row>
-            <Text variant="caption" color="textMuted" mt="xxs">
-              {pack.description}
-            </Text>
-          </View>
-          <View style={rowStyles.priceCol}>
-            {owned ? (
-              <View style={cardStyles.ownedBadge}>
-                <Icon name="check" size={12} color={theme.colors.secondary} />
-                <Text
-                  variant="caption"
-                  color="secondary"
-                  ml="xxs"
-                  style={{ fontWeight: '600' }}
-                >
-                  {t('shop.owned')}
-                </Text>
-              </View>
-            ) : !available ? (
-              <Text variant="caption" color="textMuted">
-                {t('shop.coming-soon')}
-              </Text>
-            ) : (
-              <Text variant="bodyLarge" color="primary" style={{ fontWeight: '700' }}>
-                {formatKRW(pack.priceKrw)}
-              </Text>
-            )}
-          </View>
-        </Row>
-      </PixelCard>
-    </Pressable>
-  );
-}
-
-// ─── Helpers ────────────────────────────────────────────
-
-const formatKRW = (price: number): string =>
-  `₩${price.toLocaleString('ko-KR')}`;
-
-// ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -382,91 +233,58 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: LAYOUT.screenPx,
+    gap: SPACING.lg,
   },
-  pageTitle: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.lg,
+  hero: {
+    alignItems: 'center',
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.sm,
   },
-  section: {
-    marginTop: SPACING.md,
+  crown: {
+    fontSize: 42,
+    marginBottom: SPACING.sm,
   },
-  singlesGrid: {
-    flexDirection: 'row',
+  priceCard: {
+    padding: SPACING.xl,
+  },
+  benefits: {
     gap: SPACING.sm,
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    justifyContent: 'center',
+  benefitItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-});
-
-const cardStyles = StyleSheet.create({
-  cell: {
-    flex: 1,
+    gap: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: theme.colors.borderLight,
+  },
+  benefitIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primaryLight,
+  },
+  purchaseButton: {
+    height: 54,
     borderRadius: theme.radius.lg,
     borderWidth: 2,
     borderColor: theme.colors.border,
-    padding: SPACING.md,
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 140,
+    justifyContent: 'center',
     shadowColor: theme.colors.border,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
   },
-  cellOwned: {
-    opacity: 0.7,
-  },
-  emoji: {
-    fontSize: 28,
-    marginBottom: SPACING.xs,
-  },
-  priceRow: {
-    marginTop: 'auto',
-    paddingTop: SPACING.xs,
-  },
-  ownedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.secondaryLight,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-});
-
-const rowStyles = StyleSheet.create({
-  card: {
-    padding: 0,
-  },
-  inner: {
-    alignItems: 'center',
-    gap: SPACING.md,
-    padding: LAYOUT.cardPx,
-  },
-  emoji: {
-    fontSize: 32,
-  },
-  badge: {
-    marginLeft: SPACING.xs,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
-  },
-  priceCol: {
-    alignItems: 'flex-end',
-    minWidth: 80,
+  buttonDisabled: {
+    opacity: 0.55,
   },
 });

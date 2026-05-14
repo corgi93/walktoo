@@ -4,10 +4,8 @@
  * walkToo+ entitlement 종합 훅. 호출부에서는 이 훅의 boolean만 사용하면 됨.
  *
  * 우선순위:
- * 1. 본인 has_premium = true (영구)
+ * 1. 본인 has_premium = true (1회성 이용권)
  * 2. 커플 has_premium = true (커플 공유)
- * 3. premium_trial_ends_at > now() (트라이얼 활성)
- *
  * Self-healing:
  * - RevenueCat에 entitlement 있는데 Supabase에는 반영 안 됨 → 자동으로
  *   markPremiumPurchased RPC 호출해 sync.
@@ -28,12 +26,10 @@ import {
 export interface EntitlementValue {
   isLoading: boolean;
   hasPremium: boolean;
-  isInTrial: boolean;
   coupleHasPremium: boolean;
-  trialEndsAt: string | null;
   /** 종합 결과 — UI에서 사용할 메인 boolean */
   isEntitled: boolean;
-  /** 트라이얼/구독 모두 없는 free 상태 */
+  /** walkToo+ 이용권 없는 free 상태 */
   isFree: boolean;
 }
 
@@ -42,9 +38,7 @@ export function useEntitlement(): EntitlementValue {
   const markPurchased = useMarkPremiumPurchasedMutation();
 
   const hasPremium = status?.hasPremium ?? false;
-  const isInTrial = status?.isInTrial ?? false;
   const coupleHasPremium = status?.coupleHasPremium ?? false;
-  const trialEndsAt = status?.trialEndsAt ?? null;
   const isEntitled = status?.isEntitled ?? false;
 
   // ─── Self-healing ──────────────────────────────────────
@@ -77,9 +71,7 @@ export function useEntitlement(): EntitlementValue {
   return {
     isLoading,
     hasPremium,
-    isInTrial,
     coupleHasPremium,
-    trialEndsAt,
     isEntitled,
     isFree: !isEntitled,
   };

@@ -30,6 +30,7 @@ import type { Coords, ProviderId } from '@/lib/location';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
+import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
@@ -46,6 +47,7 @@ export default function FootprintCreateScreen() {
   const { t } = useTranslation(['diary', 'common', 'premium']);
 
   const { couple, isCoupleConnected, myName } = usePartnerDerivation();
+  const { isEntitled } = useEntitlement();
   const dialog = useDialogStore();
   const photoBoothResultUri = usePhotoBoothStore((s) => s.resultUri);
   const setPhotoBoothPhotos = usePhotoBoothStore((s) => s.setPhotos);
@@ -69,8 +71,12 @@ export default function FootprintCreateScreen() {
     params.kind === 'together' ? 'together' : 'each';
   const isTogether = kind === 'together';
 
-  // 사진 한도 — 오늘의 나 1장, 우리의 하루 4장
-  const photoLimit = isTogether ? PREMIUM.PHOTO_LIMIT_FREE : 1;
+  // 사진 한도 — 오늘의 나 1장, 우리의 하루는 free 4장 / walkToo+ 12장
+  const photoLimit = isTogether
+    ? isEntitled
+      ? PREMIUM.PHOTO_LIMIT_PREMIUM
+      : PREMIUM.PHOTO_LIMIT_FREE
+    : 1;
 
   // kind 변경 시 사진 트리밍 (each ← together 전환 시 4장 → 1장)
   useEffect(() => {

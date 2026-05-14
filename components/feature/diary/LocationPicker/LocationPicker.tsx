@@ -6,12 +6,12 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  UIManager,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, Row, Text } from '@/components/base';
+import { MapPickerView } from '@/components/feature/diary/LocationPicker/MapPickerView';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
 import {
   selectLocationProvider,
@@ -22,36 +22,8 @@ import {
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 
-// 네이티브 지도 SDK는 (1) NCP Client ID 환경변수가 있고 (2) 네이티브 view manager가
-// 실제로 dev client에 빌드되어 등록된 경우에만 lazy require.
-// 둘 중 하나라도 없으면 검색-only fallback (Expo Go / 미빌드된 dev client 안전).
 const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
-const HAS_NATIVE_NAVER_MAP =
-  !!NAVER_MAP_CLIENT_ID &&
-  // hasViewManagerConfig는 legacy/Fabric 모두에서 안전하게 false 반환 가능.
-  typeof UIManager.hasViewManagerConfig === 'function' &&
-  UIManager.hasViewManagerConfig('RNCNaverMapView') &&
-  UIManager.hasViewManagerConfig('RNCNaverMapMarker');
-
-const MapPickerView: React.ComponentType<{
-  coords?: Coords;
-  onMapTap?: (c: Coords) => void;
-  height?: number;
-}> | null = HAS_NATIVE_NAVER_MAP
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./MapPickerView').MapPickerView as React.ComponentType<{
-      coords?: Coords;
-      onMapTap?: (c: Coords) => void;
-      height?: number;
-    }>)
-  : null;
-
-if (NAVER_MAP_CLIENT_ID && !HAS_NATIVE_NAVER_MAP && __DEV__) {
-  console.warn(
-    '[LocationPicker] NAVER_MAP_CLIENT_ID는 설정됐지만 네이버 지도 네이티브 모듈이 없어요. ' +
-      'dev client를 재빌드하세요: `npx expo prebuild --clean && pnpm ios/android`',
-  );
-}
+const HAS_WEB_NAVER_MAP = !!NAVER_MAP_CLIENT_ID;
 
 interface LocationPickerProps {
   open: boolean;
@@ -70,7 +42,7 @@ interface LocationPickerProps {
  * - 결과 리스트에서 선택 → onPick(name + coords + address)
  * - "검색 안 하고 직접 입력" 옵션도 제공 (onPickPlainText)
  *
- * 지도 미리보기 / 핀 드롭은 Phase 2에서 추가 (네이티브 SDK 설치 후).
+ * 지도 미리보기 / 핀 드롭은 WebView 기반 네이버 지도에서 처리.
  */
 export function LocationPicker({
   open,
@@ -85,14 +57,13 @@ export function LocationPicker({
   const { results, isSearching, error, providerId } = useLocationSearch(query);
 
   const handleSelectFromList = (p: Place) => {
-    // 검색 결과 클릭 → 지도 SDK 있으면 미리보기 단계로, 없으면 즉시 onPick
     const picked: PickedLocation = {
       name: p.name,
       coords: p.coords,
       address: p.address,
       source: p.source,
     };
-    if (MapPickerView) {
+    if (HAS_WEB_NAVER_MAP) {
       setPendingPick(picked);
     } else {
       onPick(picked);
@@ -170,7 +141,7 @@ export function LocationPicker({
         </Row>
 
         {/* 지도 미리보기 단계 — 검색 결과 선택 후 / 핀 드롭 가능 */}
-        {pendingPick && MapPickerView && (
+        {pendingPick && (
           <View style={styles.mapStage}>
             <MapPickerView
               coords={pendingPick.coords}

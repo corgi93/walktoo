@@ -6,7 +6,7 @@ import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { getMonthRange } from '@/utils/date';
 
 /**
- * 월별 커플 일정 목록 — 캘린더 셀 인디케이터 + DaySheet 에서 함께 사용.
+ * 월별 커플 일정 목록 — 공유 탭 캘린더 셀 인디케이터와 선택 날짜 패널에서 함께 사용.
  */
 export const useSchedulesByMonthQuery = (year: number, month: number) => {
   const { couple, isCoupleConnected } = usePartnerDerivation();

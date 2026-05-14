@@ -1,12 +1,9 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
-import { StyleSheet, UIManager, View } from 'react-native';
-import {
-  NaverMapMarkerOverlay,
-  NaverMapView,
-} from '@mj-studio/react-native-naver-map';
+import { StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/base';
+import { NaverMapWebView, type WebMapMarker } from '@/components/feature/records/NaverMapWebView';
 import type { Coords } from '@/lib/location';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
@@ -16,6 +13,8 @@ interface RecordsMapViewProps {
   walks: readonly WalkDiary[];
   myName: string;
   partnerName: string;
+  onMapInteractionStart?: () => void;
+  onMapInteractionEnd?: () => void;
 }
 
 interface PinnedWalk {
@@ -24,9 +23,6 @@ interface PinnedWalk {
 }
 
 const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
-const HAS_NATIVE_NAVER_MARKER =
-  typeof UIManager.hasViewManagerConfig === 'function' &&
-  UIManager.hasViewManagerConfig('RNCNaverMapMarker');
 
 /**
  * 기록 탭 — 지도 모드.
@@ -34,10 +30,13 @@ const HAS_NATIVE_NAVER_MARKER =
  *
  * coords 없는 산책은 표시 안 됨 (legacy / 텍스트만 입력한 기록).
  */
-export function RecordsMapView({ walks }: RecordsMapViewProps) {
+export function RecordsMapView({
+  walks,
+  onMapInteractionStart,
+  onMapInteractionEnd,
+}: RecordsMapViewProps) {
   const router = useRouter();
 
-  // coords 있는 walks만 추림
   const pinnedWalks = useMemo<PinnedWalk[]>(() => {
     const result: PinnedWalk[] = [];
     for (const w of walks) {
@@ -52,10 +51,22 @@ export function RecordsMapView({ walks }: RecordsMapViewProps) {
     return result;
   }, [walks]);
 
-  // 카메라 초기 위치 — 첫 핀, 없으면 서울 중심
   const initialCenter = pinnedWalks[0]?.coords ?? SEOUL_CENTER;
+  const markers = useMemo<WebMapMarker[]>(
+    () =>
+      pinnedWalks.map(({ walk, coords }) => ({
+        id: walk.id,
+        coords,
+        title: walk.locationName || '기록',
+        subtitle: walk.date,
+      })),
+    [pinnedWalks],
+  );
 
-  const handleMarkerPress = (walk: WalkDiary) => {
+  const handleMarkerPress = (walkId: string) => {
+    const walk = pinnedWalks.find((item) => item.walk.id === walkId)?.walk;
+    if (!walk) return;
+
     router.push({
       pathname: '/diary-detail',
       params: {
@@ -78,33 +89,15 @@ export function RecordsMapView({ walks }: RecordsMapViewProps) {
 
   return (
     <View style={styles.container}>
-      <NaverMapView
-        style={StyleSheet.absoluteFill}
-        initialCamera={{
-          latitude: initialCenter.lat,
-          longitude: initialCenter.lng,
-          zoom: 12,
-        }}
-      >
-        {HAS_NATIVE_NAVER_MARKER &&
-          pinnedWalks.map(({ walk, coords }) => (
-            <NaverMapMarkerOverlay
-              key={walk.id}
-              latitude={coords.lat}
-              longitude={coords.lng}
-              anchor={{ x: 0.5, y: 1 }}
-              caption={{
-                text: walk.locationName || ' ',
-                color: theme.colors.text,
-                haloColor: '#FFFFFF',
-                textSize: 11,
-              }}
-              onTap={() => handleMarkerPress(walk)}
-            />
-          ))}
-      </NaverMapView>
+      <NaverMapWebView
+        markers={markers}
+        center={initialCenter}
+        zoom={12}
+        onMarkerPress={handleMarkerPress}
+        onInteractionStart={onMapInteractionStart}
+        onInteractionEnd={onMapInteractionEnd}
+      />
 
-      {/* 카운트 배지 */}
       <View style={styles.countBadge}>
         <Icon name="map-pin" size={11} color={theme.colors.primary} />
         <Text variant="caption" color="text" style={{ marginLeft: 4 }}>

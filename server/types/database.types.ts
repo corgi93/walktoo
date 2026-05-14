@@ -28,7 +28,6 @@ export interface Database {
           push_token: string | null;
           character_type: string;
           has_premium: boolean;
-          premium_trial_ends_at: string | null;
           premium_purchased_at: string | null;
           revenuecat_user_id: string | null;
           created_at: string;
@@ -47,7 +46,6 @@ export interface Database {
           push_token?: string | null;
           character_type?: string;
           has_premium?: boolean;
-          premium_trial_ends_at?: string | null;
           premium_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
         };
@@ -63,7 +61,6 @@ export interface Database {
           push_token?: string | null;
           character_type?: string;
           has_premium?: boolean;
-          premium_trial_ends_at?: string | null;
           premium_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
         };
@@ -270,6 +267,79 @@ export interface Database {
         };
         Relationships: [];
       };
+      couple_schedules: {
+        Row: {
+          id: string;
+          couple_id: string;
+          owner_id: string;
+          date: string;
+          title: string;
+          category:
+            | 'work'
+            | 'social'
+            | 'wedding'
+            | 'health'
+            | 'travel'
+            | 'study'
+            | 'anniversary'
+            | 'other';
+          emoji: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          owner_id: string;
+          date: string;
+          title: string;
+          category:
+            | 'work'
+            | 'social'
+            | 'wedding'
+            | 'health'
+            | 'travel'
+            | 'study'
+            | 'anniversary'
+            | 'other';
+          emoji?: string | null;
+          note?: string | null;
+        };
+        Update: {
+          date?: string;
+          title?: string;
+          category?:
+            | 'work'
+            | 'social'
+            | 'wedding'
+            | 'health'
+            | 'travel'
+            | 'study'
+            | 'anniversary'
+            | 'other';
+          emoji?: string | null;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
+      couple_memos: {
+        Row: {
+          couple_id: string;
+          content: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          content?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          content?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       couple_book_credits: {
         Row: {
           couple_id: string;
@@ -288,26 +358,6 @@ export interface Database {
           credits_remaining?: number;
           stamps_redeemed_year?: number;
           last_redemption_year?: number | null;
-        };
-        Relationships: [];
-      };
-      couple_pack_entitlements: {
-        Row: {
-          id: string;
-          couple_id: string;
-          pack_id: string;
-          purchased_by: string | null;
-          revenuecat_product_id: string | null;
-          purchased_at: string;
-        };
-        Insert: {
-          couple_id: string;
-          pack_id: string;
-          purchased_by?: string | null;
-          revenuecat_product_id?: string | null;
-        };
-        Update: {
-          revenuecat_product_id?: string | null;
         };
         Relationships: [];
       };
@@ -369,25 +419,10 @@ export interface Database {
           error?: string;
         };
       };
-      start_trial_if_needed: {
-        Args: Record<string, never>;
-        Returns: {
-          started: boolean;
-          trial_ends_at: string | null;
-        };
-      };
       mark_premium_purchased: {
         Args: { p_revenuecat_user_id: string };
         Returns: {
           success: boolean;
-        };
-      };
-      mark_pack_purchased: {
-        Args: { p_pack_id: string; p_revenuecat_product_id: string };
-        Returns: {
-          success: boolean;
-          reason?: 'no_couple';
-          id?: string;
         };
       };
       get_book_credits: {

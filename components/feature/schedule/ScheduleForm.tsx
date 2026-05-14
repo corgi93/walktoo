@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Box, Button, Icon, Row, Text } from '@/components/base';
 import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
 import { theme } from '@/styles/theme';
-import { SPACING } from '@/styles/type';
+import { FONT_FAMILY, SPACING } from '@/styles/type';
 import type { CoupleSchedule, ScheduleCategory } from '@/types/schedule';
 import { formatDate, parseLocalDate } from '@/utils/date';
 
@@ -297,8 +297,11 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.gray200,
     paddingHorizontal: SPACING.md,
     paddingVertical: 10,
+    fontFamily: FONT_FAMILY.pixel,
     fontSize: 14,
+    lineHeight: 20,
     color: theme.colors.text,
+    includeFontPadding: false,
   },
   noteInput: {
     minHeight: 60,
