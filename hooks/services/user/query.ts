@@ -37,7 +37,7 @@ export const useCouplePolling = (coupleId?: string, isConnected?: boolean) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [coupleId, isConnected]);
+  }, [coupleId, isConnected, queryClient]);
 
   // 앱이 포그라운드로 돌아올 때도 refetch
   useEffect(() => {
@@ -48,5 +48,5 @@ export const useCouplePolling = (coupleId?: string, isConnected?: boolean) => {
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [queryClient]);
 };

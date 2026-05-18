@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/base';
+import { MarkerDetailSheet } from '@/components/feature/records/MarkerDetailSheet';
 import { NaverMapWebView, type WebMapMarker } from '@/components/feature/records/NaverMapWebView';
 import type { Coords } from '@/lib/location';
 import { theme } from '@/styles/theme';
@@ -13,6 +14,7 @@ interface RecordsMapViewProps {
   walks: readonly WalkDiary[];
   myName: string;
   partnerName: string;
+  bottomInset: number;
   onMapInteractionStart?: () => void;
   onMapInteractionEnd?: () => void;
 }
@@ -26,16 +28,18 @@ const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
 
 /**
  * 기록 탭 — 지도 모드.
- * walks 중 coords 있는 것만 마커로 표시. 마커 탭 → diary-detail.
- *
- * coords 없는 산책은 표시 안 됨 (legacy / 텍스트만 입력한 기록).
+ * walks 중 coords 있는 것만 마커로 표시.
+ * 마커 탭 → 마커 활성화 + 하단 시트 슬라이드 업.
+ * 시트 안 "자세히 보기" → diary-detail.
  */
 export function RecordsMapView({
   walks,
+  bottomInset,
   onMapInteractionStart,
   onMapInteractionEnd,
 }: RecordsMapViewProps) {
   const router = useRouter();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const pinnedWalks = useMemo<PinnedWalk[]>(() => {
     const result: PinnedWalk[] = [];
@@ -63,10 +67,21 @@ export function RecordsMapView({
     [pinnedWalks],
   );
 
-  const handleMarkerPress = (walkId: string) => {
-    const walk = pinnedWalks.find((item) => item.walk.id === walkId)?.walk;
-    if (!walk) return;
+  const selectedWalk = useMemo(
+    () => pinnedWalks.find((p) => p.walk.id === selectedId)?.walk ?? null,
+    [pinnedWalks, selectedId],
+  );
 
+  const handleMarkerPress = (walkId: string) => {
+    setSelectedId(walkId);
+  };
+
+  const handleClose = () => {
+    setSelectedId(null);
+  };
+
+  const handleOpenDetail = (walk: WalkDiary) => {
+    setSelectedId(null);
     router.push({
       pathname: '/diary-detail',
       params: {
@@ -76,9 +91,7 @@ export function RecordsMapView({
         kind: walk.kind,
         isRevealed: String(walk.isRevealed),
         myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
-        partnerEntry: walk.partnerEntry
-          ? JSON.stringify(walk.partnerEntry)
-          : '',
+        partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
       },
     });
   };
@@ -93,6 +106,7 @@ export function RecordsMapView({
         markers={markers}
         center={initialCenter}
         zoom={12}
+        activeMarkerId={selectedId}
         onMarkerPress={handleMarkerPress}
         onInteractionStart={onMapInteractionStart}
         onInteractionEnd={onMapInteractionEnd}
@@ -104,6 +118,13 @@ export function RecordsMapView({
           {pinnedWalks.length}곳
         </Text>
       </View>
+
+      <MarkerDetailSheet
+        walk={selectedWalk}
+        bottomInset={bottomInset}
+        onClose={handleClose}
+        onOpenDetail={handleOpenDetail}
+      />
     </View>
   );
 }
@@ -135,12 +156,8 @@ function EmptyState() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    minHeight: 480,
-    borderRadius: theme.radius.md,
     overflow: 'hidden',
     backgroundColor: theme.colors.gray100,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
     position: 'relative',
   },
   countBadge: {
@@ -160,9 +177,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   emptyContainer: {
+    flex: 1,
     paddingVertical: SPACING.xxxl,
     paddingHorizontal: SPACING.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyIcon: {
     width: 64,

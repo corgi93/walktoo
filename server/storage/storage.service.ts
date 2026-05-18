@@ -1,5 +1,11 @@
 import { decode } from 'base64-arraybuffer';
 
+import {
+  getMediaContentType,
+  getMediaExtension,
+  optimizeImageForUpload,
+} from '@/utils/media';
+
 import { storageRepository } from './storage.repository';
 
 // ─── Helpers ────────────────────────────────────────────
@@ -11,7 +17,6 @@ import { storageRepository } from './storage.repository';
 async function readFileAsBase64(uri: string): Promise<string> {
   try {
     // 방법 1: expo-file-system (네이티브, 가장 안정적)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const FileSystem: any = await import('expo-file-system');
     const fs = FileSystem?.default ?? FileSystem;
     if (fs?.EncodingType?.Base64) {
@@ -47,7 +52,7 @@ async function readFileAsBase64(uri: string): Promise<string> {
 // ─── Storage Service (파일 업로드 비즈니스 로직) ────────
 
 export const storageService = {
-  /** 발자취 사진 업로드 */
+  /** 발자취 미디어 업로드 */
   uploadPhoto: async (
     coupleId: string,
     walkId: string,
@@ -59,11 +64,12 @@ export const storageService = {
       return uri;
     }
 
-    const ext = uri.split('.').pop()?.split('?')[0] ?? 'jpg';
+    const uploadUri = await optimizeImageForUpload(uri);
+    const ext = getMediaExtension(uploadUri) || 'jpg';
     const path = `${coupleId}/${walkId}/${Date.now()}_${index}.${ext}`;
-    const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const contentType = getMediaContentType(uploadUri);
 
-    const base64 = await readFileAsBase64(uri);
+    const base64 = await readFileAsBase64(uploadUri);
 
     const { error } = await storageRepository.upload(
       path,
@@ -76,7 +82,7 @@ export const storageService = {
     return data.publicUrl;
   },
 
-  /** 여러 사진 업로드 */
+  /** 여러 미디어 업로드 */
   uploadPhotos: async (
     coupleId: string,
     walkId: string,

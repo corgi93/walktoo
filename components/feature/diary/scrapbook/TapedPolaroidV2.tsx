@@ -11,6 +11,7 @@ import {
 
 import { Icon } from '@/components/base';
 import type { DiaryTheme } from '@/styles/diaryThemes';
+import { isVideoUri } from '@/utils/media';
 
 import type { DiaryTapeId } from './assetRegistry';
 import { ImageTape } from './ImageTape';
@@ -88,6 +89,7 @@ export function TapedPolaroidV2({
   const isEmpty = !photoUri;
   const showAddButton = editable && isEmpty;
   const showRemoveButton = editable && !isEmpty;
+  const isVideo = isVideoUri(photoUri);
 
   return (
     <View
@@ -116,6 +118,7 @@ export function TapedPolaroidV2({
           height={H - (caption ? 36 : 22) - 16}
           tint={tint}
           photoUri={photoUri}
+          isVideo={isVideo}
           theme={t}
           stampDate={stampDate}
           showAddButton={showAddButton}
@@ -198,6 +201,7 @@ function PhotoArea({
   height,
   tint,
   photoUri,
+  isVideo,
   theme: t,
   stampDate,
   showAddButton,
@@ -208,6 +212,7 @@ function PhotoArea({
   height: number;
   tint: string;
   photoUri?: string;
+  isVideo: boolean;
   theme: DiaryTheme;
   stampDate?: string;
   showAddButton: boolean;
@@ -227,11 +232,22 @@ function PhotoArea({
   const inner = (
     <>
       {photoUri ? (
-        <Image
-          source={{ uri: photoUri }}
-          style={styles.photoImage}
-          resizeMode="cover"
-        />
+        isVideo ? (
+          <View style={styles.videoPreview}>
+            <View style={styles.playBadge}>
+              <Icon name="play" size={24} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.videoLabel, { fontFamily: t.monoFont }]}>
+              VIDEO
+            </Text>
+          </View>
+        ) : (
+          <Image
+            source={{ uri: photoUri }}
+            style={styles.photoImage}
+            resizeMode="cover"
+          />
+        )
       ) : showAddButton ? (
         <View style={styles.addSlot}>
           <Icon name="plus" size={26} color={t.accent} />
@@ -305,6 +321,29 @@ const styles = StyleSheet.create({
   photoImage: {
     width: '100%',
     height: '100%',
+  },
+  videoPreview: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(46,38,34,0.82)',
+  },
+  playBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  videoLabel: {
+    marginTop: 8,
+    fontSize: 11,
+    color: '#FFFFFF',
+    letterSpacing: 1.5,
+    fontWeight: '700',
   },
   placeholderWrap: {
     ...StyleSheet.absoluteFillObject,

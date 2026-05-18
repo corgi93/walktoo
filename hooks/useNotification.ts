@@ -30,37 +30,42 @@ export function useNotificationSetup() {
   const savePushToken = useSavePushTokenMutation();
   const router = useRouter();
 
+  // router ref: 리스너 클로저가 항상 최신 router를 참조하되 effect를 재실행하지 않음
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; });
+
   const notificationListener =
     useRef<ReturnType<typeof Notifications.addNotificationReceivedListener> | null>(null);
   const responseListener =
     useRef<ReturnType<typeof Notifications.addNotificationResponseReceivedListener> | null>(null);
 
+  // 푸시 토큰 등록 — me.id 바뀔 때만
   useEffect(() => {
-    // 1. 푸시 토큰 등록
-    if (me?.id) {
-      registerForPushNotifications().then((token) => {
-        if (token) {
-          savePushToken.mutate({ userId: me.id, token });
-        }
-      });
-    }
+    if (!me?.id) return;
+    registerForPushNotifications().then((token) => {
+      if (token) {
+        savePushToken.mutate({ userId: me.id, token });
+      }
+    });
+    // savePushToken은 useMutation 반환값이라 렌더마다 새 참조 → deps 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id]);
 
-    // 2. 포그라운드 알림 수신 리스너
+  // 알림 리스너 — 마운트 1회만 등록
+  useEffect(() => {
     try {
       notificationListener.current =
         Notifications.addNotificationReceivedListener((_notification) => {
           // 포그라운드에서 알림 수신 시 — UI 업데이트는 React Query refetch로 처리
         });
 
-      // 3. 알림 탭 시 화면 이동
       responseListener.current =
         Notifications.addNotificationResponseReceivedListener((response) => {
           const data = response.notification.request.content.data;
-
           if (data?.walkId) {
-            router.push('/diary-list');
+            routerRef.current.push('/diary-list');
           } else if (data?.coupleId) {
-            router.push('/(tabs)');
+            routerRef.current.push('/(tabs)');
           }
         });
     } catch {
@@ -71,7 +76,7 @@ export function useNotificationSetup() {
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [me?.id, router, savePushToken]);
+  }, []);
 }
 
 // ─── 푸시 토큰 등록 ──────────────────────────────────────

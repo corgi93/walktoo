@@ -1,27 +1,92 @@
 import React, { useId } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  Image,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
 import Svg, { Circle, Defs, Line, Pattern, Rect } from 'react-native-svg';
 
 import type { DiaryTheme } from '@/styles/diaryThemes';
 
+import { textureSrc } from './assetRegistry';
+
 interface ThemeBgProps {
   theme: DiaryTheme;
+  /**
+   * 콘텐츠를 감싸는 wrapper 모드. children이 있으면 ThemeBg가 그 높이만큼
+   * 자라고 텍스처/패턴이 자식 영역 전체를 덮음. ScrollView 안에서 스크롤
+   * 끝까지 텍스처가 깔리게 하려면 이 모드를 써야 함.
+   *
+   * children이 없으면 sibling 오버레이 모드 — 부모의 absoluteFill을 차지함.
+   * (헤더 등 작은 영역 + 부모 크기가 viewport-bound인 경우용)
+   */
+  children?: React.ReactNode;
+  /** wrapper 컨테이너 추가 스타일 */
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
- * 테마별 페이지 배경 오버레이.
+ * 테마별 페이지 배경 오버레이/래퍼.
  *
- * - grid_minimal : 격자 패턴
- * - pixel_retro  : 도트 패턴
- * - y2k_pastel   : 옅은 도트 패턴
- * - vintage_film / dark_academia / dreamy_cloud : **원톤 (단색)**
- *   디자인 의도대로 그라데이션 / 비넷 없이 theme.bg 단색만 노출.
- *   (diary-detail / footprint-create 컨테이너의 backgroundColor: dt.bg 그대로 사용)
+ * 레이어 순서 (아래 → 위):
+ *  1. 부모/wrapper 의 backgroundColor (dt.bg)
+ *  2. 종이/필름/가죽 텍스처 — theme.bgTexture가 등록돼 있을 때만
+ *  3. SVG 패턴 — grid_minimal / pixel_retro / y2k_pastel
+ *  4. children (wrapper 모드에서)
+ *
+ * 텍스처는 256~512px 시밍 이미지를 resizeMode="repeat"로 깔아서 GPU 메모리·
+ * 디코드 비용 최소화.
  */
-export function ThemeBg({ theme }: ThemeBgProps) {
+export function ThemeBg({ theme, children, style }: ThemeBgProps) {
   const uid = useId().replace(/[:]/g, '');
   const patId = `bg-pat-${uid}`;
+  const texture = theme.bgTexture ? textureSrc(theme.bgTexture) : undefined;
 
+  // Sibling 오버레이 모드 — 부모의 absoluteFill 차지
+  if (children === undefined) {
+    return (
+      <>
+        {texture && (
+          <View style={styles.fill} pointerEvents="none">
+            <Image
+              source={texture}
+              style={[
+                styles.fill,
+                { opacity: theme.bgTextureOpacity ?? 0.4 },
+              ]}
+              resizeMode="repeat"
+            />
+          </View>
+        )}
+        <PatternLayer theme={theme} patId={patId} />
+      </>
+    );
+  }
+
+  // Wrapper 모드 — 자식 콘텐츠 높이만큼 자라고 텍스처가 그 전체를 덮음
+  return (
+    <View style={style}>
+      {texture && (
+        <View style={styles.fill} pointerEvents="none">
+          <Image
+            source={texture}
+            style={[
+              styles.fill,
+              { opacity: theme.bgTextureOpacity ?? 0.4 },
+            ]}
+            resizeMode="repeat"
+          />
+        </View>
+      )}
+      <PatternLayer theme={theme} patId={patId} />
+      {children}
+    </View>
+  );
+}
+
+function PatternLayer({ theme, patId }: { theme: DiaryTheme; patId: string }) {
   if (theme.id === 'grid_minimal') {
     return (
       <View style={styles.fill} pointerEvents="none">
@@ -71,8 +136,6 @@ export function ThemeBg({ theme }: ThemeBgProps) {
     );
   }
 
-  // vintage_film / dark_academia / dreamy_cloud — 원톤 (오버레이 없음)
-  // diary-detail 컨테이너의 backgroundColor: dt.bg 가 그대로 노출됨.
   return null;
 }
 

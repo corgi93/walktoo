@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 import { Box, Button, Icon, PixelCard, Row, Text } from '@/components/base';
 import { LocationPicker } from '@/components/feature/diary/LocationPicker';
 import {
-  EachPhotoStrip,
   PhotoPage,
   ScrapbookSaveButton,
   ThemeBg,
@@ -37,6 +36,7 @@ import { usePhotoBoothStore } from '@/stores/photoBoothStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
 import { formatDate, getLocalToday, parseLocalDate } from '@/utils/date';
+import { isImageUri } from '@/utils/media';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -52,7 +52,6 @@ export default function FootprintCreateScreen() {
   const photoBoothResultUri = usePhotoBoothStore((s) => s.resultUri);
   const setPhotoBoothPhotos = usePhotoBoothStore((s) => s.setPhotos);
   const resetPhotoBooth = usePhotoBoothStore((s) => s.reset);
-
   // ─── 다꾸 테마 ────────────────────────────────────────
   const { theme: dt, themeId, setTheme } = useDiaryTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -67,23 +66,13 @@ export default function FootprintCreateScreen() {
   const [diaryAnswer, setDiaryAnswer] = useState('');
   const [coupleAnswer, setCoupleAnswer] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
-  const kind: 'each' | 'together' =
-    params.kind === 'together' ? 'together' : 'each';
-  const isTogether = kind === 'together';
+  const kind = 'together' as const;
+  const isTogether = true;
 
-  // 사진 한도 — 오늘의 나 1장, 우리의 하루는 free 4장 / walkToo+ 12장
-  const photoLimit = isTogether
-    ? isEntitled
-      ? PREMIUM.PHOTO_LIMIT_PREMIUM
-      : PREMIUM.PHOTO_LIMIT_FREE
-    : 1;
-
-  // kind 변경 시 사진 트리밍 (each ← together 전환 시 4장 → 1장)
-  useEffect(() => {
-    setPhotos((prev) =>
-      prev.length > photoLimit ? prev.slice(0, photoLimit) : prev,
-    );
-  }, [photoLimit]);
+  // 사진 한도 — 우리의 하루: free 4장 / walkToo+ 12장
+  const photoLimit = isEntitled
+    ? PREMIUM.PHOTO_LIMIT_PREMIUM
+    : PREMIUM.PHOTO_LIMIT_FREE;
 
   // 오늘의 질문 (날짜 변경 시 자동 갱신)
   const { diaryQuestion, coupleQuestion } = getDailyQuestions(
@@ -99,7 +88,7 @@ export default function FootprintCreateScreen() {
     const d = parseLocalDate(date);
     return { year: d.getFullYear(), month: d.getMonth() + 1 };
   }, [date]);
-  const { data: monthWalks } = useDiaryByMonthQuery(year, month);
+  const { data: monthWalks, isFetched: isMonthFetched } = useDiaryByMonthQuery(year, month);
   const existingWalk = useMemo(
     () => monthWalks?.find((w) => w.date === date),
     [monthWalks, date],
@@ -137,11 +126,12 @@ export default function FootprintCreateScreen() {
   );
 
   const handleOpenPhotoBooth = () => {
-    if (photos.length === 0) {
+    const imagePhotos = photos.filter(isImageUri);
+    if (imagePhotos.length === 0) {
       dialog.alert('', t('diary:create.photo-need-first'));
       return;
     }
-    setPhotoBoothPhotos(photos);
+    setPhotoBoothPhotos(imagePhotos);
     router.push('/photo-booth');
   };
 
@@ -226,7 +216,9 @@ export default function FootprintCreateScreen() {
         { paddingTop: insets.top, backgroundColor: dt.bg },
       ]}
     >
+      {/* 배경 텍스처/패턴 — 화면 전체에 absoluteFill로 깔림 (헤더·safe area 포함) */}
       <ThemeBg theme={dt} />
+
       {/* ── 헤더 ── 다크 테마는 ink가 검정에 가까워 안보임 → paper로 반전 */}
       <Row px="xxl" style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
@@ -316,6 +308,8 @@ export default function FootprintCreateScreen() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
+              {/* 텍스처는 컨테이너 레벨 absoluteFill로 깔림 — 여기는 paddingBottom만 담당 */}
+              <View style={{ paddingBottom: LAYOUT.bottomSafe }}>
               {/* ── 오늘 날짜 표시 (read-only, picker 없음) + 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>
                 <View
@@ -362,12 +356,7 @@ export default function FootprintCreateScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {locationName ||
-                        t(
-                          isTogether
-                            ? 'diary:create.location-placeholder'
-                            : 'diary:create.location-placeholder-each',
-                        )}
+                      {locationName || t('diary:create.location-placeholder')}
                     </Text>
                     {locationAddress && (
                       <Text
@@ -407,27 +396,17 @@ export default function FootprintCreateScreen() {
                     {photos.length}/{photoLimit}
                   </Text>
                 </Row>
-                {isTogether ? (
-                  <PhotoPage
-                    theme={dt}
-                    photos={photos}
-                    editable
-                    onAddPhoto={() => handleAddPhoto()}
-                    onRemovePhoto={(slotIdx) => handleRemovePhoto(slotIdx)}
-                    quoteSeed={date}
-                  />
-                ) : (
-                  <EachPhotoStrip
-                    theme={dt}
-                    myPhoto={photos[0]}
-                    editable
-                    onAddMyPhoto={() => handleAddPhoto()}
-                    onRemoveMyPhoto={() => handleRemovePhoto(0)}
-                  />
-                )}
+                <PhotoPage
+                  theme={dt}
+                  photos={photos}
+                  editable
+                  onAddPhoto={() => handleAddPhoto()}
+                  onRemovePhoto={(slotIdx) => handleRemovePhoto(slotIdx)}
+                  quoteSeed={date}
+                />
 
                 {/* 포토부스 — 텍스트 링크 톤 */}
-                {photos.length > 0 && (
+                {photos.some(isImageUri) && (
                   <Pressable
                     onPress={handleOpenPhotoBooth}
                     style={styles.photoBoothLink}
@@ -472,42 +451,37 @@ export default function FootprintCreateScreen() {
               <Box px="xxl" style={styles.fieldSection}>
                 <ThemedDiaryCard
                   theme={dt}
-                  title={isTogether ? '오늘의 다이어리' : '📓 오늘의 한 줄'}
-                  question={isTogether ? diaryQuestion.content : ''}
+                  title="오늘의 다이어리"
+                  question={diaryQuestion.content}
                   rotate={0.4}
                 >
                   <ThemedHandwriteInput
                     theme={dt}
                     value={diaryAnswer}
                     onChangeText={setDiaryAnswer}
-                    placeholder={
-                      isTogether
-                        ? t('diary:detail.form.diary-placeholder')
-                        : '오늘 너에게 들려주고 싶은 한 마디 ✿'
-                    }
-                    minLines={isTogether ? 3 : 2}
+                    placeholder={t('diary:detail.form.diary-placeholder')}
+                    minLines={3}
                   />
                 </ThemedDiaryCard>
               </Box>
 
-              {isTogether && (
-                <Box px="xxl" style={styles.fieldSection}>
-                  <ThemedDiaryCard
+              <Box px="xxl" style={styles.fieldSection}>
+                <ThemedDiaryCard
+                  theme={dt}
+                  title={`${coupleQuestion.emoji} 커플 질문`}
+                  question={coupleQuestion.content}
+                  rotate={-0.35}
+                >
+                  <ThemedHandwriteInput
                     theme={dt}
-                    title={`${coupleQuestion.emoji} 커플 질문`}
-                    question={coupleQuestion.content}
-                    rotate={-0.35}
-                  >
-                    <ThemedHandwriteInput
-                      theme={dt}
-                      value={coupleAnswer}
-                      onChangeText={setCoupleAnswer}
-                      placeholder={t('diary:detail.form.couple-placeholder')}
-                      minLines={3}
-                    />
-                  </ThemedDiaryCard>
-                </Box>
-              )}
+                    value={coupleAnswer}
+                    onChangeText={setCoupleAnswer}
+                    placeholder={t('diary:detail.form.couple-placeholder')}
+                    minLines={3}
+                  />
+                </ThemedDiaryCard>
+              </Box>
+              </View>
             </ScrollView>
 
             {/* ── 저장 버튼 ── */}
@@ -615,7 +589,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingTop: LAYOUT.sectionGap,
-    paddingBottom: LAYOUT.bottomSafe,
+    // paddingBottom은 ThemeBg wrapper로 이동
   },
   fieldSection: {
     marginTop: LAYOUT.sectionGap,

@@ -1,15 +1,21 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, PixelProgressBar, Text } from '@/components/base';
 import type { IconName } from '@/components/base/Icon';
+import { usePopup } from '@/components/composite/popup/PopupProvider';
 import { STAMP, STEP_GOAL, stepsToCalories } from '@/constants/game-config';
+import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
+import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
+import { useDialogStore } from '@/stores/dialogStore';
 import type { WalkDiary } from '@/types';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { formatDday, formatSteps } from '@/utils/date';
+import { isVideoUri } from '@/utils/media';
 
 import { HomeMapWidget } from './HomeMapWidget';
 import { MemoryDrawWidget } from './MemoryDrawWidget';
@@ -69,30 +75,80 @@ export function WidgetBoard({
   onMapInteractionEnd,
 }: WidgetBoardProps) {
   const router = useRouter();
+  const { t } = useTranslation(['home', 'common']);
+  const popup = usePopup();
+  const dialog = useDialogStore();
+  const { me, couple, partnerId } = usePartnerDerivation();
+  const sendNudge = useSendNudgeMutation();
 
   const myEntry = todayWalk?.myEntry;
   const partnerEntry = todayWalk?.partnerEntry;
 
+  const diaryDetailParams = todayWalk
+    ? {
+        id: todayWalk.id,
+        date: todayWalk.date,
+        locationName: todayWalk.locationName,
+        kind: todayWalk.kind,
+        isRevealed: String(todayWalk.isRevealed),
+        myEntry: todayWalk.myEntry ? JSON.stringify(todayWalk.myEntry) : '',
+        partnerEntry: todayWalk.partnerEntry
+          ? JSON.stringify(todayWalk.partnerEntry)
+          : '',
+      }
+    : null;
+
+  // 둘 다 작성된 경우만 풀 다이어리 페이지로. 한쪽만(each) 작성된 상태에서는
+  // 가벼운 미디어 뷰어로 — 영상은 재생, 사진은 핀치줌 확대.
+  const openMediaViewer = (entry?: { photos: string[]; memo?: string }) => {
+    const uri = entry?.photos?.[0];
+    if (!uri) return;
+    router.push({
+      pathname: '/media-viewer',
+      params: { uri, caption: entry?.memo ?? '' },
+    });
+  };
+
   const handleOpenToday = () => {
-    if (todayWalk) {
-      // records 탭과 동일 포맷으로 params 전달 (date 없으면 diary-detail에서 크래시)
-      router.push({
-        pathname: '/diary-detail',
-        params: {
-          id: todayWalk.id,
-          date: todayWalk.date,
-          locationName: todayWalk.locationName,
-          kind: todayWalk.kind,
-          isRevealed: String(todayWalk.isRevealed),
-          myEntry: todayWalk.myEntry ? JSON.stringify(todayWalk.myEntry) : '',
-          partnerEntry: todayWalk.partnerEntry
-            ? JSON.stringify(todayWalk.partnerEntry)
-            : '',
-        },
-      });
-    } else {
-      router.push('/footprint-create');
+    if (!myEntry) {
+      router.push('/quick-capture');
+      return;
     }
+    if (partnerEntry && diaryDetailParams) {
+      router.push({ pathname: '/diary-detail', params: diaryDetailParams });
+      return;
+    }
+    openMediaViewer(myEntry);
+  };
+
+  // 상대 카드: 상대가 올렸으면 보기, 없으면 콕 찌르기
+  const handleOpenPartner = () => {
+    if (partnerEntry) {
+      if (myEntry && diaryDetailParams) {
+        router.push({ pathname: '/diary-detail', params: diaryDetailParams });
+      } else {
+        openMediaViewer(partnerEntry);
+      }
+      return;
+    }
+
+    popup.confirm({
+      title: t('home:nudge.title', { name: partnerName }),
+      content: t('home:nudge.description'),
+      confirmText: sendNudge.isPending ? '...' : t('home:nudge.confirm'),
+      cancelText: t('common:actions.cancel'),
+      onConfirm: async () => {
+        if (!me?.id || !partnerId || !couple?.id) return;
+        const result = await sendNudge.mutateAsync({
+          recipientId: partnerId,
+          coupleId: couple.id,
+          senderName: me.nickname ?? partnerName,
+        });
+        if (!result.success) {
+          dialog.alert('', t('home:nudge.already-sent'));
+        }
+      },
+    });
   };
 
   return (
@@ -133,7 +189,7 @@ export function WidgetBoard({
           kind={todayWalk?.kind}
           isMine={false}
           isRevealed={todayWalk?.isRevealed ?? false}
-          onPress={handleOpenToday}
+          onPress={handleOpenPartner}
         />
       </View>
 
@@ -228,20 +284,70 @@ function TodayPolaroidWidget({
   onPress: () => void;
 }) {
   const { t } = useTranslation(['home', 'diary']);
+  const router = useRouter();
   const photo = entry?.photos?.[0];
   const blurred = !isMine && entry && !isRevealed;
+  const isVideo = isVideoUri(photo);
+
+  // kindBadge(해/하트) 탭 = 풀스크린 media-viewer로 바로 진입.
+  // blurred(상대 미공개)나 사진 없으면 무시.
+  const handleKindBadgePress = () => {
+    if (blurred || !photo) return;
+    router.push({
+      pathname: '/media-viewer',
+      params: { uri: photo, caption: entry?.memo ?? '' },
+    });
+  };
+
+  // 1차 탭 = 인라인 재생, 2차 탭 = onPress(풀스크린).
+  // blurred(상대 미공개)면 인라인 재생 스킵 — onPress가 nudge/풀스크린 분기.
+  const canInlinePlay = isVideo && !!photo && !blurred;
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const videoSource = canInlinePlay ? (photo as string) : null;
+  const player = useVideoPlayer(videoSource, (p) => {
+    if (!videoSource) return;
+    p.loop = true;
+    p.muted = false;
+    // 시작은 일시정지 — 첫 프레임이 썸네일 역할
+  });
+
+  const handlePress = () => {
+    if (canInlinePlay && !isPlaying) {
+      player.play();
+      setIsPlaying(true);
+      return;
+    }
+    onPress();
+  };
 
   return (
-    <Pressable style={[styles.widget, styles.polaroid]} onPress={onPress}>
+    <Pressable style={[styles.widget, styles.polaroid]} onPress={handlePress}>
       {/* 클립 장식 */}
       <View style={styles.polaroidClip} />
 
       <View style={styles.polaroidPhoto}>
-        {photo ? (
+        {photo && !isVideo ? (
           <Image
             source={{ uri: photo }}
             style={[styles.polaroidImg, blurred && { opacity: 0.25 }]}
           />
+        ) : photo && isVideo ? (
+          <View style={[styles.videoThumb, blurred && { opacity: 0.25 }]}>
+            {canInlinePlay && (
+              <VideoView
+                player={player}
+                style={styles.videoThumbInner}
+                contentFit="cover"
+                nativeControls={false}
+              />
+            )}
+            {!isPlaying && (
+              <View style={styles.videoPlayBadge}>
+                <Icon name="play" size={18} color={theme.colors.white} />
+              </View>
+            )}
+          </View>
         ) : (
           <View style={styles.polaroidEmpty}>
             <Icon
@@ -252,13 +358,21 @@ function TodayPolaroidWidget({
           </View>
         )}
         {kind && entry && (
-          <View style={styles.kindBadge}>
+          <Pressable
+            onPress={handleKindBadgePress}
+            hitSlop={10}
+            disabled={!!blurred || !photo}
+            style={({ pressed }) => [
+              styles.kindBadge,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
             <Icon
               name={kind === 'together' ? 'heart' : 'sun'}
               size={10}
               color={theme.colors.primary}
             />
-          </View>
+          </Pressable>
         )}
       </View>
 
@@ -681,6 +795,26 @@ const styles = StyleSheet.create({
   polaroidImg: {
     width: '100%',
     height: '100%',
+  },
+  videoThumb: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.gray600,
+    overflow: 'hidden',
+  },
+  videoThumbInner: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  videoPlayBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
   },
   polaroidEmpty: {
     flex: 1,

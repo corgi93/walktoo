@@ -5,7 +5,7 @@
  * 테마 토큰에서는 문자열 ID로 참조하고 (`'tape-coral-solid'`), 컴포넌트가 이 맵에서 조회.
  *
  * 새 에셋 추가:
- *  1. assets/diary/{tapes|stickers|frames}/<name>.png 에 파일 추가
+ *  1. assets/diary/{tapes|stickers|frames|textures}/<name>.<ext> 에 파일 추가
  *  2. 아래 맵에 ID → require 한 줄 추가
  *  3. diaryThemes.ts 에서 해당 ID 사용
  */
@@ -111,6 +111,31 @@ export const DIARY_FRAMES = {
 
 export type DiaryFrameId = keyof typeof DIARY_FRAMES;
 
+// ─── Textures (배경 종이결) ─────────────────────────────
+//
+// 256~512px 시밍(tileable) WebP/PNG. ThemeBg가 resizeMode="repeat"로 깔아서
+// 단색 bg 위에 종이/필름/양피지 느낌을 더함. 파일 없으면 textureSrc()가
+// undefined를 반환하고 ThemeBg는 텍스처 레이어를 건너뜀 (graceful).
+//
+// 파일을 assets/diary/textures/ 에 떨군 뒤 아래 한 줄씩 주석 해제하면 켜짐.
+
+export const DIARY_TEXTURES: Partial<Record<DiaryTextureId, ImageSourcePropType>> = {
+  'y2k-paper': require('@/assets/diary/textures/y2k-paper.jpg'),
+  'vintage-paper': require('@/assets/diary/textures/vintage-paper.jpg'),
+  'pixel-paper': require('@/assets/diary/textures/pixel-paper.jpg'),
+  'minimal-paper': require('@/assets/diary/textures/minimal-paper.jpg'),
+  'dreamy-paper': require('@/assets/diary/textures/dreamy-paper.jpg'),
+  'academia-wood': require('@/assets/diary/textures/academia-wood.jpg'),
+};
+
+export type DiaryTextureId =
+  | 'y2k-paper'
+  | 'vintage-paper'
+  | 'pixel-paper'
+  | 'minimal-paper'
+  | 'dreamy-paper'
+  | 'academia-wood';
+
 // ─── Lookup helpers ─────────────────────────────────────
 
 export function tapeSrc(id: DiaryTapeId): ImageSourcePropType {
@@ -123,4 +148,8 @@ export function stickerSrc(id: DiaryStickerId): ImageSourcePropType {
 
 export function frameSrc(id: DiaryFrameId): ImageSourcePropType {
   return DIARY_FRAMES[id];
+}
+
+export function textureSrc(id: DiaryTextureId): ImageSourcePropType | undefined {
+  return DIARY_TEXTURES[id];
 }

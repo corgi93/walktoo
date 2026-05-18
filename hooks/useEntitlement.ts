@@ -45,6 +45,9 @@ export function useEntitlement(): EntitlementValue {
   // RevenueCat에는 entitlement 있는데 Supabase에는 has_premium=false인 경우
   // → 자동 sync (한 번만 시도)
   const healAttemptedRef = useRef(false);
+  // markPurchased는 useMutation 반환값이라 렌더마다 새 참조 → ref로 보관
+  const markPurchasedRef = useRef(markPurchased);
+  useEffect(() => { markPurchasedRef.current = markPurchased; });
 
   useEffect(() => {
     if (healAttemptedRef.current) return;
@@ -59,14 +62,14 @@ export function useEntitlement(): EntitlementValue {
         if (info && hasActiveEntitlement(info)) {
           const appUserId = await getRevenueCatAppUserId();
           if (appUserId) {
-            await markPurchased.mutateAsync(appUserId);
+            await markPurchasedRef.current.mutateAsync(appUserId);
           }
         }
       } catch (e) {
         console.warn('[useEntitlement] heal failed:', e);
       }
     })();
-  }, [isLoading, hasPremium, markPurchased]);
+  }, [isLoading, hasPremium]);
 
   return {
     isLoading,

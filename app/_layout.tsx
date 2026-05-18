@@ -99,6 +99,20 @@ export default function RootLayout() {
                   name="footprint-create"
                   options={{ presentation: "modal" }}
                 />
+                <Stack.Screen
+                  name="quick-capture"
+                  options={{
+                    presentation: "fullScreenModal",
+                    animation: "fade",
+                  }}
+                />
+                <Stack.Screen
+                  name="media-viewer"
+                  options={{
+                    presentation: "fullScreenModal",
+                    animation: "fade",
+                  }}
+                />
                 <Stack.Screen name="diary-detail" />
                 <Stack.Screen name="auth/callback" />
                 <Stack.Screen

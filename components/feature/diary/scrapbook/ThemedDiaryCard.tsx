@@ -3,18 +3,15 @@ import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import type { DiaryTheme } from '@/styles/diaryThemes';
 
-import { ImageTape } from './ImageTape';
-import { WashiTape } from './WashiTape';
-
 interface ThemedDiaryCardProps {
   theme: DiaryTheme;
-  /** 카드 상단 라벨 — 손글씨 폰트로 표시 */
+  /** 카드 상단 라벨 */
   title: string;
   /** 카드 우측 상단 작은 배지 (선택) */
   badge?: string;
   /** 질문 — 액센트 좌측 보더 + tint[0] 배경 */
   question: string;
-  /** 회전 — grid_minimal에서는 무시 */
+  /** @deprecated 회전 제거됨 — prop은 남겨두고 무시 (호출처 변경 최소화) */
   rotate?: number;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -22,30 +19,18 @@ interface ThemedDiaryCardProps {
 
 /**
  * 다이어리 카드 wrapper — title + question + body.
- * 다꾸 테마: paper 배경 + 살짝 회전 + 윗면 와시테이프 1~2개.
- * grid_minimal 테마: 회전·테이프 모두 비활성, 깔끔한 박스만.
+ * 회전·와시테이프 없이 항상 깔끔한 박스. 테마별 paper/line/ink 색만 적용.
  */
 export function ThemedDiaryCard({
   theme: t,
   title,
   badge,
-  question,
-  rotate = 0,
   children,
+  question,
   style,
 }: ThemedDiaryCardProps) {
-  const isMinimal = t.id === 'grid_minimal';
-  const rot = isMinimal ? 0 : rotate;
-
   return (
-    <View
-      style={[
-        {
-          transform: [{ rotate: `${rot}deg` }],
-        },
-        style,
-      ]}
-    >
+    <View style={style}>
       <View
         style={[
           styles.card,
@@ -53,7 +38,6 @@ export function ThemedDiaryCard({
             backgroundColor: t.paper,
             borderColor: t.line,
           },
-          !isMinimal && styles.cardShadow,
         ]}
       >
         <View style={styles.header}>
@@ -71,15 +55,7 @@ export function ThemedDiaryCard({
             {title}
           </Text>
           {badge ? (
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: t.accent,
-                  transform: isMinimal ? [] : [{ rotate: '2deg' }],
-                },
-              ]}
-            >
+            <View style={[styles.badge, { backgroundColor: t.accent }]}>
               <Text
                 style={[
                   styles.badgeText,
@@ -93,7 +69,6 @@ export function ThemedDiaryCard({
           ) : null}
         </View>
 
-        {/* 질문 박스 — question 비어있으면 숨김 (오늘의 나처럼 freeform 입력일 때) */}
         {question.trim().length > 0 && (
           <View
             style={[
@@ -122,49 +97,6 @@ export function ThemedDiaryCard({
 
         <View style={styles.body}>{children}</View>
       </View>
-
-      {!isMinimal && (
-        <>
-          {t.imgTapes[0] ? (
-            <ImageTape
-              id={t.imgTapes[0]}
-              width={80}
-              rotate={-8}
-              style={{ top: -10, left: 18 }}
-            />
-          ) : (
-            <WashiTape
-              width={60}
-              height={14}
-              rotate={-8}
-              color={t.tapes[0].color}
-              pattern={t.tapes[0].pattern}
-              patternColor={t.tapes[0].patternColor}
-              style={{ top: -8, left: 14 }}
-            />
-          )}
-          {t.imgTapes[1] ? (
-            <ImageTape
-              id={t.imgTapes[1]}
-              width={62}
-              rotate={9}
-              style={{ top: -8, right: 22 }}
-            />
-          ) : (
-            t.tapes[1] && (
-              <WashiTape
-                width={46}
-                height={12}
-                rotate={9}
-                color={t.tapes[1].color}
-                pattern={t.tapes[1].pattern}
-                patternColor={t.tapes[1].patternColor}
-                style={{ top: -6, right: 18 }}
-              />
-            )
-          )}
-        </>
-      )}
     </View>
   );
 }
@@ -174,14 +106,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderWidth: 1,
-    position: 'relative',
-  },
-  cardShadow: {
-    shadowColor: '#2E2622',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 0,
-    elevation: 2,
   },
   header: {
     flexDirection: 'row',

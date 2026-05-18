@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Modal as RNModal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,7 @@ import type { WalkDiary } from '@/types/diary';
 import { addMonths, getCurrentYearMonth } from '@/utils/date';
 
 type KindFilter = 'all' | 'together' | 'each';
+type PersonFilter = 'me' | 'partner';
 type ViewMode = 'list' | 'map';
 
 // ─── Screen ─────────────────────────────────────────────
@@ -35,6 +35,7 @@ export default function RecordsScreen() {
   const { isCoupleConnected } = usePartnerDerivation();
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
+  const [personFilter, setPersonFilter] = useState<PersonFilter>('me');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   if (!isCoupleConnected) {
@@ -49,6 +50,8 @@ export default function RecordsScreen() {
       insets={insets}
       kindFilter={kindFilter}
       onChangeKindFilter={setKindFilter}
+      personFilter={personFilter}
+      onChangePersonFilter={setPersonFilter}
       viewMode={viewMode}
       onChangeViewMode={setViewMode}
     />
@@ -64,6 +67,8 @@ function RecordsContent({
   insets,
   kindFilter,
   onChangeKindFilter,
+  personFilter,
+  onChangePersonFilter,
   viewMode,
   onChangeViewMode,
 }: {
@@ -73,6 +78,8 @@ function RecordsContent({
   insets: { top: number; bottom: number; left: number; right: number };
   kindFilter: KindFilter;
   onChangeKindFilter: (f: KindFilter) => void;
+  personFilter: PersonFilter;
+  onChangePersonFilter: (p: PersonFilter) => void;
   viewMode: ViewMode;
   onChangeViewMode: (m: ViewMode) => void;
 }) {
@@ -80,28 +87,33 @@ function RecordsContent({
   const router = useRouter();
   const { couple, myName, partnerName } = usePartnerDerivation();
   const [showPicker, setShowPicker] = useState(false);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coupleStartDate = couple?.startDate;
 
   const { walks, stamps } = useCalendarMonthQuery(year, month);
 
-  // kind 필터 적용
+  // kind 필터 + (각자일 때만) 사람 필터 적용
+  // - 'each' 선택 시 personFilter('me'|'partner')에 따라 그 사람의 엔트리가
+  //   있는 walk만 남김. 'together'/'all'에선 personFilter 무시.
   const filteredWalks = useMemo(() => {
-    if (kindFilter === 'all') return walks;
-    return walks.filter((w) => w.kind === kindFilter);
-  }, [walks, kindFilter]);
+    const byKind =
+      kindFilter === 'all'
+        ? walks
+        : walks.filter((w) => w.kind === kindFilter);
+
+    if (kindFilter !== 'each') return byKind;
+
+    return byKind.filter((w) =>
+      personFilter === 'me' ? !!w.myEntry : !!w.partnerEntry,
+    );
+  }, [walks, kindFilter, personFilter]);
 
   const handlePrev = () => onChangeYearMonth(addMonths(year, month, -1));
   const handleNext = () => onChangeYearMonth(addMonths(year, month, +1));
 
-  const handleAddRecord = (kind: 'together' | 'each') => {
-    setAddSheetOpen(false);
-    router.push({
-      pathname: '/footprint-create',
-      params: { kind },
-    });
+  const handleAddRecord = () => {
+    router.push({ pathname: '/footprint-create', params: { kind: 'together' } });
   };
 
   const handleItemPress = (walk: WalkDiary) => {
@@ -146,9 +158,9 @@ function RecordsContent({
     [],
   );
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 탭 헤더 — 화면 제목과 보기 전환만 배치 */}
+  // 공통 헤더 (제목 + 토글 + 월 + 필터)
+  const headerBlock = (
+    <>
       <Row px="xxl" style={styles.header}>
         <Text variant="headingLarge" color="primary">
           {t('home:records-tab.title')}
@@ -156,58 +168,78 @@ function RecordsContent({
         <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
       </Row>
 
-      <ScrollView
-        scrollEnabled={!isMapInteracting}
-        nestedScrollEnabled={false}
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + LAYOUT.sectionGap },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* 월 네비게이션 (두 모드 공통) */}
-        <CalendarMonthNav
-          year={year}
-          month={month}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          onTapMonth={() => setShowPicker(true)}
+      <CalendarMonthNav
+        year={year}
+        month={month}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onTapMonth={() => setShowPicker(true)}
+      />
+
+      <KindFilterBar
+        value={kindFilter}
+        onChange={onChangeKindFilter}
+        onAdd={handleAddRecord}
+      />
+
+      {kindFilter === 'each' && (
+        <PersonFilterBar
+          value={personFilter}
+          onChange={onChangePersonFilter}
+          myName={myName}
+          partnerName={partnerName}
         />
+      )}
+    </>
+  );
 
-        {/* 우리/각자 필터 */}
-        <KindFilterBar
-          value={kindFilter}
-          onChange={onChangeKindFilter}
-          onAdd={() => setAddSheetOpen(true)}
-        />
-
-        {/* 산책·발자국 카운트 (회고 관련 제거됨 — 기록에 집중) */}
-        <Row px="xxl" style={styles.statRow}>
-          <View style={styles.stat}>
-            <Icon name="footprint" size={14} color={theme.colors.primary} />
-            <Text variant="caption" color="textSecondary" ml="xxs">
-              산책 {filteredWalks.length}
-            </Text>
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* 지도 모드: 헤더 + 전체 영역 지도 (ScrollView 밖) */}
+      {viewMode === 'map' ? (
+        <>
+          {headerBlock}
+          <View style={styles.mapArea}>
+            <RecordsMapView
+              walks={filteredWalks}
+              myName={myName}
+              partnerName={partnerName}
+              bottomInset={insets.bottom}
+              onMapInteractionStart={lockMapScroll}
+              onMapInteractionEnd={unlockMapScroll}
+            />
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Icon name="star" size={14} color={theme.colors.accent} />
-            <Text variant="caption" color="textSecondary" ml="xxs">
-              발자국 {stamps.length}
-            </Text>
-          </View>
-        </Row>
+        </>
+      ) : (
+        // 리스트 모드: 기존 ScrollView
+        <ScrollView
+          scrollEnabled={!isMapInteracting}
+          nestedScrollEnabled={false}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingBottom: insets.bottom + LAYOUT.sectionGap },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {headerBlock}
 
-        {/* 리스트 / 지도 모드 */}
-        {viewMode === 'map' ? (
-          <RecordsMapView
-            walks={filteredWalks}
-            myName={myName}
-            partnerName={partnerName}
-            onMapInteractionStart={lockMapScroll}
-            onMapInteractionEnd={unlockMapScroll}
-          />
-        ) : (
+          {/* 산책·발자국 카운트 — 리스트 모드에서만 노출 */}
+          <Row px="xxl" style={styles.statRow}>
+            <View style={styles.stat}>
+              <Icon name="footprint" size={14} color={theme.colors.primary} />
+              <Text variant="caption" color="textSecondary" ml="xxs">
+                산책 {filteredWalks.length}
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Icon name="star" size={14} color={theme.colors.accent} />
+              <Text variant="caption" color="textSecondary" ml="xxs">
+                발자국 {stamps.length}
+              </Text>
+            </View>
+          </Row>
+
           <View style={styles.listMode}>
             {filteredWalks.length === 0 ? (
               <Box px="xxl">
@@ -224,8 +256,8 @@ function RecordsContent({
               />
             )}
           </View>
-        )}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {showPicker && (
         <MonthYearPicker
@@ -237,12 +269,6 @@ function RecordsContent({
         />
       )}
 
-      <AddRecordSheet
-        open={addSheetOpen}
-        bottomInset={insets.bottom}
-        onClose={() => setAddSheetOpen(false)}
-        onPick={handleAddRecord}
-      />
     </View>
   );
 }
@@ -313,148 +339,6 @@ const toggleStyles = StyleSheet.create({
   },
 });
 
-function AddRecordSheet({
-  open,
-  bottomInset,
-  onClose,
-  onPick,
-}: {
-  open: boolean;
-  bottomInset: number;
-  onClose: () => void;
-  onPick: (kind: 'together' | 'each') => void;
-}) {
-  return (
-    <RNModal
-      visible={open}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <Pressable style={sheetStyles.overlay} onPress={onClose}>
-        <Pressable
-          style={[sheetStyles.sheet, { paddingBottom: bottomInset + SPACING.lg }]}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <View style={sheetStyles.handle} />
-          <Text variant="headingSmall" style={sheetStyles.title}>
-            어떤 기록을 남길까요?
-          </Text>
-          <Text variant="bodySmall" color="textSecondary" style={sheetStyles.subtitle}>
-            지도에 남길 데이트는 우리의 하루로 기록해요.
-          </Text>
-
-          <Pressable
-            onPress={() => onPick('together')}
-            style={[sheetStyles.option, sheetStyles.optionPrimary]}
-          >
-            <View style={[sheetStyles.optionIcon, sheetStyles.optionIconPrimary]}>
-              <Icon name="heart" size={18} color={theme.colors.primary} />
-            </View>
-            <View style={sheetStyles.optionText}>
-              <Text variant="bodyMedium" style={sheetStyles.optionTitle}>
-                우리의 하루
-              </Text>
-              <Text variant="caption" color="textSecondary" style={sheetStyles.optionDesc}>
-                함께 간 장소를 지도 마커로 남겨요
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
-          </Pressable>
-
-          <Pressable
-            onPress={() => onPick('each')}
-            style={sheetStyles.option}
-          >
-            <View style={sheetStyles.optionIcon}>
-              <Icon name="sun" size={18} color={theme.colors.gray600} />
-            </View>
-            <View style={sheetStyles.optionText}>
-              <Text variant="bodyMedium" style={sheetStyles.optionTitle}>
-                오늘의 나
-              </Text>
-              <Text variant="caption" color="textSecondary" style={sheetStyles.optionDesc}>
-                각자의 일상을 가볍게 남겨요
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
-          </Pressable>
-        </Pressable>
-      </Pressable>
-    </RNModal>
-  );
-}
-
-const sheetStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(44, 44, 46, 0.42)',
-  },
-  sheet: {
-    paddingTop: SPACING.sm,
-    paddingHorizontal: LAYOUT.screenPx,
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: theme.radius.xxl,
-    borderTopRightRadius: theme.radius.xxl,
-    borderTopWidth: 1,
-    borderColor: theme.colors.gray200,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.gray300,
-    marginBottom: SPACING.lg,
-  },
-  title: {
-    color: theme.colors.text,
-  },
-  subtitle: {
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.lg,
-  },
-  option: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.surfaceWarm,
-    borderWidth: 1,
-    borderColor: theme.colors.gray200,
-    marginTop: SPACING.sm,
-  },
-  optionPrimary: {
-    backgroundColor: theme.colors.primarySurface,
-    borderColor: theme.colors.primaryLight,
-  },
-  optionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.gray100,
-  },
-  optionIconPrimary: {
-    backgroundColor: theme.colors.white,
-  },
-  optionText: {
-    flex: 1,
-    marginLeft: SPACING.md,
-  },
-  optionTitle: {
-    color: theme.colors.text,
-    fontWeight: '700',
-  },
-  optionDesc: {
-    marginTop: 2,
-  },
-});
 
 function KindFilterBar({
   value,
@@ -518,6 +402,73 @@ function KindFilterBar({
     </Row>
   );
 }
+
+// ─── PersonFilterBar (각자일 때만 — 나/상대 토글) ────────
+
+function PersonFilterBar({
+  value,
+  onChange,
+  myName,
+  partnerName,
+}: {
+  value: PersonFilter;
+  onChange: (v: PersonFilter) => void;
+  myName: string;
+  partnerName: string;
+}) {
+  const items: { key: PersonFilter; label: string }[] = [
+    { key: 'me', label: myName },
+    { key: 'partner', label: partnerName },
+  ];
+
+  return (
+    <Row px="xxl" style={personFilterStyles.container}>
+      {items.map((item) => {
+        const active = value === item.key;
+        return (
+          <Pressable
+            key={item.key}
+            onPress={() => onChange(item.key)}
+            style={[
+              personFilterStyles.tab,
+              active && personFilterStyles.tabActive,
+            ]}
+            hitSlop={4}
+          >
+            <Text
+              variant="caption"
+              color={active ? 'primary' : 'textMuted'}
+              style={{
+                fontWeight: active ? '700' : '500',
+              }}
+              numberOfLines={1}
+            >
+              {item.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
+const personFilterStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: theme.colors.primary,
+  },
+});
 
 const filterStyles = StyleSheet.create({
   container: {
@@ -617,6 +568,10 @@ const styles = StyleSheet.create({
   },
   listMode: {
     marginTop: SPACING.md,
+  },
+  mapArea: {
+    flex: 1,
+    marginTop: SPACING.sm,
   },
   statRow: {
     paddingVertical: SPACING.sm,

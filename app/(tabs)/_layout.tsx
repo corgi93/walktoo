@@ -23,7 +23,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
-          paddingTop: 4,
+          paddingTop: 2,
           paddingBottom: bottomPadding,
           height: 44 + bottomPadding,
           borderTopWidth: 1,
@@ -33,12 +33,14 @@ export default function TabLayout() {
         tabBarInactiveTintColor: theme.colors.gray500,
         tabBarLabelStyle: {
           fontFamily: FONT_FAMILY.pixel,
-          fontSize: 9,
-          lineHeight: 11,
+          fontSize: 10,
+          lineHeight: 12,
           marginTop: 1,
+          includeFontPadding: false,
+          textAlignVertical: 'center',
         },
         tabBarIconStyle: {
-          marginBottom: -2,
+          marginBottom: 0,
         },
         tabBarHideOnKeyboard: true,
       }}

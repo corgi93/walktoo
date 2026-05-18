@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/constants/keys';
 import { reflectionsService } from '@/server/reflections';
 import type { ReflectionAnswer } from '@/types/reflection';
+import { useFieldCrypto } from '@/hooks/useCrypto';
 
 interface SaveAnswersParams {
   reflectionId: string;
@@ -14,10 +15,14 @@ interface SaveAnswersParams {
  */
 export const useSaveReflectionAnswersMutation = () => {
   const queryClient = useQueryClient();
+  const { encrypt } = useFieldCrypto();
 
   return useMutation({
     mutationFn: (params: SaveAnswersParams) =>
-      reflectionsService.saveAnswers(params.reflectionId, params.answers),
+      reflectionsService.saveAnswers(params.reflectionId, params.answers.map((a) => ({
+        ...a,
+        answer: encrypt(a.answer),
+      }))),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.reflection.detail(variables.reflectionId),

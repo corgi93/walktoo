@@ -22,9 +22,11 @@ export function usePedometer() {
 
   useEffect(() => {
     let subscription: ReturnType<typeof Pedometer.watchStepCount> | null = null;
+    let cancelled = false;
 
     const init = async () => {
       const isAvailable = await Pedometer.isAvailableAsync();
+      if (cancelled) return;
       setAvailable(isAvailable);
       if (!isAvailable) return;
 
@@ -38,11 +40,14 @@ export function usePedometer() {
             now.getDate(),
           );
           const result = await Pedometer.getStepCountAsync(startOfDay, now);
+          if (cancelled) return;
           setBaseSteps(result.steps);
         } catch (e) {
           console.warn('[Pedometer] iOS 기록 조회 실패:', e);
         }
       }
+
+      if (cancelled) return;
 
       // 실시간 구독
       // Android: 구독 이후 누적값 반환
@@ -55,6 +60,7 @@ export function usePedometer() {
     init();
 
     return () => {
+      cancelled = true;
       subscription?.remove();
     };
   }, []);

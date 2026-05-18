@@ -31,6 +31,10 @@
     "photo-need-first": "먼저 사진을 추가해주세요!",
     "photo-permission-title": "권한 필요",
     "photo-permission-message": "사진을 업로드하려면 갤러리 접근 권한이 필요해요.",
+    "camera-permission-title": "카메라 권한 필요",
+    "camera-permission-message": "오늘의 나를 찍으려면 카메라 권한이 필요해요.",
+    "video-too-long": "영상은 5초 이내만 올릴 수 있어요.",
+    "video-too-large": "영상 용량이 커요. 20MB 이하 영상만 올릴 수 있어요.",
     "photobooth-button": "포토부스 만들기",
     "info-banner": "둘 다 기록해야 서로의 하루를 열어볼 수 있어요",
     "no-couple-title": "연인이 아직 없어요",
@@ -42,6 +46,22 @@
     "save-failed-title": "저장 실패",
     "save-failed": "다시 시도해주세요.",
     "today-already": "오늘은 이미 산책 기록을 남겼어요!"
+  },
+  "quick": {
+    "mode-photo": "사진",
+    "mode-video": "영상",
+    "hint-photo": "탭하면 한 장 찰칵",
+    "hint-video": "꾹 눌러서 최대 5초 영상",
+    "flip": "카메라 뒤집기",
+    "retake": "다시 찍기",
+    "save": "저장하기",
+    "saving": "저장 중...",
+    "permission-title": "카메라 권한 필요",
+    "permission-message": "오늘의 나를 찍으려면 카메라와 마이크 권한이 필요해요.",
+    "permission-cta": "권한 허용하기",
+    "save-failed-title": "저장 실패",
+    "save-failed": "잠시 후 다시 시도해주세요.",
+    "no-couple": "연인을 먼저 연결해주세요."
   },
   "detail": {
     "title": "산책 일기",

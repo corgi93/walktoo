@@ -48,6 +48,11 @@ import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
 import { FootprintEntry } from '@/types/diary';
 import { formatDate, parseLocalDate } from '@/utils/date';
+import {
+  getLocalFileSize,
+  MAX_SHORT_VIDEO_BYTES,
+  MAX_SHORT_VIDEO_DURATION_MS,
+} from '@/utils/media';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -70,10 +75,10 @@ export default function DiaryDetailScreen() {
   const walkKind: 'together' | 'each' =
     params.kind === 'each' ? 'each' : 'together';
 
-  // 사진 한도 — 오늘의 나(each)는 1장, 우리의 하루는 4장
+  // 사진 한도 — 각자(each)는 1인당 2장, 우리의 하루는 4~12장
   const photoLimit =
     walkKind === 'each'
-      ? 1
+      ? 2
       : isEntitled
         ? PREMIUM.PHOTO_LIMIT_PREMIUM
         : PREMIUM.PHOTO_LIMIT_FREE;
@@ -165,13 +170,34 @@ export default function DiaryDetailScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: walkKind === 'each' ? ['images', 'videos'] : ['images'],
       allowsMultipleSelection: true,
       selectionLimit: photoLimit - photos.length,
       quality: 0.8,
+      videoMaxDuration: 5,
     });
     if (!result.canceled) {
-      const uris = result.assets.map((a) => a.uri);
+      const validAssets = result.assets.filter((asset) => {
+        if (asset.type !== 'video') return true;
+        return !asset.duration || asset.duration <= MAX_SHORT_VIDEO_DURATION_MS;
+      });
+      if (validAssets.length < result.assets.length) {
+        dialog.alert('', t('diary:create.video-too-long'));
+      }
+      const sizeCheckedAssets = [];
+      for (const asset of validAssets) {
+        if (asset.type !== 'video') {
+          sizeCheckedAssets.push(asset);
+          continue;
+        }
+        const size = asset.fileSize ?? (await getLocalFileSize(asset.uri));
+        if (size && size > MAX_SHORT_VIDEO_BYTES) {
+          dialog.alert('', t('diary:create.video-too-large'));
+          continue;
+        }
+        sizeCheckedAssets.push(asset);
+      }
+      const uris = sizeCheckedAssets.map((a) => a.uri);
       setPhotos((prev) => [...prev, ...uris].slice(0, photoLimit));
     }
   };
@@ -238,7 +264,9 @@ export default function DiaryDetailScreen() {
         { paddingTop: insets.top, backgroundColor: dt.bg },
       ]}
     >
+      {/* 배경 텍스처/패턴 — 화면 전체에 absoluteFill로 깔림 (헤더·safe area 포함) */}
       <ThemeBg theme={dt} />
+
       {/* ── 헤더 ── 다크 테마(다크 아카데미아 등)에서는 ink가 검정에 가까워 안보이므로 paper(밝은색)로 반전 */}
       <Row px="xxl" style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
@@ -295,6 +323,8 @@ export default function DiaryDetailScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* 텍스처는 컨테이너 레벨 absoluteFill로 깔림 — 여기는 paddingBottom만 담당 */}
+          <View style={{ paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap }}>
           <Box px="xxl">
             {/* 디자인의 DiaryPage 형태 — rounded 카드 wrapper 없이 ThemeBg 위에 직접 콘텐츠 */}
             <View style={styles.diaryPage}>
@@ -313,17 +343,15 @@ export default function DiaryDetailScreen() {
               </View>
 
               {/* ── 사진 영역 ── */}
-              {/* each(오늘의 나): 1~2장 가벼운 strip / together(우리의 하루): 4슬롯 다꾸 */}
+              {/* each(각자의 하루): 1인당 최대 2장 strip / together(우리의 하루): 4슬롯 다꾸 */}
               {walkKind === 'each' ? (
                 <EachPhotoStrip
                   theme={dt}
-                  myPhoto={
-                    isEditing ? photos[0] : myEntry?.photos?.[0]
-                  }
-                  partnerPhoto={partnerEntry?.photos?.[0]}
+                  myPhotos={isEditing ? photos : (myEntry?.photos ?? [])}
+                  partnerPhotos={partnerEntry?.photos ?? []}
                   editable={isEditing}
                   onAddMyPhoto={handleAddPhoto}
-                  onRemoveMyPhoto={() => handleRemovePhoto(0)}
+                  onRemoveMyPhoto={handleRemovePhoto}
                   stampDate={params.date?.replace(/-/g, '·').slice(2) ?? ''}
                 />
               ) : !isEditing ? (
@@ -354,7 +382,15 @@ export default function DiaryDetailScreen() {
               >
                 {hasMyEntry && !isEditing ? (
                   <>
-                    {myEntry.diaryQuestionId != null ? (
+                    {walkKind === 'each' ? (
+                      // each — 질문 없이 텍스트 직접 표시
+                      <EachTextBubble
+                        dt={dt}
+                        text={myEntry.diaryAnswer || myEntry.memo || ''}
+                        empty={t('diary:detail.answer-empty')}
+                        rotate={0.4}
+                      />
+                    ) : myEntry.diaryQuestionId != null ? (
                       <ThemedDiaryCard
                         theme={dt}
                         title="오늘의 다이어리"
@@ -379,7 +415,7 @@ export default function DiaryDetailScreen() {
                         <ReadAnswer dt={dt} answer={myEntry.memo} empty="" />
                       </ThemedDiaryCard>
                     ) : null}
-                    {/* 커플 Q&A — 우리의 하루(together)에서만. 오늘의 나(each)는 폼에도 없으니 읽기에서도 숨김 */}
+                    {/* 커플 Q&A — 우리의 하루(together)에서만 */}
                     {walkKind === 'together' &&
                       myEntry.coupleQuestionId != null && (
                         <ThemedDiaryCard
@@ -459,7 +495,14 @@ export default function DiaryDetailScreen() {
               >
                 {isRevealed && partnerEntry ? (
                   <>
-                    {partnerEntry.diaryQuestionId != null ? (
+                    {walkKind === 'each' ? (
+                      <EachTextBubble
+                        dt={dt}
+                        text={partnerEntry.diaryAnswer || partnerEntry.memo || ''}
+                        empty={t('diary:detail.answer-empty')}
+                        rotate={-0.4}
+                      />
+                    ) : partnerEntry.diaryQuestionId != null ? (
                       <ThemedDiaryCard
                         theme={dt}
                         title="연인의 다이어리"
@@ -484,7 +527,6 @@ export default function DiaryDetailScreen() {
                         <ReadAnswer dt={dt} answer={partnerEntry.memo} empty="" />
                       </ThemedDiaryCard>
                     ) : null}
-                    {/* 커플 Q&A — 우리의 하루(together)에서만 */}
                     {walkKind === 'together' &&
                       partnerEntry.coupleQuestionId != null && (
                       <ThemedDiaryCard
@@ -541,6 +583,7 @@ export default function DiaryDetailScreen() {
               </View>
             </View>
           </Box>
+          </View>
         </ScrollView>
 
         {showForm && (
@@ -803,6 +846,56 @@ function EntryForm({
   );
 }
 
+// ─── Each Text Bubble ───────────────────────────────────
+// each 종류 전용 — 질문 없는 단순 메모 표시
+
+function EachTextBubble({
+  dt,
+  text,
+  empty,
+  rotate = 0,
+}: {
+  dt: DiaryTheme;
+  text: string;
+  empty: string;
+  rotate?: number;
+}) {
+  return (
+    <View
+      style={[
+        eachBubbleStyles.wrap,
+        {
+          backgroundColor: dt.tints[3],
+          borderColor: dt.line,
+          transform: [{ rotate: `${rotate}deg` }],
+        },
+      ]}
+    >
+      <Text
+        style={{
+          color: text ? dt.ink : dt.inkSoft,
+          fontFamily: dt.handFont,
+          fontWeight: dt.handWeight,
+          fontSize: 15,
+          lineHeight: 22,
+        }}
+      >
+        {text || empty}
+      </Text>
+    </View>
+  );
+}
+
+const eachBubbleStyles = StyleSheet.create({
+  wrap: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+});
+
 // ─── Q&A Block ──────────────────────────────────────────
 
 function ReadAnswer({
@@ -856,7 +949,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.lg,
   },
   scroll: {
-    paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap,
+    // paddingBottom은 ThemeBg wrapper로 이동 — 텍스처가 그 영역까지 덮게
   },
   // rounded 카드 wrapper 제거 — ThemeBg가 그대로 비치게 plain 컨테이너만
   diaryPage: {

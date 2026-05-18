@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/constants/keys';
 import { storageService, walksService } from '@/server';
 import type { CreateWalkDiaryInput } from '@/types';
+import { useFieldCrypto } from '@/hooks/useCrypto';
 import { useGetMeQuery } from '../user/query';
 
 // ─── useCreateDiaryMutation ─────────────────────────────
@@ -11,6 +12,7 @@ import { useGetMeQuery } from '../user/query';
 export const useCreateDiaryMutation = () => {
   const queryClient = useQueryClient();
   const { data: me } = useGetMeQuery();
+  const { encrypt } = useFieldCrypto();
 
   return useMutation({
     mutationFn: async (input: CreateWalkDiaryInput) => {
@@ -27,9 +29,12 @@ export const useCreateDiaryMutation = () => {
         );
       }
 
-      // 2. 산책 + 엔트리 생성 (업로드된 URL로)
+      // 2. 산책 + 엔트리 생성 (업로드된 URL로, 텍스트 필드 암호화)
       const walkId = await walksService.create(me.coupleId, me.id, {
         ...input,
+        memo: encrypt(input.memo),
+        diaryAnswer: input.diaryAnswer ? encrypt(input.diaryAnswer) : input.diaryAnswer,
+        coupleAnswer: input.coupleAnswer ? encrypt(input.coupleAnswer) : input.coupleAnswer,
         photos: photoUrls.length > 0 ? photoUrls : input.photos,
       });
 
@@ -48,6 +53,7 @@ export const useCreateDiaryMutation = () => {
 export const useAddEntryMutation = () => {
   const queryClient = useQueryClient();
   const { data: me } = useGetMeQuery();
+  const { encrypt } = useFieldCrypto();
 
   return useMutation({
     mutationFn: async ({
@@ -82,13 +88,18 @@ export const useAddEntryMutation = () => {
         );
       }
 
-      // 2. 엔트리 추가 (둘 다 작성 → reveal)
+      // 2. 엔트리 추가 (둘 다 작성 → reveal, 텍스트 필드 암호화)
       await walksService.addEntry(
         walkId,
         me.id,
-        memo,
+        encrypt(memo),
         photoUrls.length > 0 ? photoUrls : photos,
-        { diaryQuestionId, diaryAnswer, coupleQuestionId, coupleAnswer },
+        {
+          diaryQuestionId,
+          diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
+          coupleQuestionId,
+          coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
+        },
         locationName,
       );
     },
@@ -107,6 +118,7 @@ export const useAddEntryMutation = () => {
 export const useUpdateEntryMutation = () => {
   const queryClient = useQueryClient();
   const { data: me } = useGetMeQuery();
+  const { encrypt } = useFieldCrypto();
 
   return useMutation({
     mutationFn: async ({
@@ -144,10 +156,10 @@ export const useUpdateEntryMutation = () => {
 
       const allPhotos = [...existingUrls, ...newUrls];
 
-      await walksService.updateEntry(entryId, memo, allPhotos, {
+      await walksService.updateEntry(entryId, encrypt(memo), allPhotos, {
         locationName,
-        diaryAnswer,
-        coupleAnswer,
+        diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
+        coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
       });
     },
     onSuccess: (_data, variables) => {

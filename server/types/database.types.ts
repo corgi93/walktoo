@@ -368,6 +368,15 @@ export interface Database {
         Args: { p_partner_id: string; p_date: string };
         Returns: number;
       };
+      send_nudge: {
+        Args: {
+          p_sender_id: string;
+          p_recipient_id: string;
+          p_couple_id: string;
+          p_date?: string;
+        };
+        Returns: { success: boolean; reason?: 'already_nudged' };
+      };
       claim_memory_stamp: {
         Args: { p_date: string; p_count?: number };
         Returns: {

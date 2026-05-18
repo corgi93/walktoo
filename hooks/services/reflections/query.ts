@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { QUERY_KEYS } from '@/constants/keys';
 import { reflectionsService } from '@/server/reflections';
+import { useFieldCrypto } from '@/hooks/useCrypto';
 
 /**
  * 이달의 회고 (없으면 RPC로 자동 생성)
@@ -22,6 +23,8 @@ export const useReflectionDetailQuery = (
   reflectionId: string | undefined,
   myUserId: string | undefined,
 ) => {
+  const { decrypt } = useFieldCrypto();
+
   return useQuery({
     queryKey: reflectionId
       ? QUERY_KEYS.reflection.detail(reflectionId)
@@ -29,6 +32,14 @@ export const useReflectionDetailQuery = (
     queryFn: () =>
       reflectionsService.getReflectionWithAnswers(reflectionId!, myUserId!),
     enabled: !!reflectionId && !!myUserId,
+    select: (data) => {
+      if (!data) return data;
+      return {
+        ...data,
+        myAnswers: data.myAnswers.map((a) => ({ ...a, answer: decrypt(a.answer) })),
+        partnerAnswers: data.partnerAnswers.map((a) => ({ ...a, answer: decrypt(a.answer) })),
+      };
+    },
   });
 };
 
