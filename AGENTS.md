@@ -76,3 +76,15 @@
 - 사용자 변경을 되돌리지 않는다. 현재 작업트리에 미커밋 변경이 있을 수 있으므로 수정 전 `git status --short --branch`로 확인한다.
 - 이 저장소에는 Claude에서 이어진 작업 흔적이 있을 수 있다. `.claude/` 설정을 Codex 지침으로 간주하지 않는다.
 - 브랜치가 원격에서 사라진 상태일 수 있다. push/branch 정리는 사용자가 요청할 때만 한다.
+
+## Roles
+
+역할별 작업은 다음 가이드를 **해당 작업 시작 시점에만** 읽는다. 평소 루트 컨텍스트에 함께 로드하지 않는다.
+
+- 사업 기획 / BM: `docs/roles/planner.md`
+- 디자인: `docs/roles/designer.md`
+- Expo 앱 개발: `docs/roles/expo-developer.md`
+- 백엔드: `docs/roles/backend-developer.md`
+- QA: `docs/roles/qa.md`
+
+Claude Code에서는 같은 역할을 `.claude/agents/<role>.md` sub-agent로도 호출할 수 있다. Codex에서는 위 `docs/roles/<role>.md` 파일을 직접 읽는 방식만 사용한다.
