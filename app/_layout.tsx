@@ -90,6 +90,7 @@ export default function RootLayout() {
                 <Stack.Screen name="profile-edit" />
                 <Stack.Screen name="couple-manage" />
                 <Stack.Screen name="diary-list" />
+                <Stack.Screen name="walk-book" />
                 <Stack.Screen name="reflection" />
                 <Stack.Screen
                   name="paywall"

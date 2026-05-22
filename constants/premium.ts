@@ -25,7 +25,7 @@ export const PREMIUM = {
   PHOTO_LIMIT_FREE: 4,
   PHOTO_LIMIT_PREMIUM: 12,
 
-  /** 가격 fallback (RevenueCat offering이 정상 fetch되면 그쪽 우선) */
+  /** 가격 fallback. 콘솔 기본 가격도 docs/revenuecat-setup.md와 같은 14,900원으로 맞춘다. */
   PRICE_KRW: 14_900,
   PRICE_USD: 14.99,
 } as const;

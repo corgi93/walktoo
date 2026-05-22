@@ -1,6 +1,6 @@
 # walkToo+ (RevenueCat) 세팅 가이드
 
-walkToo의 1회성 평생 이용권은 [RevenueCat](https://www.revenuecat.com)을 통해 Apple/Google IAP를 처리한다.
+walkToo의 1회성 이용권은 [RevenueCat](https://www.revenuecat.com)을 통해 Apple/Google IAP를 처리한다.
 이 문서는 코드 통합이 끝난 상태에서 **사람이 콘솔에서 해야 하는 작업**을 정리한 체크리스트다.
 
 ## 0. 핵심 ID
@@ -10,7 +10,7 @@ walkToo의 1회성 평생 이용권은 [RevenueCat](https://www.revenuecat.com)�
 | **Product ID** (Apple/Google 동일) | `com.walktoo.plus.lifetime` |
 | **Entitlement ID** (RevenueCat) | `walktoo_plus` |
 | **Offering ID** (RevenueCat) | `default` (현재 offering) |
-| **Type** | Non-consumable (1회성, 영구) |
+| **Type** | Non-consumable (1회성 이용권) |
 | **무료 체험** | 7일 (앱/서버 자체 로직, IAP의 introductory offer 사용 X) |
 
 코드에서는 `constants/premium.ts`의 `PREMIUM.PRODUCT_ID` / `PREMIUM.ENTITLEMENT_ID` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
@@ -22,15 +22,15 @@ walkToo의 1회성 평생 이용권은 [RevenueCat](https://www.revenuecat.com)�
 1. App Store Connect → My Apps → walkToo → **In-App Purchases**
 2. **Create In-App Purchase**
    - Type: **Non-Consumable**
-   - Reference Name: `walkToo+ Lifetime`
+   - Reference Name: `walkToo+ Pass`
    - Product ID: `com.walktoo.plus.lifetime`
 3. 가격 설정:
-   - 한국 (KRW): **₩19,900**
+   - 한국 (KRW): **₩14,900**
    - 글로벌 (USD): **$14.99**
    - 다른 국가는 Apple 자동 환산 사용
 4. 표시 정보 (다국어):
-   - 한국어: "walkToo+ 평생 이용권"
-   - 영어: "walkToo+ Lifetime"
+   - 한국어: "walkToo+ 이용권"
+   - 영어: "walkToo+ Pass"
 5. 리뷰용 스크린샷 1장 (페이월 화면) 첨부
 6. 상품 상태: **Ready to Submit**
 7. App Store 심사 시 앱 빌드와 함께 IAP를 첨부 제출 (필수)
@@ -40,9 +40,9 @@ walkToo의 1회성 평생 이용권은 [RevenueCat](https://www.revenuecat.com)�
 1. Play Console → walkToo → **수익 창출 설정 → 인앱 상품**
 2. **상품 만들기**
    - 상품 ID: `com.walktoo.plus.lifetime`
-   - 이름: `walkToo+ 평생 이용권`
-   - 설명: `한 번 결제로 walkToo+의 모든 기능을 영구 사용`
-3. 가격: **₩19,900** (다른 국가는 자동 환산)
+   - 이름: `walkToo+ 이용권`
+   - 설명: `구독 없이 둘의 기록 경험을 더 풍성하게`
+3. 가격: **₩14,900** (다른 국가는 자동 환산)
 4. 상태: **활성**
 5. 라이선스 테스터 추가 (sandbox 결제 테스트용)
 
@@ -53,8 +53,8 @@ walkToo의 1회성 평생 이용권은 [RevenueCat](https://www.revenuecat.com)�
    - **+ App** → iOS → Bundle ID 입력 → App Store Connect API key 업로드
    - **+ App** → Android → Package name 입력 → Service Account JSON 업로드
 3. **Products**:
-   - **+ Product** → Apple → `com.walktoo.plus.lifetime` 추가 → "Lifetime" type
-   - **+ Product** → Google → `com.walktoo.plus.lifetime` 추가 → "Lifetime" type
+   - **+ Product** → Apple → `com.walktoo.plus.lifetime` 추가 → non-consumable 상품 연결
+   - **+ Product** → Google → `com.walktoo.plus.lifetime` 추가 → non-consumable 상품 연결
 4. **Entitlements**:
    - **+ Entitlement** → Identifier: `walktoo_plus` → Display name: `walkToo+`
    - 위 두 product를 이 entitlement에 attach

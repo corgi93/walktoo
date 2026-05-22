@@ -1,9 +1,10 @@
 {
   "brand": "walkToo+",
-  "tagline": "구독 없이 둘의 기록 공간을 넓혀요",
+  "tagline": "기본 기록은 그대로, 더 예쁜 결과물로 남겨요",
   "benefits": {
     "section-title": "이런 게 좋아져요",
-    "photos-title": "우리 기록 사진 12장까지",
+    "walk-book-title": "우리 기록을 산책북으로",
+    "photos-title": "우리 기록 사진을 더 풍성하게",
     "photos-description": "산책 한 번에 최대 {{limit}}장까지 추가할 수 있어요",
     "couple-title": "한 명만 결제하면 양쪽 적용",
     "couple-description": "둘이 함께 walkToo+를 즐겨요",
@@ -34,11 +35,28 @@
     "already-owned": "이미 walkToo+를 사용 중이에요"
   },
   "gate": {
-    "photos-title": "사진을 더 추가하려면",
-    "photos-description": "walkToo+로 한 번에 최대 {{limit}}장까지",
-    "stats-title": "산책 통계는 walkToo+ 전용이에요",
-    "decoration-title": "회고 꾸미기는 walkToo+ 전용이에요",
+    "photos-title": "사진을 더 풍성하게 남기고 싶다면",
+    "photos-description": "기본 기록은 무료, walkToo+로 한 번에 최대 {{limit}}장까지",
+    "stats-title": "기본 기록은 무료, 통계는 더 풍성하게",
+    "decoration-title": "기본 꾸미기는 무료, 테마는 더 다양하게",
     "go-paywall": "walkToo+ 보기"
+  },
+  "walk-book": {
+    "eyebrow": "첫 결과물 상품",
+    "title": "산책북 만들기",
+    "description": "쌓인 장소와 사진을 PDF 또는 이미지 앨범으로 엮는 흐름부터 준비해요.",
+    "cta": "산책북 만들기",
+    "screen-title": "우리의 산책북",
+    "screen-description": "최근 기록을 골라 산책북으로 만드는 첫 버전이에요. 기본 기록은 계속 무료로 남아요.",
+    "preview-title": "들어갈 기록",
+    "preview-empty": "먼저 둘의 산책 기록을 남겨주세요.",
+    "preview-count": "최근 기록 {{count}}개를 미리 볼 수 있어요",
+    "scope-title": "첫 버전 범위",
+    "scope-period": "기간을 고르고",
+    "scope-cover": "표지와 장소를 엮고",
+    "scope-export": "PDF 또는 이미지 앨범으로 받기",
+    "records-cta": "기록 고르기",
+    "create-record": "기록 남기기"
   },
   "menu": {
     "upgrade": "walkToo+ 시작하기",
