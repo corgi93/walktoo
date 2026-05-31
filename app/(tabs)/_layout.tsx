@@ -14,8 +14,9 @@ export default function TabLayout() {
   const { t } = useTranslation('home');
   const insets = useSafeAreaInsets();
 
+  // iOS home indicator / Android 3-button 영역이 라벨을 침범하지 않도록 최소 여백을 확보.
   const bottomPadding =
-    Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 4);
+    Platform.OS === 'ios' ? insets.bottom : Math.max(insets.bottom, 8);
 
   return (
     <Tabs
@@ -23,10 +24,12 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
-          paddingTop: 2,
-          paddingBottom: bottomPadding,
-          height: 44 + bottomPadding,
-          borderTopWidth: 1,
+          paddingTop: 4,
+          // Android edgeToEdge에서 3-버튼 nav가 라벨 디센더를 침범하지
+          // 않도록 시스템 inset 위에 최소 여백만 추가.
+          paddingBottom: bottomPadding + 4,
+          height: 50 + bottomPadding,
+          borderTopWidth: 2,
           borderTopColor: theme.colors.border,
         },
         tabBarActiveTintColor: theme.colors.primary,
@@ -34,13 +37,21 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontFamily: FONT_FAMILY.pixel,
           fontSize: 10,
-          lineHeight: 12,
-          marginTop: 1,
+          // 픽셀 폰트(NeoDunggeunmo)는 lineHeight를 fontSize의 1.8배 정도
+          // 두어야 디센더가 잘리지 않는다. (1.6은 NeoDunggeunmo에서 빠듯)
+          lineHeight: 18,
+          // 음수 marginTop으로 아이콘-라벨 사이 간격을 좁힌다.
+          // 라벨 line-box가 18px이라 -4 정도까진 안전.
+          marginTop: -2,
           includeFontPadding: false,
           textAlignVertical: 'center',
         },
+        tabBarItemStyle: {
+          paddingVertical: 0,
+        },
         tabBarIconStyle: {
-          marginBottom: 0,
+          // 아이콘도 약간 아래로 내려 라벨과 더 가깝게.
+          marginBottom: -2,
         },
         tabBarHideOnKeyboard: true,
       }}
@@ -80,5 +91,5 @@ export default function TabLayout() {
 // ─── Tab Icon ────────────────────────────────────────────
 
 function TabIcon({ name, color }: { name: IconName; color: string }) {
-  return <Icon name={name} size={18} color={color} />;
+  return <Icon name={name} size={16} color={color} />;
 }

@@ -1,0 +1,542 @@
+{
+  "y2k-paper": [
+    {
+      "file": "00-current-5506209.jpg",
+      "pexels_id": 5506209,
+      "photographer": "Olga V",
+      "url": "https://www.pexels.com/photo/pink-pattern-fabric-5506209/",
+      "alt": "A soft pink textured background with a subtle abstract pattern.",
+      "is_current": true
+    },
+    {
+      "file": "01-11285444.jpg",
+      "pexels_id": 11285444,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/white-surface-11285444/",
+      "alt": "High-resolution white background with subtle texture, ideal for design projects and presentations.",
+      "is_current": false
+    },
+    {
+      "file": "02-29765807.jpg",
+      "pexels_id": 29765807,
+      "photographer": "Jilly Noble",
+      "url": "https://www.pexels.com/photo/pink-desk-flat-lay-with-stationery-and-coffee-29765807/",
+      "alt": "Minimalist pink desk flat lay featuring stationery, keyboard, and coffee for a creative workspace vibe.",
+      "is_current": false
+    },
+    {
+      "file": "03-20818883.jpg",
+      "pexels_id": 20818883,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/close-up-of-the-brown-surface-of-kraft-paper-20818883/",
+      "alt": "Close-up of a brown kraft paper texture, ideal for backgrounds and designs.",
+      "is_current": false
+    },
+    {
+      "file": "04-29765799.jpg",
+      "pexels_id": 29765799,
+      "photographer": "Jilly Noble",
+      "url": "https://www.pexels.com/photo/pink-office-supplies-flat-lay-with-clipboard-29765799/",
+      "alt": "Minimalist flat lay of pink office supplies featuring a clipboard, stationery, and coffee cup.",
+      "is_current": false
+    },
+    {
+      "file": "05-5506213.jpg",
+      "pexels_id": 5506213,
+      "photographer": "Olga V",
+      "url": "https://www.pexels.com/photo/full-shot-of-pink-textu-5506213/",
+      "alt": "A bright pink glitter texture perfect for creative backgrounds and designs.",
+      "is_current": false
+    },
+    {
+      "file": "06-29765813.jpg",
+      "pexels_id": 29765813,
+      "photographer": "Jilly Noble",
+      "url": "https://www.pexels.com/photo/pink-office-supplies-on-a-minimalist-desk-29765813/",
+      "alt": "Flat lay of pink office supplies including a notebook, pen, and dried flowers on a desk.",
+      "is_current": false
+    },
+    {
+      "file": "07-29765811.jpg",
+      "pexels_id": 29765811,
+      "photographer": "Jilly Noble",
+      "url": "https://www.pexels.com/photo/pink-office-desk-with-smartphone-and-accessories-29765811/",
+      "alt": "Modern pink-themed desk setup with smartphone, keyboard, and coffee cup.",
+      "is_current": false
+    },
+    {
+      "file": "08-29765810.jpg",
+      "pexels_id": 29765810,
+      "photographer": "Jilly Noble",
+      "url": "https://www.pexels.com/photo/modern-pink-office-desk-with-iphone-mockup-29765810/",
+      "alt": "Flat lay of a pink themed office desk setup with an iPhone, keyboard, and stationery.",
+      "is_current": false
+    },
+    {
+      "file": "09-11255112.jpg",
+      "pexels_id": 11255112,
+      "photographer": "Seamlesstextures",
+      "url": "https://www.pexels.com/photo/pink-surface-11255112/",
+      "alt": "An eye-catching pink textured surface, ideal for use as a background or material texture in creative projects.",
+      "is_current": false
+    },
+    {
+      "file": "10-5112007.jpg",
+      "pexels_id": 5112007,
+      "photographer": "Scott Webb",
+      "url": "https://www.pexels.com/photo/pastel-color-water-marbling-5112007/",
+      "alt": "Beautiful pastel marbling abstract art with soft colors for a serene backdrop.",
+      "is_current": false
+    }
+  ],
+  "vintage-paper": [
+    {
+      "file": "00-current-19582307.jpg",
+      "pexels_id": 19582307,
+      "photographer": "Heather Green",
+      "url": "https://www.pexels.com/photo/ink-on-a-paper-19582307/",
+      "alt": "Vintage paper with abstract ink blotches, perfect for art projects and backgrounds.",
+      "is_current": true
+    },
+    {
+      "file": "01-17204370.jpg",
+      "pexels_id": 17204370,
+      "photographer": "Krakograff Textures",
+      "url": "https://www.pexels.com/photo/a-close-up-of-a-cement-floor-with-some-cracks-17204370/",
+      "alt": "Close-up of an aged stone wall with cracks and vintage texture.",
+      "is_current": false
+    },
+    {
+      "file": "02-20818883.jpg",
+      "pexels_id": 20818883,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/close-up-of-the-brown-surface-of-kraft-paper-20818883/",
+      "alt": "Close-up of a brown kraft paper texture, ideal for backgrounds and designs.",
+      "is_current": false
+    },
+    {
+      "file": "03-20818884.jpg",
+      "pexels_id": 20818884,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/square-empty-beige-background-20818884/",
+      "alt": "High-resolution seamless texture of a plain cardboard background, ideal for design projects.",
+      "is_current": false
+    },
+    {
+      "file": "04-17204379.jpg",
+      "pexels_id": 17204379,
+      "photographer": "Krakograff Textures",
+      "url": "https://www.pexels.com/photo/rough-stone-wall-surface-17204379/",
+      "alt": "Close-up view of a rustic and weathered stone texture with earthy tones and natural patterns.",
+      "is_current": false
+    },
+    {
+      "file": "05-20818886.jpg",
+      "pexels_id": 20818886,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/clear-surface-of-texture-20818886/",
+      "alt": "High-resolution seamless beige paper texture ideal for designs and backgrounds.",
+      "is_current": false
+    },
+    {
+      "file": "06-33578985.jpg",
+      "pexels_id": 33578985,
+      "photographer": "Danyale R Zink",
+      "url": "https://www.pexels.com/photo/vintage-journals-and-antique-keys-still-life-33578985/",
+      "alt": "Aesthetic still life of vintage journals and antique keys on layered paper, evoking a sense of history and nostalgia.",
+      "is_current": false
+    },
+    {
+      "file": "07-20818881.jpg",
+      "pexels_id": 20818881,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/cardboard-beige-square-20818881/",
+      "alt": "Close-up of a textured beige cardboard surface, ideal for design mockups.",
+      "is_current": false
+    },
+    {
+      "file": "08-11285444.jpg",
+      "pexels_id": 11285444,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/white-surface-11285444/",
+      "alt": "High-resolution white background with subtle texture, ideal for design projects and presentations.",
+      "is_current": false
+    },
+    {
+      "file": "09-11255127.jpg",
+      "pexels_id": 11255127,
+      "photographer": "Seamlesstextures",
+      "url": "https://www.pexels.com/photo/an-abstract-wallpaper-11255127/",
+      "alt": "A rustic abstract texture with earthy tones and a weathered appearance, perfect for artistic backgrounds.",
+      "is_current": false
+    },
+    {
+      "file": "10-9700836.jpg",
+      "pexels_id": 9700836,
+      "photographer": "Nur  Yilmaz",
+      "url": "https://www.pexels.com/photo/dry-flowers-and-vial-on-papers-9700836/",
+      "alt": "Aesthetic arrangement of vintage letters, dried flowers, and a vial on a desk, creating a nostalgic atmosphere.",
+      "is_current": false
+    }
+  ],
+  "pixel-paper": [
+    {
+      "file": "00-current-20818886.jpg",
+      "pexels_id": 20818886,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/clear-surface-of-texture-20818886/",
+      "alt": "High-resolution seamless beige paper texture ideal for designs and backgrounds.",
+      "is_current": true
+    },
+    {
+      "file": "01-20818883.jpg",
+      "pexels_id": 20818883,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/close-up-of-the-brown-surface-of-kraft-paper-20818883/",
+      "alt": "Close-up of a brown kraft paper texture, ideal for backgrounds and designs.",
+      "is_current": false
+    },
+    {
+      "file": "02-20818884.jpg",
+      "pexels_id": 20818884,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/square-empty-beige-background-20818884/",
+      "alt": "High-resolution seamless texture of a plain cardboard background, ideal for design projects.",
+      "is_current": false
+    },
+    {
+      "file": "03-20818881.jpg",
+      "pexels_id": 20818881,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/cardboard-beige-square-20818881/",
+      "alt": "Close-up of a textured beige cardboard surface, ideal for design mockups.",
+      "is_current": false
+    },
+    {
+      "file": "04-20818885.jpg",
+      "pexels_id": 20818885,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/brown-cardboard-texture-20818885/",
+      "alt": "A simple and elegant brown cardboard texture ideal for background use.",
+      "is_current": false
+    },
+    {
+      "file": "05-20818888.jpg",
+      "pexels_id": 20818888,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/background-with-copy-space-20818888/",
+      "alt": "Smooth brown textured background for design and copy space.",
+      "is_current": false
+    },
+    {
+      "file": "06-20818882.jpg",
+      "pexels_id": 20818882,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/brown-background-with-copy-space-20818882/",
+      "alt": "High-resolution brown paper texture perfect for backgrounds and design projects.",
+      "is_current": false
+    },
+    {
+      "file": "07-11285444.jpg",
+      "pexels_id": 11285444,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/white-surface-11285444/",
+      "alt": "High-resolution white background with subtle texture, ideal for design projects and presentations.",
+      "is_current": false
+    },
+    {
+      "file": "08-11255523.jpg",
+      "pexels_id": 11255523,
+      "photographer": "Seamlesstextures",
+      "url": "https://www.pexels.com/photo/a-brown-creased-surface-in-square-format-11255523/",
+      "alt": "Close-up of textured gray parchment paper with a rough and creased surface.",
+      "is_current": false
+    },
+    {
+      "file": "09-8777750.jpg",
+      "pexels_id": 8777750,
+      "photographer": "Michèle",
+      "url": "https://www.pexels.com/photo/text-on-a-piece-of-paper-8777750/",
+      "alt": "A handwritten inspirational quote on torn paper rests on a floral fabric background.",
+      "is_current": false
+    },
+    {
+      "file": "10-20818876.jpg",
+      "pexels_id": 20818876,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/brown-background-with-copy-space-20818876/",
+      "alt": "High-resolution brown textured background perfect for wallpaper or design projects.",
+      "is_current": false
+    }
+  ],
+  "minimal-paper": [
+    {
+      "file": "00-current-11285444.jpg",
+      "pexels_id": 11285444,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/white-surface-11285444/",
+      "alt": "High-resolution white background with subtle texture, ideal for design projects and presentations.",
+      "is_current": true
+    },
+    {
+      "file": "01-7431661.jpg",
+      "pexels_id": 7431661,
+      "photographer": "Elisabeth Ende",
+      "url": "https://www.pexels.com/photo/a-white-blank-paper-near-the-green-leaves-7431661/",
+      "alt": "Blank paper template on white cloth with green leaves for mockup designs.",
+      "is_current": false
+    },
+    {
+      "file": "02-20818881.jpg",
+      "pexels_id": 20818881,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/cardboard-beige-square-20818881/",
+      "alt": "Close-up of a textured beige cardboard surface, ideal for design mockups.",
+      "is_current": false
+    },
+    {
+      "file": "03-20818883.jpg",
+      "pexels_id": 20818883,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/close-up-of-the-brown-surface-of-kraft-paper-20818883/",
+      "alt": "Close-up of a brown kraft paper texture, ideal for backgrounds and designs.",
+      "is_current": false
+    },
+    {
+      "file": "04-20818885.jpg",
+      "pexels_id": 20818885,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/brown-cardboard-texture-20818885/",
+      "alt": "A simple and elegant brown cardboard texture ideal for background use.",
+      "is_current": false
+    },
+    {
+      "file": "05-20818888.jpg",
+      "pexels_id": 20818888,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/background-with-copy-space-20818888/",
+      "alt": "Smooth brown textured background for design and copy space.",
+      "is_current": false
+    },
+    {
+      "file": "06-20818884.jpg",
+      "pexels_id": 20818884,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/square-empty-beige-background-20818884/",
+      "alt": "High-resolution seamless texture of a plain cardboard background, ideal for design projects.",
+      "is_current": false
+    },
+    {
+      "file": "07-11255523.jpg",
+      "pexels_id": 11255523,
+      "photographer": "Seamlesstextures",
+      "url": "https://www.pexels.com/photo/a-brown-creased-surface-in-square-format-11255523/",
+      "alt": "Close-up of textured gray parchment paper with a rough and creased surface.",
+      "is_current": false
+    },
+    {
+      "file": "08-26834974.jpg",
+      "pexels_id": 26834974,
+      "photographer": "Phương  Trần",
+      "url": "https://www.pexels.com/photo/close-up-of-a-notebook-26834974/",
+      "alt": "A minimalist dotted notebook page on soft white fabric with natural lighting, perfect for design or writing inspiration.",
+      "is_current": false
+    },
+    {
+      "file": "09-20818886.jpg",
+      "pexels_id": 20818886,
+      "photographer": "Артем Дворецкий",
+      "url": "https://www.pexels.com/photo/clear-surface-of-texture-20818886/",
+      "alt": "High-resolution seamless beige paper texture ideal for designs and backgrounds.",
+      "is_current": false
+    },
+    {
+      "file": "10-7431636.jpg",
+      "pexels_id": 7431636,
+      "photographer": "Elisabeth Ende",
+      "url": "https://www.pexels.com/photo/an-open-blank-notebook-7431636/",
+      "alt": "Open notebook with pen and pink flowers on white cloth, perfect for ideas or journaling.",
+      "is_current": false
+    }
+  ],
+  "dreamy-paper": [
+    {
+      "file": "00-current-5112007.jpg",
+      "pexels_id": 5112007,
+      "photographer": "Scott Webb",
+      "url": "https://www.pexels.com/photo/pastel-color-water-marbling-5112007/",
+      "alt": "Beautiful pastel marbling abstract art with soft colors for a serene backdrop.",
+      "is_current": true
+    },
+    {
+      "file": "01-4391611.jpg",
+      "pexels_id": 4391611,
+      "photographer": "Zaksheuskaya",
+      "url": "https://www.pexels.com/photo/pink-blue-and-white-abstract-painting-4391611/",
+      "alt": "Colorful abstract watercolor design featuring pastel pink, blue, and yellow hues, perfect for artistic backdrops.",
+      "is_current": false
+    },
+    {
+      "file": "02-7115535.jpg",
+      "pexels_id": 7115535,
+      "photographer": "Scott Webb",
+      "url": "https://www.pexels.com/photo/close-up-photo-of-pink-water-bubbles-7115535/",
+      "alt": "Vibrant close-up of colorful bubbles with swirling patterns, ideal for backgrounds and textures.",
+      "is_current": false
+    },
+    {
+      "file": "03-1561020.jpg",
+      "pexels_id": 1561020,
+      "photographer": "Zaksheuskaya",
+      "url": "https://www.pexels.com/photo/teal-white-and-pink-paint-1561020/",
+      "alt": "Dynamic abstract painting with vibrant pink and teal swirls creating a modern artistic expression.",
+      "is_current": false
+    },
+    {
+      "file": "04-5109755.jpg",
+      "pexels_id": 5109755,
+      "photographer": "Scott Webb",
+      "url": "https://www.pexels.com/photo/close-up-shot-of-an-acrylic-painting-5109755/",
+      "alt": "Close-up of a mesmerizing multicolor acrylic swirl pattern, ideal for contemporary art lovers.",
+      "is_current": false
+    },
+    {
+      "file": "05-11285481.jpg",
+      "pexels_id": 11285481,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/abstract-wallpaper-11285481/",
+      "alt": "Vibrant abstract marble texture with swirling colors and intricate patterns.",
+      "is_current": false
+    },
+    {
+      "file": "06-11285520.jpg",
+      "pexels_id": 11285520,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/abstract-wallpaper-11285520/",
+      "alt": "Detailed close-up of a rich, earthy marble texture perfect for backgrounds and design projects.",
+      "is_current": false
+    },
+    {
+      "file": "07-9656153.jpg",
+      "pexels_id": 9656153,
+      "photographer": "Diana ✨",
+      "url": "https://www.pexels.com/photo/an-abstract-background-9656153/",
+      "alt": "A smooth gradient of soft pastel colors forming an abstract background design.",
+      "is_current": false
+    },
+    {
+      "file": "08-9656150.jpg",
+      "pexels_id": 9656150,
+      "photographer": "Diana ✨",
+      "url": "https://www.pexels.com/photo/a-colorful-background-9656150/",
+      "alt": "A soft pastel gradient abstract design featuring a circular motif and vivid colors.",
+      "is_current": false
+    },
+    {
+      "file": "09-5112008.jpg",
+      "pexels_id": 5112008,
+      "photographer": "Scott Webb",
+      "url": "https://www.pexels.com/photo/close-up-shot-of-an-acrylic-painting-5112008/",
+      "alt": "Dynamic acrylic painting with flowing turquoise patterns and vivid orange accents.",
+      "is_current": false
+    },
+    {
+      "file": "10-7908546.jpg",
+      "pexels_id": 7908546,
+      "photographer": "Em  Hopper",
+      "url": "https://www.pexels.com/photo/cans-with-colorful-paints-7908546/",
+      "alt": "Top view of vibrant watercolor paints in circular trays, ideal for artistic projects.",
+      "is_current": false
+    }
+  ],
+  "academia-wood": [
+    {
+      "file": "00-current-11285328.jpg",
+      "pexels_id": 11285328,
+      "photographer": "Share Textures",
+      "url": "https://www.pexels.com/photo/brown-wooden-surface-11285328/",
+      "alt": "Close-up of a rich dark brown wooden texture with natural surface details.",
+      "is_current": true
+    },
+    {
+      "file": "01-129723.jpg",
+      "pexels_id": 129723,
+      "photographer": "FWStudio",
+      "url": "https://www.pexels.com/photo/closeup-of-a-wooden-surface-129723/",
+      "alt": "Detailed close-up of aged wooden texture with natural grain patterns and rustic look.",
+      "is_current": false
+    },
+    {
+      "file": "02-129733.jpg",
+      "pexels_id": 129733,
+      "photographer": "FWStudio",
+      "url": "https://www.pexels.com/photo/brown-wooden-surface-129733/",
+      "alt": "A detailed close-up of rustic wooden planks showing natural grain texture for backgrounds and design.",
+      "is_current": false
+    },
+    {
+      "file": "03-129721.jpg",
+      "pexels_id": 129721,
+      "photographer": "FWStudio",
+      "url": "https://www.pexels.com/photo/brown-wooden-surface-129721/",
+      "alt": "Highly detailed wooden texture showcasing natural grain pattern and knot.",
+      "is_current": false
+    },
+    {
+      "file": "04-129722.jpg",
+      "pexels_id": 129722,
+      "photographer": "FWStudio",
+      "url": "https://www.pexels.com/photo/brown-wooden-surface-129722/",
+      "alt": "Detailed close-up of a rustic wooden texture with visible grain and rings, ideal for backgrounds.",
+      "is_current": false
+    },
+    {
+      "file": "05-36078541.jpg",
+      "pexels_id": 36078541,
+      "photographer": "Edita Brus",
+      "url": "https://www.pexels.com/photo/close-up-of-tree-ring-patterns-in-sepia-tone-36078541/",
+      "alt": "Detailed sepia-tone close-up of tree rings showing age and texture.",
+      "is_current": false
+    },
+    {
+      "file": "06-11453116.jpg",
+      "pexels_id": 11453116,
+      "photographer": "Denis Vasilev",
+      "url": "https://www.pexels.com/photo/wooden-framed-window-11453116/",
+      "alt": "Close-up of a rustic wooden window on a weathered wooden wall, evoking vintage charm.",
+      "is_current": false
+    },
+    {
+      "file": "07-13394876.jpg",
+      "pexels_id": 13394876,
+      "photographer": "Volker Thimm",
+      "url": "https://www.pexels.com/photo/a-mossy-wooden-log-13394876/",
+      "alt": "Detailed close-up of a weathered wooden log covered with moss and lichen, highlighting its texture.",
+      "is_current": false
+    },
+    {
+      "file": "08-129731.jpg",
+      "pexels_id": 129731,
+      "photographer": "FWStudio",
+      "url": "https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/",
+      "alt": "Rustic wooden plank texture background perfect for design and decoration.",
+      "is_current": false
+    },
+    {
+      "file": "09-35097268.jpg",
+      "pexels_id": 35097268,
+      "photographer": "Aysegul Aytoren",
+      "url": "https://www.pexels.com/photo/rustic-wooden-window-on-old-stone-wall-35097268/",
+      "alt": "A black and white photo of a rustic wooden window on a vintage stone wall.",
+      "is_current": false
+    },
+    {
+      "file": "10-7674811.jpg",
+      "pexels_id": 7674811,
+      "photographer": "Mitchell Luo",
+      "url": "https://www.pexels.com/photo/a-close-up-shot-of-a-tree-trunk-7674811/",
+      "alt": "Detail of rough tree bark in Macedon, Australia. Rich natural texture.",
+      "is_current": false
+    }
+  ]
+}

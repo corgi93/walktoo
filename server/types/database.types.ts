@@ -483,3 +483,4 @@ export type CoupleRow = Tables['couples']['Row'];
 export type WalkRow = Tables['walks']['Row'];
 export type FootprintEntryRow = Tables['footprint_entries']['Row'];
 export type NotificationRow = Tables['notifications']['Row'];
+export type CoupleScheduleRow = Tables['couple_schedules']['Row'];

@@ -25,6 +25,10 @@ try {
 
 // ─── Hook ────────────────────────────────────────────────
 
+type RemovableSubscription = {
+  remove: () => void;
+};
+
 export function useNotificationSetup() {
   const { data: me } = useGetMeQuery();
   const savePushToken = useSavePushTokenMutation();
@@ -34,10 +38,8 @@ export function useNotificationSetup() {
   const routerRef = useRef(router);
   useEffect(() => { routerRef.current = router; });
 
-  const notificationListener =
-    useRef<ReturnType<typeof Notifications.addNotificationReceivedListener> | null>(null);
-  const responseListener =
-    useRef<ReturnType<typeof Notifications.addNotificationResponseReceivedListener> | null>(null);
+  const notificationListener = useRef<RemovableSubscription | null>(null);
+  const responseListener = useRef<RemovableSubscription | null>(null);
 
   // 푸시 토큰 등록 — me.id 바뀔 때만
   useEffect(() => {
