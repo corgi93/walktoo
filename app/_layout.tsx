@@ -114,6 +114,13 @@ export default function RootLayout() {
                     animation: "fade",
                   }}
                 />
+                <Stack.Screen
+                  name="each-moments"
+                  options={{
+                    presentation: "fullScreenModal",
+                    animation: "fade",
+                  }}
+                />
                 <Stack.Screen name="diary-detail" />
                 <Stack.Screen name="auth/callback" />
                 <Stack.Screen

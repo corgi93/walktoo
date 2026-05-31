@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -43,7 +43,6 @@ import { isImageUri } from '@/utils/media';
 export default function FootprintCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ kind?: string }>();
   const { t } = useTranslation(['diary', 'common', 'premium']);
 
   const { couple, isCoupleConnected, myName } = usePartnerDerivation();
@@ -82,16 +81,16 @@ export default function FootprintCreateScreen() {
 
   const createDiary = useCreateDiaryMutation();
 
-  // 선택한 날짜에 이미 walk가 있으면 → diary-detail로 자동 리다이렉트.
-  // kind를 상대가 정한대로 강제 승계하려면 여기서 막아야 함.
+  // 오늘의 데이트 기록이 이미 있으면 → diary-detail로 자동 리다이렉트.
+  // 같은 날짜의 각자 미디어 기록은 우리 기록 생성 흐름을 막지 않는다.
   const { year, month } = useMemo(() => {
     const d = parseLocalDate(date);
     return { year: d.getFullYear(), month: d.getMonth() + 1 };
   }, [date]);
-  const { data: monthWalks, isFetched: isMonthFetched } = useDiaryByMonthQuery(year, month);
+  const { data: monthWalks } = useDiaryByMonthQuery(year, month);
   const existingWalk = useMemo(
-    () => monthWalks?.find((w) => w.date === date),
-    [monthWalks, date],
+    () => monthWalks?.find((w) => w.date === date && w.kind === kind),
+    [monthWalks, date, kind],
   );
 
   useEffect(() => {

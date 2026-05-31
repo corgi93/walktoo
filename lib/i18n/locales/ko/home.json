@@ -96,7 +96,7 @@
   },
   "tab": {
     "home": "홈",
-    "records": "기록",
+    "records": "우리 기록",
     "planner": "공유",
     "profile": "마이"
   },
@@ -121,9 +121,6 @@
     "walks-section-title": "이 달의 산책",
     "walks-empty": "이 달엔 아직 산책 기록이 없어요",
     "picker-title": "월 선택",
-    "picker-today": "이번 달",
-    "filter-all": "전체",
-    "filter-together": "우리",
-    "filter-each": "각자"
+    "picker-today": "이번 달"
   }
 }

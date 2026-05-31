@@ -24,8 +24,6 @@ import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
 import { addMonths, getCurrentYearMonth } from '@/utils/date';
 
-type KindFilter = 'all' | 'together' | 'each';
-type PersonFilter = 'me' | 'partner';
 type ViewMode = 'list' | 'map';
 
 // ─── Screen ─────────────────────────────────────────────
@@ -34,8 +32,6 @@ export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
   const { isCoupleConnected } = usePartnerDerivation();
   const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
-  const [kindFilter, setKindFilter] = useState<KindFilter>('all');
-  const [personFilter, setPersonFilter] = useState<PersonFilter>('me');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   if (!isCoupleConnected) {
@@ -48,10 +44,6 @@ export default function RecordsScreen() {
       month={month}
       onChangeYearMonth={setYearMonth}
       insets={insets}
-      kindFilter={kindFilter}
-      onChangeKindFilter={setKindFilter}
-      personFilter={personFilter}
-      onChangePersonFilter={setPersonFilter}
       viewMode={viewMode}
       onChangeViewMode={setViewMode}
     />
@@ -65,10 +57,6 @@ function RecordsContent({
   month,
   onChangeYearMonth,
   insets,
-  kindFilter,
-  onChangeKindFilter,
-  personFilter,
-  onChangePersonFilter,
   viewMode,
   onChangeViewMode,
 }: {
@@ -76,10 +64,6 @@ function RecordsContent({
   month: number;
   onChangeYearMonth: (next: { year: number; month: number }) => void;
   insets: { top: number; bottom: number; left: number; right: number };
-  kindFilter: KindFilter;
-  onChangeKindFilter: (f: KindFilter) => void;
-  personFilter: PersonFilter;
-  onChangePersonFilter: (p: PersonFilter) => void;
   viewMode: ViewMode;
   onChangeViewMode: (m: ViewMode) => void;
 }) {
@@ -93,21 +77,11 @@ function RecordsContent({
 
   const { walks, stamps } = useCalendarMonthQuery(year, month);
 
-  // kind 필터 + (각자일 때만) 사람 필터 적용
-  // - 'each' 선택 시 personFilter('me'|'partner')에 따라 그 사람의 엔트리가
-  //   있는 walk만 남김. 'together'/'all'에선 personFilter 무시.
-  const filteredWalks = useMemo(() => {
-    const byKind =
-      kindFilter === 'all'
-        ? walks
-        : walks.filter((w) => w.kind === kindFilter);
-
-    if (kindFilter !== 'each') return byKind;
-
-    return byKind.filter((w) =>
-      personFilter === 'me' ? !!w.myEntry : !!w.partnerEntry,
-    );
-  }, [walks, kindFilter, personFilter]);
+  // 우리 기록 탭은 같이 산책(together)만 노출. 각자 기록은 홈 탭에서.
+  const filteredWalks = useMemo(
+    () => walks.filter((w) => w.kind === 'together'),
+    [walks],
+  );
 
   const handlePrev = () => onChangeYearMonth(addMonths(year, month, -1));
   const handleNext = () => onChangeYearMonth(addMonths(year, month, +1));
@@ -158,14 +132,28 @@ function RecordsContent({
     [],
   );
 
-  // 공통 헤더 (제목 + 토글 + 월 + 필터)
+  // 공통 헤더 (제목 + 추가 + 토글 + 월)
   const headerBlock = (
     <>
       <Row px="xxl" style={styles.header}>
         <Text variant="headingLarge" color="primary">
           {t('home:records-tab.title')}
         </Text>
-        <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
+        <Row style={styles.headerActions}>
+          <Pressable
+            onPress={handleAddRecord}
+            style={styles.addButton}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="기록 추가"
+          >
+            <Icon name="plus" size={13} color={theme.colors.primary} />
+            <Text variant="caption" style={styles.addButtonText}>
+              추가
+            </Text>
+          </Pressable>
+          <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
+        </Row>
       </Row>
 
       <CalendarMonthNav
@@ -175,21 +163,6 @@ function RecordsContent({
         onNext={handleNext}
         onTapMonth={() => setShowPicker(true)}
       />
-
-      <KindFilterBar
-        value={kindFilter}
-        onChange={onChangeKindFilter}
-        onAdd={handleAddRecord}
-      />
-
-      {kindFilter === 'each' && (
-        <PersonFilterBar
-          value={personFilter}
-          onChange={onChangePersonFilter}
-          myName={myName}
-          partnerName={partnerName}
-        />
-      )}
     </>
   );
 
@@ -273,8 +246,6 @@ function RecordsContent({
   );
 }
 
-// ─── KindFilterBar (같이/각자 필터) ─────────────────────
-
 // ─── ViewToggle (리스트/지도) ────────────────────────────
 
 function ViewToggle({
@@ -340,184 +311,6 @@ const toggleStyles = StyleSheet.create({
 });
 
 
-function KindFilterBar({
-  value,
-  onChange,
-  onAdd,
-}: {
-  value: KindFilter;
-  onChange: (v: KindFilter) => void;
-  onAdd: () => void;
-}) {
-  const { t } = useTranslation('home');
-  const items: { key: KindFilter; label: string; icon?: 'heart' | 'sun' }[] = [
-    { key: 'all', label: t('records-tab.filter-all') },
-    { key: 'together', label: t('records-tab.filter-together'), icon: 'heart' },
-    { key: 'each', label: t('records-tab.filter-each'), icon: 'sun' },
-  ];
-
-  return (
-    <Row px="xxl" style={filterStyles.container}>
-      <View style={filterStyles.chipRow}>
-        {items.map((item) => {
-          const active = value === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => onChange(item.key)}
-              style={[filterStyles.chip, active && filterStyles.chipActive]}
-              hitSlop={4}
-            >
-              {item.icon && (
-                <Icon
-                  name={item.icon}
-                  size={12}
-                  color={active ? theme.colors.white : theme.colors.primary}
-                />
-              )}
-              <Text
-                variant="caption"
-                color={active ? 'white' : 'text'}
-                style={filterStyles.chipText}
-              >
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Pressable
-        onPress={onAdd}
-        style={filterStyles.addButton}
-        hitSlop={6}
-        accessibilityRole="button"
-        accessibilityLabel="기록 추가"
-      >
-        <Icon name="plus" size={13} color={theme.colors.primary} />
-        <Text variant="caption" style={filterStyles.addText}>
-          추가
-        </Text>
-      </Pressable>
-    </Row>
-  );
-}
-
-// ─── PersonFilterBar (각자일 때만 — 나/상대 토글) ────────
-
-function PersonFilterBar({
-  value,
-  onChange,
-  myName,
-  partnerName,
-}: {
-  value: PersonFilter;
-  onChange: (v: PersonFilter) => void;
-  myName: string;
-  partnerName: string;
-}) {
-  const items: { key: PersonFilter; label: string }[] = [
-    { key: 'me', label: myName },
-    { key: 'partner', label: partnerName },
-  ];
-
-  return (
-    <Row px="xxl" style={personFilterStyles.container}>
-      {items.map((item) => {
-        const active = value === item.key;
-        return (
-          <Pressable
-            key={item.key}
-            onPress={() => onChange(item.key)}
-            style={[
-              personFilterStyles.tab,
-              active && personFilterStyles.tabActive,
-            ]}
-            hitSlop={4}
-          >
-            <Text
-              variant="caption"
-              color={active ? 'primary' : 'textMuted'}
-              style={{
-                fontWeight: active ? '700' : '500',
-              }}
-              numberOfLines={1}
-            >
-              {item.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </Row>
-  );
-}
-
-const personFilterStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    gap: SPACING.xs,
-    marginTop: SPACING.sm,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: theme.colors.primary,
-  },
-});
-
-const filterStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    marginTop: SPACING.xxs,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    flexShrink: 1,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  chipText: {
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  chipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: theme.colors.primaryLight,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-  },
-  addText: {
-    color: theme.colors.primaryDark,
-    fontWeight: '700',
-  },
-});
-
 // ─── No Couple Fallback ─────────────────────────────────
 
 function RecordsNoCoupleFallback({
@@ -562,6 +355,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: LAYOUT.headerPy,
+  },
+  headerActions: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: theme.colors.primaryLight,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  addButtonText: {
+    color: theme.colors.primaryDark,
+    fontWeight: '700',
+    marginLeft: 2,
   },
   scroll: {
     flexGrow: 1,

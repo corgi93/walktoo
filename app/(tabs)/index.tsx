@@ -71,10 +71,10 @@ export default function HomeScreen() {
   const { year, month } = getCurrentYearMonth();
   const today = getLocalToday();
   const { data: monthWalks } = useDiaryByMonthQuery(year, month);
-  const todayWalk = useMemo(
-    () => monthWalks?.find((w) => w.date === today),
-    [monthWalks, today],
-  );
+  const todayWalk = useMemo(() => {
+    const todayWalks = monthWalks?.filter((w) => w.date === today);
+    return todayWalks?.find((w) => w.kind === 'each') ?? todayWalks?.[0];
+  }, [monthWalks, today]);
 
   // 홈 지도 조작 중에는 상위 ScrollView가 드래그를 가져가지 않게 잠근다.
   const [isMapInteracting, setIsMapInteracting] = useState(false);

@@ -34,7 +34,7 @@ export function MemoryDrawModal({ open, onClose }: MemoryDrawModalProps) {
 
   const { data, isLoading } = useDiaryListQuery();
   const walks = useMemo<WalkDiary[]>(
-    () => data?.pages.flat() ?? [],
+    () => (data?.pages.flat() ?? []).filter((w) => w.kind === 'together'),
     [data],
   );
   const total = walks.length;

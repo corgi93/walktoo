@@ -201,7 +201,7 @@ function EmptyState() {
   const router = useRouter();
   return (
     <Pressable
-      onPress={() => router.push('/footprint-create?kind=each')}
+      onPress={() => router.push('/quick-capture')}
       style={({ pressed }) => [
         styles.empty,
         pressed && { opacity: 0.85 },

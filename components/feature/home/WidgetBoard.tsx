@@ -193,6 +193,9 @@ export function WidgetBoard({
         />
       </View>
 
+      {/* 각자 모먼트 둘러보기 — 과거 each 기록이 있을 때만 노출 */}
+      <EachMomentsBrowseLink walks={recentWalks} />
+
       {/* Row 3 ─ 우리 지도 */}
       <HomeMapWidget
         walks={recentWalks}
@@ -215,6 +218,59 @@ export function WidgetBoard({
         />
       </View>
     </View>
+  );
+}
+
+// ─── 각자 모먼트 둘러보기 링크 ──────────────────────────
+//
+// 과거 kind='each' + 미디어 있는 walks가 있을 때만 노출.
+// 신규 유저가 진입하자마자 빈 상태로 갔다가 돌아오는 경험을 피하기 위함.
+
+function EachMomentsBrowseLink({
+  walks,
+}: {
+  walks: readonly WalkDiary[];
+}) {
+  const router = useRouter();
+
+  const eachMomentCount = React.useMemo(() => {
+    let count = 0;
+    for (const w of walks) {
+      if (w.kind !== 'each') continue;
+      const myHas = (w.myEntry?.photos?.length ?? 0) > 0;
+      const partnerHas = (w.partnerEntry?.photos?.length ?? 0) > 0;
+      if (myHas || partnerHas) count += 1;
+    }
+    return count;
+  }, [walks]);
+
+  if (eachMomentCount === 0) return null;
+
+  return (
+    <Pressable
+      onPress={() => router.push('/each-moments')}
+      style={({ pressed }) => [
+        styles.browseLink,
+        pressed && { opacity: 0.85 },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel="각자 모먼트 둘러보기"
+    >
+      <View style={styles.browseLinkLeft}>
+        <View style={styles.browseLinkIcon}>
+          <Icon name="sun" size={14} color={theme.colors.primary} />
+        </View>
+        <View style={styles.browseLinkText}>
+          <Text variant="bodyMedium" style={styles.browseLinkTitle}>
+            각자의 모먼트 둘러보기
+          </Text>
+          <Text variant="caption" color="textMuted">
+            지난 {eachMomentCount}일의 한 컷을 한 번에
+          </Text>
+        </View>
+      </View>
+      <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
+    </Pressable>
   );
 }
 
@@ -751,6 +807,41 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: SPACING.sm,
+  },
+
+  // 각자 모먼트 둘러보기 — 슬림 1-라인 CTA
+  browseLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: theme.colors.surfaceWarm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  browseLinkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    flex: 1,
+  },
+  browseLinkIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  browseLinkText: {
+    flex: 1,
+    gap: 1,
+  },
+  browseLinkTitle: {
+    color: theme.colors.text,
+    fontWeight: '700',
   },
   widget: {
     flex: 1,

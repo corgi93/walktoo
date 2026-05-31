@@ -136,10 +136,15 @@ export const walksService = {
     currentUserId: string,
     input: CreateWalkDiaryInput,
   ) => {
-    // 0. 같은 날짜에 이미 산책 기록이 있는지 확인
-    const { data: existing } = await walksRepository.findByDate(coupleId, input.date);
+    // 0. 같은 날짜의 같은 종류 기록은 하나만 유지한다.
+    //    데이트 기록과 각자 미디어 기록은 같은 날에도 별도로 남길 수 있다.
+    const { data: existing } = await walksRepository.findByDateAndKind(
+      coupleId,
+      input.date,
+      input.kind,
+    );
     if (existing && existing.length > 0) {
-      throw new Error('하루에 하나의 산책 기록만 남길 수 있어요');
+      throw new Error('같은 종류의 기록은 하루에 하나만 남길 수 있어요');
     }
 
     // 1. 산책 레코드 생성

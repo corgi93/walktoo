@@ -92,13 +92,18 @@ export const walksRepository = {
       .select('id', { count: 'exact', head: true })
       .eq('walk_id', walkId),
 
-  /** 특정 날짜에 커플의 산책이 있는지 확인 */
-  findByDate: (coupleId: string, date: string) =>
+  /** 특정 날짜와 종류에 커플의 산책이 있는지 확인 */
+  findByDateAndKind: (
+    coupleId: string,
+    date: string,
+    kind: WalkRow['kind'],
+  ) =>
     supabase
       .from('walks')
       .select('id')
       .eq('couple_id', coupleId)
       .eq('date', date)
+      .eq('kind', kind)
       .returns<{ id: string }[]>(),
 
   /** 커플의 특정 월 산책 목록 (entries 포함, 최신순) */

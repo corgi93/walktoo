@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,9 +23,11 @@ import {
   useUpdateScheduleMutation,
 } from '@/hooks/services/schedules/mutation';
 import { useSchedulesByMonthQuery } from '@/hooks/services/schedules/query';
+import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
+import type { WalkDiary } from '@/types/diary';
 import type { CoupleSchedule } from '@/types/schedule';
 import {
   addMonths,
@@ -96,6 +99,7 @@ const serializeMemoItems = (items: readonly MemoItem[]) =>
 
 export default function PlannerScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const toast = useToast();
   const { me, isCoupleConnected, myName, partnerName } = usePartnerDerivation();
   const [mode, setMode] = useState<PlannerMode>('schedule');
@@ -108,6 +112,10 @@ export default function PlannerScreen() {
   const [selectedDate, setSelectedDate] = useState(getLocalToday);
 
   const { data: schedules = [] } = useSchedulesByMonthQuery(
+    visibleMonth.year,
+    visibleMonth.month,
+  );
+  const { data: walks = [] } = useDiaryByMonthQuery(
     visibleMonth.year,
     visibleMonth.month,
   );
@@ -133,7 +141,19 @@ export default function PlannerScreen() {
     return groups;
   }, [schedules]);
 
+  const walksByDate = useMemo(() => {
+    const groups = new Map<string, WalkDiary[]>();
+    walks.forEach((walk) => {
+      if (walk.kind !== 'together') return;
+      const dayWalks = groups.get(walk.date) ?? [];
+      dayWalks.push(walk);
+      groups.set(walk.date, dayWalks);
+    });
+    return groups;
+  }, [walks]);
+
   const selectedSchedules = schedulesByDate.get(selectedDate) ?? [];
+  const selectedWalks = walksByDate.get(selectedDate) ?? [];
 
   const moveMonth = (delta: number) => {
     setVisibleMonth((current) => {
@@ -211,12 +231,27 @@ export default function PlannerScreen() {
     setMemoItems((items) => [...items, createMemoItem()]);
   };
 
+  const handleWalkPress = (walk: WalkDiary) => {
+    router.push({
+      pathname: '/diary-detail',
+      params: {
+        id: walk.id,
+        date: walk.date,
+        locationName: walk.locationName,
+        kind: walk.kind,
+        isRevealed: String(walk.isRevealed),
+        myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
+        partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
+      },
+    });
+  };
+
   if (!isCoupleConnected) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Text variant="displaySmall" color="primary">
-            공유
+            캘린더
           </Text>
         </View>
         <View style={styles.noCoupleWrap}>
@@ -234,10 +269,10 @@ export default function PlannerScreen() {
       <View style={styles.header}>
         <View>
           <Text variant="displaySmall" color="primary">
-            공유
+            캘린더
           </Text>
           <Text variant="bodySmall" color="textSecondary" mt="xs">
-            일정과 메모를 둘이 같이 관리해요
+            일정과 우리 기록을 둘이 같이 봐요
           </Text>
         </View>
       </View>
@@ -246,7 +281,7 @@ export default function PlannerScreen() {
         <SegmentButton
           active={mode === 'schedule'}
           icon="calendar"
-          label="일정"
+          label="캘린더"
           onPress={() => setMode('schedule')}
         />
         <SegmentButton
@@ -267,6 +302,7 @@ export default function PlannerScreen() {
             month={visibleMonth.month}
             selectedDate={selectedDate}
             schedulesByDate={schedulesByDate}
+            walksByDate={walksByDate}
             onPrev={() => moveMonth(-1)}
             onNext={() => moveMonth(1)}
             onSelectDate={setSelectedDate}
@@ -283,7 +319,7 @@ export default function PlannerScreen() {
                   })}
                 </Text>
                 <Text variant="caption" color="textMuted" mt="xxs">
-                  일정 {selectedSchedules.length}개
+                  일정 {selectedSchedules.length}개 · 우리 기록 {selectedWalks.length}개
                 </Text>
               </View>
               <Pressable
@@ -297,14 +333,60 @@ export default function PlannerScreen() {
               </Pressable>
             </View>
 
-            {selectedSchedules.length === 0 ? (
+            {selectedSchedules.length === 0 && selectedWalks.length === 0 ? (
               <View style={styles.scheduleEmpty}>
                 <Text variant="bodySmall" color="textSecondary">
-                  선택한 날짜에 일정이 없어요
+                  선택한 날짜에 일정이나 기록이 없어요
                 </Text>
               </View>
             ) : (
               <View style={styles.scheduleList}>
+                {selectedWalks.length > 0 && (
+                  <View style={styles.walkGroup}>
+                    <Text variant="caption" color="textMuted" weight="700">
+                      우리 기록
+                    </Text>
+                    {selectedWalks.map((walk) => (
+                      <Pressable
+                        key={walk.id}
+                        onPress={() => handleWalkPress(walk)}
+                        style={styles.walkCard}
+                      >
+                        <View
+                          style={[
+                            styles.walkDotBadge,
+                            walk.isRevealed && styles.walkDotBadgeRevealed,
+                          ]}
+                        />
+                        <View style={styles.scheduleBody}>
+                          <Text
+                            variant="bodySmall"
+                            weight="700"
+                            numberOfLines={1}
+                          >
+                            {walk.locationName || '산책 기록'}
+                          </Text>
+                          <Text variant="caption" color="textSecondary" mt="xxs">
+                            {walk.isRevealed
+                              ? '둘 다 남긴 기록'
+                              : '함께 산책'}
+                          </Text>
+                        </View>
+                        <Icon
+                          name="chevron-right"
+                          size={16}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                {selectedSchedules.length > 0 && (
+                  <Text variant="caption" color="textMuted" weight="700">
+                    일정
+                  </Text>
+                )}
                 {selectedSchedules.map((schedule) => {
                   const isMine = schedule.ownerId === me?.id;
                   const owner = isMine ? myName : partnerName;
@@ -359,8 +441,9 @@ export default function PlannerScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.memoCard}>
+            <View style={styles.memoTape} />
             <View style={styles.memoHeader}>
-              <View>
+              <View style={styles.memoTitleWrap}>
                 <Text variant="headingSmall">커플 메모장</Text>
                 <Text variant="caption" color="textMuted" mt="xxs">
                   장보기, 데이트 아이디어, 서로 볼 내용을 남겨요
@@ -374,6 +457,7 @@ export default function PlannerScreen() {
             <View style={styles.memoList}>
               {memoItems.map((item) => (
                 <View key={item.id} style={styles.memoItem}>
+                  <View style={styles.memoItemRule} />
                   <Pressable
                     onPress={() => updateMemoItem(item.id, { done: !item.done })}
                     style={[styles.checkBox, item.done && styles.checkBoxDone]}
@@ -514,6 +598,7 @@ function ScheduleCalendar({
   month,
   selectedDate,
   schedulesByDate,
+  walksByDate,
   onPrev,
   onNext,
   onSelectDate,
@@ -522,6 +607,7 @@ function ScheduleCalendar({
   month: number;
   selectedDate: string;
   schedulesByDate: Map<string, CoupleSchedule[]>;
+  walksByDate: Map<string, WalkDiary[]>;
   onPrev: () => void;
   onNext: () => void;
   onSelectDate: (date: string) => void;
@@ -583,8 +669,12 @@ function ScheduleCalendar({
             }
             const date = `${monthKey}-${String(day).padStart(2, '0')}`;
             const schedules = schedulesByDate.get(date) ?? [];
+            const walks = walksByDate.get(date) ?? [];
             const isSelected = selectedDate === date;
             const isToday = today === date;
+            const hasSchedules = schedules.length > 0;
+            const hasWalks = walks.length > 0;
+            const hasRevealedWalk = walks.some((walk) => walk.isRevealed);
 
             return (
               <Pressable
@@ -604,15 +694,42 @@ function ScheduleCalendar({
                   {day}
                 </Text>
                 <View style={styles.scheduleDots}>
-                  {schedules.slice(0, 3).map((schedule) => (
-                    <View key={schedule.id} style={styles.scheduleDot} />
-                  ))}
+                  {hasSchedules && <View style={styles.scheduleDot} />}
+                  {hasWalks && (
+                    <View
+                      style={[
+                        styles.walkDot,
+                        hasRevealedWalk && styles.walkDotRevealed,
+                      ]}
+                    />
+                  )}
                 </View>
               </Pressable>
             );
           })}
         </View>
       ))}
+
+      <View style={styles.calendarLegend}>
+        <View style={styles.legendItem}>
+          <View style={styles.scheduleDot} />
+          <Text variant="caption" color="textMuted" ml="xxs">
+            일정
+          </Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={styles.walkDot} />
+          <Text variant="caption" color="textMuted" ml="xxs">
+            우리 기록
+          </Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.walkDot, styles.walkDotRevealed]} />
+          <Text variant="caption" color="textMuted" ml="xxs">
+            둘 다 남김
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -766,7 +883,27 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: theme.colors.accent,
+    backgroundColor: theme.colors.gold,
+  },
+  walkDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.secondary,
+  },
+  walkDotRevealed: {
+    backgroundColor: theme.colors.xp,
+  },
+  calendarLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   addScheduleButton: {
     height: 48,
@@ -806,6 +943,28 @@ const styles = StyleSheet.create({
   scheduleList: {
     flex: 1,
     gap: SPACING.sm,
+  },
+  walkGroup: {
+    gap: SPACING.sm,
+  },
+  walkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceWarm,
+    borderWidth: 1.5,
+    borderColor: theme.colors.secondaryLight,
+  },
+  walkDotBadge: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.secondary,
+  },
+  walkDotBadgeRevealed: {
+    backgroundColor: theme.colors.xp,
   },
   selectedPanel: {
     borderRadius: theme.radius.lg,
@@ -871,27 +1030,49 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     borderWidth: 2,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    padding: SPACING.lg,
+    backgroundColor: theme.colors.goldLight,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.lg,
     shadowColor: theme.colors.border,
-    shadowOffset: { width: 3, height: 3 },
+    shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
     gap: SPACING.md,
+    position: 'relative',
+  },
+  memoTape: {
+    position: 'absolute',
+    top: -10,
+    alignSelf: 'center',
+    width: 88,
+    height: 20,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1.5,
+    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.accentLight,
+    opacity: 0.92,
+    transform: [{ rotate: '-2deg' }],
   },
   memoHeader: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: SPACING.md,
   },
+  memoTitleWrap: {
+    flex: 1,
+  },
   memoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.primarySurface,
   },
   memoInput: {
     minHeight: 280,
@@ -910,32 +1091,42 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   memoItem: {
-    minHeight: 48,
-    borderRadius: theme.radius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surfaceWarm,
+    minHeight: 50,
+    borderRadius: theme.radius.sm,
+    borderWidth: 0,
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#E7DCA8',
+    backgroundColor: '#FFFBE8',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: SPACING.md,
+    paddingLeft: SPACING.sm,
     paddingRight: SPACING.sm,
     gap: SPACING.sm,
+    overflow: 'hidden',
+  },
+  memoItemRule: {
+    alignSelf: 'stretch',
+    width: 3,
+    marginVertical: SPACING.sm,
+    borderRadius: theme.radius.xs,
+    backgroundColor: theme.colors.accent,
   },
   checkBox: {
     width: 24,
     height: 24,
-    borderRadius: 7,
+    borderRadius: theme.radius.sm,
     borderWidth: 2,
     borderColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.goldLight,
   },
   checkBoxDone: {
     backgroundColor: theme.colors.primary,
   },
   memoItemInput: {
     flex: 1,
+    flexShrink: 1,
     minHeight: 44,
     paddingVertical: 8,
     color: theme.colors.text,
@@ -951,22 +1142,26 @@ const styles = StyleSheet.create({
   memoRemoveButton: {
     width: 30,
     height: 30,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   memoEmpty: {
-    minHeight: 96,
-    borderRadius: theme.radius.md,
+    minHeight: 112,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#E7DCA8',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surfaceWarm,
+    backgroundColor: '#FFFBE8',
   },
   addMemoButton: {
     height: 44,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.sm,
     borderWidth: 1.5,
     borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primarySurface,
+    backgroundColor: '#FFFBE8',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -976,6 +1171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.sm,
+    flexWrap: 'wrap',
   },
   saveMemoButton: {
     minWidth: 74,
