@@ -171,7 +171,7 @@ function MonthCard({
           bg={
             reflection.isRevealed
               ? theme.colors.surface
-              : theme.colors.gray50
+              : theme.colors.surfaceWarm
           }
         >
           <Row style={styles.monthCardHeader}>

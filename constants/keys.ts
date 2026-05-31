@@ -25,6 +25,10 @@ export const QUERY_KEYS = {
     byMonth: (year: number, month: number) =>
       ['stamps', 'month', year, month] as const,
   },
+  schedule: {
+    byMonth: (year: number, month: number) =>
+      ['schedule', 'month', year, month] as const,
+  },
   reflection: {
     current: ['reflection', 'current'] as const,
     detail: (id: string) => ['reflection', 'detail', id] as const,

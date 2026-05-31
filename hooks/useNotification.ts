@@ -1,6 +1,5 @@
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import type { EventSubscription } from 'expo-modules-core';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
@@ -26,13 +25,17 @@ try {
 
 // ─── Hook ────────────────────────────────────────────────
 
+type RemovableSubscription = {
+  remove: () => void;
+};
+
 export function useNotificationSetup() {
   const { data: me } = useGetMeQuery();
   const savePushToken = useSavePushTokenMutation();
   const router = useRouter();
 
-  const notificationListener = useRef<EventSubscription>(null);
-  const responseListener = useRef<EventSubscription>(null);
+  const notificationListener = useRef<RemovableSubscription | null>(null);
+  const responseListener = useRef<RemovableSubscription | null>(null);
 
   useEffect(() => {
     // 1. 푸시 토큰 등록
