@@ -196,6 +196,37 @@ export interface Database {
         };
         Relationships: [];
       };
+      couple_schedules: {
+        Row: {
+          id: string;
+          couple_id: string;
+          owner_id: string;
+          date: string;
+          title: string;
+          category: string;
+          emoji: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          couple_id: string;
+          owner_id: string;
+          date: string;
+          title: string;
+          category: string;
+          emoji?: string | null;
+          note?: string | null;
+        };
+        Update: {
+          date?: string;
+          title?: string;
+          category?: string;
+          emoji?: string | null;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
       monthly_reflections: {
         Row: {
           id: string;
@@ -330,3 +361,4 @@ export type CoupleRow = Tables['couples']['Row'];
 export type WalkRow = Tables['walks']['Row'];
 export type FootprintEntryRow = Tables['footprint_entries']['Row'];
 export type NotificationRow = Tables['notifications']['Row'];
+export type CoupleScheduleRow = Tables['couple_schedules']['Row'];
