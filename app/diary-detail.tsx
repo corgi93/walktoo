@@ -51,7 +51,6 @@ import { formatDate, parseLocalDate } from '@/utils/date';
 import {
   getLocalFileSize,
   MAX_SHORT_VIDEO_BYTES,
-  MAX_SHORT_VIDEO_DURATION_MS,
 } from '@/utils/media';
 
 // ─── Component ──────────────────────────────────────────
@@ -75,13 +74,17 @@ export default function DiaryDetailScreen() {
   const walkKind: 'together' | 'each' =
     params.kind === 'each' ? 'each' : 'together';
 
-  // 사진 한도 — 각자(each)는 1인당 2장, 우리의 하루는 4~12장
+  // 사진 한도 — 각자(each)는 1인당 2장, 우리의 하루는 4~8장
   const photoLimit =
     walkKind === 'each'
       ? 2
       : isEntitled
         ? PREMIUM.PHOTO_LIMIT_PREMIUM
         : PREMIUM.PHOTO_LIMIT_FREE;
+  const videoDurationLimitSeconds = isEntitled
+    ? PREMIUM.VIDEO_DURATION_PREMIUM_SECONDS
+    : PREMIUM.VIDEO_DURATION_FREE_SECONDS;
+  const videoDurationLimitMs = videoDurationLimitSeconds * 1000;
 
   const walkId = params.id;
   const isRevealed = params.isRevealed === 'true';
@@ -157,8 +160,22 @@ export default function DiaryDetailScreen() {
 
   const handleAddPhoto = async () => {
     if (photos.length >= photoLimit) {
-      // 한도 도달 — each kind(1장)는 이미 채움, together(4장)도 가득
-      dialog.alert('', `사진은 ${photoLimit}장까지만 첨부할 수 있어요`);
+      if (walkKind === 'together' && !isEntitled) {
+        dialog.showDialog({
+          title: '오늘 기록을 더 풍성하게',
+          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 업그레이드하면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
+          buttons: [
+            { label: '나중에', variant: 'cancel' },
+            {
+              label: '업그레이드 보기',
+              variant: 'primary',
+              onPress: () => router.push('/paywall'),
+            },
+          ],
+        });
+      } else {
+        dialog.alert('', `사진은 ${photoLimit}장까지만 첨부할 수 있어요`);
+      }
       return;
     }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -174,15 +191,20 @@ export default function DiaryDetailScreen() {
       allowsMultipleSelection: true,
       selectionLimit: photoLimit - photos.length,
       quality: 0.8,
-      videoMaxDuration: 5,
+      videoMaxDuration: videoDurationLimitSeconds,
     });
     if (!result.canceled) {
       const validAssets = result.assets.filter((asset) => {
         if (asset.type !== 'video') return true;
-        return !asset.duration || asset.duration <= MAX_SHORT_VIDEO_DURATION_MS;
+        return !asset.duration || asset.duration <= videoDurationLimitMs;
       });
       if (validAssets.length < result.assets.length) {
-        dialog.alert('', t('diary:create.video-too-long'));
+        dialog.alert(
+          '',
+          t('diary:create.video-too-long', {
+            seconds: videoDurationLimitSeconds,
+          }),
+        );
       }
       const sizeCheckedAssets = [];
       for (const asset of validAssets) {
@@ -319,11 +341,11 @@ export default function DiaryDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          style={styles.scroller}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 텍스처는 컨테이너 레벨 absoluteFill로 깔림 — 여기는 paddingBottom만 담당 */}
           <View style={{ paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap }}>
           <Box px="xxl">
             {/* 디자인의 DiaryPage 형태 — rounded 카드 wrapper 없이 ThemeBg 위에 직접 콘텐츠 */}
@@ -950,6 +972,9 @@ const styles = StyleSheet.create({
   },
   scroll: {
     // paddingBottom은 ThemeBg wrapper로 이동 — 텍스처가 그 영역까지 덮게
+  },
+  scroller: {
+    backgroundColor: 'transparent',
   },
   // rounded 카드 wrapper 제거 — ThemeBg가 그대로 비치게 plain 컨테이너만
   diaryPage: {

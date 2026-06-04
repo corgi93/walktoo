@@ -16,7 +16,6 @@ export { storageService } from './storage';
 export { notificationsService } from './notifications';
 export { memoryStampsService } from './memory-stamps';
 export { nudgeService } from './nudge';
-export { reflectionsService } from './reflections';
 export { entitlementsService } from './entitlements';
 export type { EntitlementStatus } from './entitlements';
 

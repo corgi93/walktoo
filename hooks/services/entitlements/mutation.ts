@@ -5,7 +5,7 @@ import { entitlementsService } from '@/server/entitlements';
 
 /**
  * RevenueCat 결제 성공 후 호출.
- * 본인 has_premium = true + 커플 has_premium = true 동시 set.
+ * 기록 업그레이드 결제를 본인/커플 entitlement로 동기화한다.
  */
 export const useMarkPremiumPurchasedMutation = () => {
   const queryClient = useQueryClient();

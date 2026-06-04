@@ -198,6 +198,7 @@ function RevealedFeedCard({
                 <Image
                   source={{ uri: diary.myEntry.photos[0] }}
                   style={styles.entryPhotoImage}
+                  resizeMode="cover"
                 />
               </View>
             )}
@@ -223,6 +224,7 @@ function RevealedFeedCard({
                 <Image
                   source={{ uri: diary.partnerEntry.photos[0] }}
                   style={styles.entryPhotoImage}
+                  resizeMode="cover"
                 />
               </View>
             )}

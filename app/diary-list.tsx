@@ -168,10 +168,19 @@ export default function DiaryScreen() {
           <DiaryEmptyState />
         </View>
       ) : viewMode === 'timeline' ? (
-        <FlatList
-          data={[null]}
-          renderItem={() => (
-            <>
+        <FootprintTimeline
+          diaries={diaries}
+          myName={myName}
+          partnerName={partnerName}
+          onItemPress={handleItemPress}
+          onNudge={handleNudge}
+          nudgeLoading={nudge.isPending}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          contentContainerStyle={styles.scroll}
+          ListHeaderComponent={
               <Row px="xxl" style={styles.summaryRow}>
                 <PixelBadge
                   iconName="footprint"
@@ -180,23 +189,7 @@ export default function DiaryScreen() {
                   bg={theme.colors.primarySurface}
                 />
               </Row>
-              <FootprintTimeline
-                diaries={diaries}
-                myName={myName}
-                partnerName={partnerName}
-                onItemPress={handleItemPress}
-                onNudge={handleNudge}
-                nudgeLoading={nudge.isPending}
-              />
-            </>
-          )}
-          keyExtractor={() => 'timeline'}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          refreshing={isRefetching}
-          onRefresh={refetch}
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
+          }
           ListFooterComponent={
             isFetchingNextPage ? (
               <ActivityIndicator

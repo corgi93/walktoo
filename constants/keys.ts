@@ -32,12 +32,6 @@ export const QUERY_KEYS = {
   coupleMemo: {
     detail: ['coupleMemo', 'detail'] as const,
   },
-  reflection: {
-    current: ['reflection', 'current'] as const,
-    detail: (id: string) => ['reflection', 'detail', id] as const,
-    list: ['reflection', 'list'] as const,
-    progress: (id: string) => ['reflection', 'progress', id] as const,
-  },
   notification: {
     list: ['notification'] as const,
     unreadCount: ['notification', 'unread'] as const,

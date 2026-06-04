@@ -35,6 +35,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.2",
     "@react-navigation/native": "^7.1.8",
+    "@shopify/flash-list": "^2.3.1",
     "@supabase/supabase-js": "^2.99.1",
     "@tanstack/react-query": "^5.90.21",
     "axios": "^1.13.5",

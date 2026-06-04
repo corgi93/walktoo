@@ -36,29 +36,21 @@ interface ThemeBgProps {
  *  3. SVG 패턴 — grid_minimal / pixel_retro / y2k_pastel
  *  4. children (wrapper 모드에서)
  *
- * 텍스처는 256~512px 시밍 이미지를 resizeMode="repeat"로 깔아서 GPU 메모리·
- * 디코드 비용 최소화.
+ * 텍스처는 resizeMode="cover"로 화면을 덮는다. Android에서 repeat 타일이
+ * 긴 스크롤과 섞일 때 경계/끊김이 보이는 경우가 있어 단일 cover 레이어를 쓴다.
  */
 export function ThemeBg({ theme, children, style }: ThemeBgProps) {
   const uid = useId().replace(/[:]/g, '');
   const patId = `bg-pat-${uid}`;
   const texture = theme.bgTexture ? textureSrc(theme.bgTexture) : undefined;
+  const textureOpacity = theme.bgTextureOpacity ?? 0.4;
 
   // Sibling 오버레이 모드 — 부모의 absoluteFill 차지
   if (children === undefined) {
     return (
       <>
         {texture && (
-          <View style={styles.fill} pointerEvents="none">
-            <Image
-              source={texture}
-              style={[
-                styles.fill,
-                { opacity: theme.bgTextureOpacity ?? 0.4 },
-              ]}
-              resizeMode="repeat"
-            />
-          </View>
+          <TextureLayer texture={texture} opacity={textureOpacity} />
         )}
         <PatternLayer theme={theme} patId={patId} />
       </>
@@ -69,19 +61,30 @@ export function ThemeBg({ theme, children, style }: ThemeBgProps) {
   return (
     <View style={style}>
       {texture && (
-        <View style={styles.fill} pointerEvents="none">
-          <Image
-            source={texture}
-            style={[
-              styles.fill,
-              { opacity: theme.bgTextureOpacity ?? 0.4 },
-            ]}
-            resizeMode="repeat"
-          />
-        </View>
+        <TextureLayer texture={texture} opacity={textureOpacity} />
       )}
       <PatternLayer theme={theme} patId={patId} />
       {children}
+    </View>
+  );
+}
+
+function TextureLayer({
+  texture,
+  opacity,
+}: {
+  texture: ReturnType<typeof textureSrc>;
+  opacity: number;
+}) {
+  if (!texture) return null;
+
+  return (
+    <View style={styles.fill} pointerEvents="none">
+      <Image
+        source={texture}
+        style={[styles.fill, { opacity }]}
+        resizeMode="cover"
+      />
     </View>
   );
 }

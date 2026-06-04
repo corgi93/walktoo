@@ -3,7 +3,9 @@ export type MediaKind = 'image' | 'video';
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'm4v', 'webm']);
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
 
-export const MAX_SHORT_VIDEO_DURATION_MS = 5_000;
+export const MAX_SHORT_VIDEO_DURATION_FREE_MS = 3_000;
+export const MAX_SHORT_VIDEO_DURATION_PREMIUM_MS = 5_000;
+export const MAX_SHORT_VIDEO_DURATION_MS = MAX_SHORT_VIDEO_DURATION_PREMIUM_MS;
 export const MAX_SHORT_VIDEO_BYTES = 20 * 1024 * 1024;
 export const OPTIMIZED_IMAGE_MAX_WIDTH = 1600;
 export const OPTIMIZED_IMAGE_QUALITY = 0.78;

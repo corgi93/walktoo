@@ -152,7 +152,7 @@ export default function ProfileScreen() {
           </Box>
         )}
 
-        {/* ── walkToo+ 업그레이드 CTA (free 일 때만) ── */}
+        {/* ── 기록 업그레이드 CTA (free 일 때만) ── */}
         {!isEntitled && (
           <Box px="xxl" style={styles.section}>
             <Pressable onPress={() => router.push('/paywall')}>

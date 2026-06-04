@@ -1,26 +1,26 @@
 {
-  "brand": "walkToo+",
-  "tagline": "기본 기록은 그대로, 더 예쁜 결과물로 남겨요",
+  "brand": "기록 업그레이드",
+  "tagline": "기본 기록은 무료로, 특별한 날만 조금 더 예쁘고 길게 남겨요",
   "benefits": {
     "section-title": "이런 게 좋아져요",
-    "walk-book-title": "우리 기록을 산책북으로",
-    "photos-title": "우리 기록 사진을 더 풍성하게",
-    "photos-description": "산책 한 번에 최대 {{limit}}장까지 추가할 수 있어요",
+    "walk-book-title": "추억 카드와 산책북 준비",
+    "photos-title": "사진 8장, 영상 5초까지",
+    "photos-description": "기본 4장/3초에서 이 기록을 더 풍성하게 남겨요",
     "couple-title": "한 명만 결제하면 양쪽 적용",
-    "couple-description": "둘이 함께 walkToo+를 즐겨요",
+    "couple-description": "둘이 함께 업그레이드 기능을 써요",
     "one-time-title": "구독 없이 한 번만 결제",
     "one-time-description": "매달 결제되는 구독이 아니에요",
-    "restore-title": "구매 복원 지원",
-    "restore-description": "기기를 바꿔도 같은 계정에서 복원할 수 있어요"
+    "restore-title": "고급 다이어리 테마팩",
+    "restore-description": "빈티지, 드리미, 다크 무드 테마를 열어요"
   },
   "price": {
-    "lifetime-label": "walkToo+ 이용권",
+    "lifetime-label": "초기 업그레이드가",
     "lifetime-value": "₩{{price}}",
-    "one-time-note": "구독 없는 1회성 구매"
+    "one-time-note": "구독 없이 한 번만 결제해요"
   },
   "actions": {
     "start": "지금 시작하기",
-    "purchase": "이용권 구매",
+    "purchase": "업그레이드하기",
     "restore": "구매 복원",
     "purchasing": "결제 처리 중...",
     "restoring": "복원 중...",
@@ -32,14 +32,14 @@
     "no-purchases": "복원할 구매 내역이 없어요",
     "failed": "결제에 실패했어요. 잠시 후 다시 시도해주세요.",
     "sdk-unavailable": "결제 시스템을 준비 중이에요. 잠시 후 다시 시도해주세요.",
-    "already-owned": "이미 walkToo+를 사용 중이에요"
+    "already-owned": "이미 업그레이드를 사용 중이에요"
   },
   "gate": {
     "photos-title": "사진을 더 풍성하게 남기고 싶다면",
-    "photos-description": "기본 기록은 무료, walkToo+로 한 번에 최대 {{limit}}장까지",
+    "photos-description": "기본 기록은 무료, 업그레이드하면 최대 {{limit}}장까지",
     "stats-title": "기본 기록은 무료, 통계는 더 풍성하게",
     "decoration-title": "기본 꾸미기는 무료, 테마는 더 다양하게",
-    "go-paywall": "walkToo+ 보기"
+    "go-paywall": "업그레이드 보기"
   },
   "walk-book": {
     "eyebrow": "첫 결과물 상품",
@@ -59,8 +59,8 @@
     "create-record": "기록 남기기"
   },
   "menu": {
-    "upgrade": "walkToo+ 시작하기",
-    "active": "walkToo+ 사용 중"
+    "upgrade": "기록 업그레이드",
+    "active": "업그레이드 사용 중"
   },
   "fine-print": "구독이 아닌 1회성 구매입니다. 구매와 환불은 Apple/Google 정책에 따라 처리됩니다."
 }

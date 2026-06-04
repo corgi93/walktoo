@@ -87,7 +87,11 @@ export function MarkerDetailSheet({
 
         <View style={styles.row}>
           {thumbnail ? (
-            <Image source={{ uri: thumbnail }} style={styles.thumb} />
+            <Image
+              source={{ uri: thumbnail }}
+              style={styles.thumb}
+              resizeMode="cover"
+            />
           ) : (
             <View style={[styles.thumb, styles.thumbEmpty]}>
               <Icon name="map-pin" size={22} color={theme.colors.gray400} />

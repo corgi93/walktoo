@@ -62,7 +62,7 @@ export function ThemePicker({
               테마 고르기
             </Text>
             <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-              각자 다른 무드로 기록해봐 ✿
+              모든 테마를 자유롭게 골라볼 수 있어요
             </Text>
           </View>
 
@@ -185,11 +185,11 @@ function ThemeTile({
         {t.desc}
       </Text>
 
-      {selected && (
+      {selected ? (
         <View style={[styles.checkBadge, { backgroundColor: t.accent }]}>
           <Icon name="check" size={14} color={appTheme.colors.white} />
         </View>
-      )}
+      ) : null}
 
       {/* 데코 스티커 — 살짝 분위기 보여주기 */}
       {!t.isDark && (

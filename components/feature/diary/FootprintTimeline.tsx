@@ -1,5 +1,13 @@
 import React, { useMemo } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import {
+  Image,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Column, Icon, Row, Text } from '@/components/base';
@@ -17,12 +25,18 @@ interface FootprintTimelineProps {
   onItemPress?: (diary: WalkDiary) => void;
   onNudge?: (diary: WalkDiary) => void;
   nudgeLoading?: boolean;
+  ListHeaderComponent?: React.ReactElement | null;
+  ListFooterComponent?: React.ReactElement | null;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  onEndReached?: () => void;
+  onEndReachedThreshold?: number;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-interface YearGroup {
-  year: number;
-  items: WalkDiary[];
-}
+type TimelineItem =
+  | { type: 'year'; id: string; year: number; spaced: boolean }
+  | { type: 'walk'; id: string; diary: WalkDiary; isLast: boolean };
 
 // ─── Component ──────────────────────────────────────────
 
@@ -33,102 +47,130 @@ export function FootprintTimeline({
   onItemPress,
   onNudge,
   nudgeLoading,
+  ListHeaderComponent,
+  ListFooterComponent,
+  contentContainerStyle,
+  onEndReached,
+  onEndReachedThreshold,
+  onRefresh,
+  refreshing,
 }: FootprintTimelineProps) {
   const { t } = useTranslation(['diary', 'common']);
 
-  // 연도별로 그룹화 (이미 최신순으로 정렬되어 있다고 가정)
-  const yearGroups = useMemo<YearGroup[]>(() => {
-    const groups: YearGroup[] = [];
-    for (const diary of diaries) {
+  const items = useMemo<TimelineItem[]>(() => {
+    const nextItems: TimelineItem[] = [];
+    let currentYear: number | null = null;
+
+    diaries.forEach((diary, index) => {
       const year = parseLocalDate(diary.date).getFullYear();
-      const last = groups[groups.length - 1];
-      if (last && last.year === year) {
-        last.items.push(diary);
-      } else {
-        groups.push({ year, items: [diary] });
+      if (currentYear !== year) {
+        nextItems.push({
+          type: 'year',
+          id: `year-${year}`,
+          year,
+          spaced: nextItems.length > 0,
+        });
+        currentYear = year;
       }
-    }
-    return groups;
+      nextItems.push({
+        type: 'walk',
+        id: diary.id,
+        diary,
+        isLast: index === diaries.length - 1,
+      });
+    });
+
+    return nextItems;
   }, [diaries]);
 
   return (
-    <View style={styles.container}>
-      {yearGroups.map((group, groupIdx) => (
-        <View key={group.year}>
-          {/* 연도 섹션 헤더 */}
-          <View
-            style={[
-              styles.yearHeader,
-              groupIdx > 0 && styles.yearHeaderSpaced,
-            ]}
+    <FlashList
+      data={items}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={StyleSheet.flatten([
+        styles.content,
+        contentContainerStyle,
+      ])}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={onEndReachedThreshold}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      showsVerticalScrollIndicator={false}
+      ListHeaderComponent={ListHeaderComponent}
+      ListFooterComponent={ListFooterComponent}
+      renderItem={({ item }) => {
+        if (item.type === 'year') {
+          return (
+            <View
+              style={[
+                styles.yearHeader,
+                item.spaced && styles.yearHeaderSpaced,
+              ]}
+            >
+              <View style={styles.yearLine} />
+              <Text variant="label" color="textMuted" style={styles.yearLabel}>
+                {t('timeline.year-label', { year: item.year })}
+              </Text>
+              <View style={styles.yearLine} />
+            </View>
+          );
+        }
+
+        const diary = item.diary;
+        const d = parseLocalDate(item.diary.date);
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const weekday = formatDate(d, { weekday: 'short' });
+
+        return (
+          <Pressable
+            style={styles.item}
+            onPress={() => onItemPress?.(diary)}
           >
-            <View style={styles.yearLine} />
-            <Text variant="label" color="textMuted" style={styles.yearLabel}>
-              {t('timeline.year-label', { year: group.year })}
-            </Text>
-            <View style={styles.yearLine} />
-          </View>
+            <View style={styles.dateTag}>
+              <Text style={styles.dateMonth}>
+                {month}
+                {t('common:labels.month-suffix')}
+              </Text>
+              <Text style={styles.dateDay}>{day}</Text>
+              <Text style={styles.dateWeekday}>{weekday}</Text>
+            </View>
 
-          {group.items.map((diary, index) => {
-            const isLastInGroup = index === group.items.length - 1;
-            const isLastGroup = groupIdx === yearGroups.length - 1;
-            const isLast = isLastInGroup && isLastGroup;
-            const d = parseLocalDate(diary.date);
-            const month = d.getMonth() + 1;
-            const day = d.getDate();
-            const weekday = formatDate(d, { weekday: 'short' });
-
-            return (
-              <Pressable
-                key={diary.id}
-                style={styles.item}
-                onPress={() => onItemPress?.(diary)}
+            <View style={styles.timeline}>
+              <View
+                style={[
+                  styles.dot,
+                  diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
+                ]}
               >
-                {/* 좌측 날짜 태그 */}
-                <View style={styles.dateTag}>
-                  <Text style={styles.dateMonth}>
-                    {month}
-                    {t('common:labels.month-suffix')}
-                  </Text>
-                  <Text style={styles.dateDay}>{day}</Text>
-                  <Text style={styles.dateWeekday}>{weekday}</Text>
-                </View>
+                <Icon
+                  name={diary.isRevealed ? 'footprint' : 'lock'}
+                  size={12}
+                  color={
+                    diary.isRevealed
+                      ? theme.colors.primary
+                      : theme.colors.gray500
+                  }
+                />
+              </View>
+              {!item.isLast && <View style={styles.line} />}
+            </View>
 
-                {/* 타임라인 선 + 발자국 */}
-                <View style={styles.timeline}>
-                  <View
-                    style={[
-                      styles.dot,
-                      diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
-                    ]}
-                  >
-                    <Icon
-                      name={diary.isRevealed ? 'footprint' : 'lock'}
-                      size={12}
-                      color={diary.isRevealed ? theme.colors.primary : theme.colors.gray500}
-                    />
-                  </View>
-                  {!isLast && <View style={styles.line} />}
-                </View>
-
-                {/* 카드 */}
-                {diary.isRevealed ? (
-                  <RevealedCard diary={diary} />
-                ) : (
-                  <LockedCard
-                    diary={diary}
-                    myName={myName}
-                    partnerName={partnerName}
-                    onNudge={onNudge}
-                    nudgeLoading={nudgeLoading}
-                  />
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
-    </View>
+            {diary.isRevealed ? (
+              <RevealedCard diary={diary} />
+            ) : (
+              <LockedCard
+                diary={diary}
+                myName={myName}
+                partnerName={partnerName}
+                onNudge={onNudge}
+                nudgeLoading={nudgeLoading}
+              />
+            )}
+          </Pressable>
+        );
+      }}
+    />
   );
 }
 
@@ -296,6 +338,7 @@ function EntryColumn({
           <Image
             source={{ uri: entry.photos[0] }}
             style={styles.entryPhotoImage}
+            resizeMode="cover"
           />
         </View>
       )}
@@ -318,7 +361,7 @@ function EntryColumn({
 // ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     paddingHorizontal: SPACING.xxl,
   },
   yearHeader: {

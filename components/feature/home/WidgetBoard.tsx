@@ -40,12 +40,6 @@ interface WidgetBoardProps {
   partnerCharacter?: CharacterType;
   mySteps: number;
   partnerSteps: number;
-  reflectionProgress: {
-    total: number;
-    myAnswered: number;
-    partnerAnswered: number;
-    isRevealed: boolean;
-  } | null;
   totalStamps: number;
   hasTodayStamp: boolean;
   isClaimingStamp: boolean;
@@ -65,7 +59,6 @@ export function WidgetBoard({
   partnerCharacter = 'girl',
   mySteps,
   partnerSteps,
-  reflectionProgress,
   totalStamps,
   hasTodayStamp,
   isClaimingStamp,
@@ -206,17 +199,8 @@ export function WidgetBoard({
       {/* 추억 뽑기 ─ 가챠 hero 카드 */}
       <MemoryDrawWidget />
 
-      {/* Row 4 ─ 이달의 우리 · 추억의 발자국 */}
-      <View style={styles.row}>
-        <ReflectionMiniWidget
-          progress={reflectionProgress}
-          onPress={() => router.push('/reflection')}
-        />
-        <FootprintTimelineWidget
-          totalStamps={totalStamps}
-          onPress={() => router.push('/reflection-timeline')}
-        />
-      </View>
+      {/* Row 4 ─ 추억의 발자국 */}
+      <FootprintTimelineWidget totalStamps={totalStamps} />
     </View>
   );
 }
@@ -724,41 +708,6 @@ const stepsStyles = StyleSheet.create({
   },
 });
 
-// ─── 이달의 우리 (회고) ──────────────────────────────────
-
-function ReflectionMiniWidget({
-  progress,
-  onPress,
-}: {
-  progress: {
-    total: number;
-    myAnswered: number;
-    partnerAnswered: number;
-    isRevealed: boolean;
-  } | null;
-  onPress: () => void;
-}) {
-  const { t } = useTranslation('home');
-  const myPct =
-    progress && progress.total > 0
-      ? Math.round((progress.myAnswered / progress.total) * 100)
-      : 0;
-
-  return (
-    <Pressable style={[styles.widget, styles.reflection]} onPress={onPress}>
-      <MiniIconBadge name="book-open" />
-      <Text variant="bodySmall" color="text" style={{ fontWeight: '600' }}>
-        {t('reflection.title')}
-      </Text>
-      <Text variant="caption" color="textMuted" style={{ fontSize: 10 }}>
-        {progress?.isRevealed
-          ? t('reflection.revealed-hint')
-          : t('reflection.progress-hint', { pct: myPct })}
-      </Text>
-    </Pressable>
-  );
-}
-
 // ─── 공용 아이콘 배지 (미니 위젯용) ──────────────────────
 
 function MiniIconBadge({ name }: { name: IconName }) {
@@ -773,15 +722,13 @@ function MiniIconBadge({ name }: { name: IconName }) {
 
 function FootprintTimelineWidget({
   totalStamps,
-  onPress,
 }: {
   totalStamps: number;
-  onPress: () => void;
 }) {
   const { t } = useTranslation('home');
 
   return (
-    <Pressable style={[styles.widget, styles.timeline]} onPress={onPress}>
+    <View style={[styles.widget, styles.timeline, styles.fullWidthWidget]}>
       <MiniIconBadge name="footprint" />
       <Text variant="bodySmall" color="text" style={{ fontWeight: '600' }}>
         {t('timeline.title')}
@@ -789,7 +736,7 @@ function FootprintTimelineWidget({
       <Text variant="caption" color="primary" style={{ fontSize: 10 }}>
         {t('timeline.stamp-count', { count: totalStamps })}
       </Text>
-    </Pressable>
+    </View>
   );
 }
 
@@ -856,6 +803,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
+  },
+  fullWidthWidget: {
+    flex: 0,
   },
 
   // Polaroid Widget
@@ -937,11 +887,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
 
-  // Mini widgets — 톤 통일 (전부 primarySurface 파스텔 핑크, y2k 계열)
-  reflection: {
-    gap: 4,
-    backgroundColor: theme.colors.primarySurface,
-  },
+  // Mini widgets — 톤 통일 (primarySurface 파스텔 핑크, y2k 계열)
   timeline: {
     gap: 4,
     backgroundColor: theme.colors.primarySurface,

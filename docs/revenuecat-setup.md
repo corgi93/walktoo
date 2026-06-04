@@ -1,17 +1,17 @@
-# walkToo+ (RevenueCat) 세팅 가이드
+# walkToo 기록 업그레이드 (RevenueCat) 세팅 가이드
 
-walkToo의 1회성 이용권은 [RevenueCat](https://www.revenuecat.com)을 통해 Apple/Google IAP를 처리한다.
+walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.revenuecat.com)을 통해 Apple/Google IAP를 처리한다.
 이 문서는 코드 통합이 끝난 상태에서 **사람이 콘솔에서 해야 하는 작업**을 정리한 체크리스트다.
 
 ## 0. 핵심 ID
 
 | 항목 | 값 |
 |---|---|
-| **Product ID** (Apple/Google 동일) | `com.walktoo.plus.lifetime` |
-| **Entitlement ID** (RevenueCat) | `walktoo_plus` |
+| **Product ID** (Apple/Google 동일) | `com.walktoo.record_upgrade` |
+| **Entitlement ID** (RevenueCat) | `walktoo_record_upgrade` |
 | **Offering ID** (RevenueCat) | `default` (현재 offering) |
-| **Type** | Non-consumable (1회성 이용권) |
-| **무료 체험** | 7일 (앱/서버 자체 로직, IAP의 introductory offer 사용 X) |
+| **Type** | Non-consumable (구독 없는 1회성 업그레이드) |
+| **무료 체험** | 없음 |
 
 코드에서는 `constants/premium.ts`의 `PREMIUM.PRODUCT_ID` / `PREMIUM.ENTITLEMENT_ID` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
 
@@ -22,15 +22,15 @@ walkToo의 1회성 이용권은 [RevenueCat](https://www.revenuecat.com)을 통�
 1. App Store Connect → My Apps → walkToo → **In-App Purchases**
 2. **Create In-App Purchase**
    - Type: **Non-Consumable**
-   - Reference Name: `walkToo+ Pass`
-   - Product ID: `com.walktoo.plus.lifetime`
+   - Reference Name: `walkToo Record Upgrade`
+   - Product ID: `com.walktoo.record_upgrade`
 3. 가격 설정:
-   - 한국 (KRW): **₩14,900**
-   - 글로벌 (USD): **$14.99**
+   - 한국 (KRW): **₩2,200**
+   - 글로벌 (USD): **$1.99**
    - 다른 국가는 Apple 자동 환산 사용
 4. 표시 정보 (다국어):
-   - 한국어: "walkToo+ 이용권"
-   - 영어: "walkToo+ Pass"
+   - 한국어: "기록 업그레이드"
+   - 영어: "Record Upgrade"
 5. 리뷰용 스크린샷 1장 (페이월 화면) 첨부
 6. 상품 상태: **Ready to Submit**
 7. App Store 심사 시 앱 빌드와 함께 IAP를 첨부 제출 (필수)
@@ -39,10 +39,10 @@ walkToo의 1회성 이용권은 [RevenueCat](https://www.revenuecat.com)을 통�
 
 1. Play Console → walkToo → **수익 창출 설정 → 인앱 상품**
 2. **상품 만들기**
-   - 상품 ID: `com.walktoo.plus.lifetime`
-   - 이름: `walkToo+ 이용권`
-   - 설명: `구독 없이 둘의 기록 경험을 더 풍성하게`
-3. 가격: **₩14,900** (다른 국가는 자동 환산)
+   - 상품 ID: `com.walktoo.record_upgrade`
+   - 이름: `기록 업그레이드`
+   - 설명: `구독 없이 사진, 짧은 영상, 다이어리 테마 경험을 확장합니다`
+3. 가격: **₩2,200** (다른 국가는 자동 환산)
 4. 상태: **활성**
 5. 라이선스 테스터 추가 (sandbox 결제 테스트용)
 
@@ -53,10 +53,10 @@ walkToo의 1회성 이용권은 [RevenueCat](https://www.revenuecat.com)을 통�
    - **+ App** → iOS → Bundle ID 입력 → App Store Connect API key 업로드
    - **+ App** → Android → Package name 입력 → Service Account JSON 업로드
 3. **Products**:
-   - **+ Product** → Apple → `com.walktoo.plus.lifetime` 추가 → non-consumable 상품 연결
-   - **+ Product** → Google → `com.walktoo.plus.lifetime` 추가 → non-consumable 상품 연결
+   - **+ Product** → Apple → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
+   - **+ Product** → Google → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
 4. **Entitlements**:
-   - **+ Entitlement** → Identifier: `walktoo_plus` → Display name: `walkToo+`
+   - **+ Entitlement** → Identifier: `walktoo_record_upgrade` → Display name: `Record Upgrade`
    - 위 두 product를 이 entitlement에 attach
 5. **Offerings**:
    - 기본 offering이 `default` 이름으로 자동 생성됨
@@ -126,7 +126,7 @@ npx expo run:android --device
 ## 8. App Store / Google Play 심사 시 주의사항
 
 - IAP가 있는 앱은 첫 제출 시 IAP 메타데이터(스크린샷, 리뷰 노트)를 함께 제출해야 한다
-- 리뷰 노트에 "walkToo+ is a one-time non-consumable purchase. Free trial is implemented in-app and does not use Apple's introductory offer." 명시
+- 리뷰 노트에 "Record Upgrade is a one-time non-consumable purchase. It expands optional media and decoration features; core diary records remain free." 명시
 - 환불 정책 안내 페이지(앱 내 또는 웹) 링크 제공 권장
 
 ## 9. 향후 개선 (Phase 2)

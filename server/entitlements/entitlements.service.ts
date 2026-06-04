@@ -3,7 +3,7 @@ import { supabase } from '../client';
 // ─── Types ──────────────────────────────────────────────
 
 export interface EntitlementStatus {
-  /** 본인이 walkToo+ 이용권 결제 완료 */
+  /** 본인이 기록 업그레이드 결제 완료 */
   hasPremium: boolean;
   /** 커플이 premium 활성 (다른 한 명이 결제) */
   coupleHasPremium: boolean;

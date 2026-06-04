@@ -24,8 +24,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, Text } from '@/components/base';
+import { PREMIUM } from '@/constants/premium';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
+import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
@@ -38,8 +40,6 @@ import {
 } from '@/utils/media';
 
 type Mode = 'picture' | 'video';
-
-const VIDEO_MAX_DURATION = 5;
 
 const formatBytes = (bytes: number | null): string => {
   if (!bytes && bytes !== 0) return '?';
@@ -55,7 +55,11 @@ export default function QuickCaptureScreen() {
   const dialog = useDialogStore();
 
   const { couple, isCoupleConnected } = usePartnerDerivation();
+  const { isEntitled } = useEntitlement();
   const createDiary = useCreateDiaryMutation();
+  const videoMaxDuration = isEntitled
+    ? PREMIUM.VIDEO_DURATION_PREMIUM_SECONDS
+    : PREMIUM.VIDEO_DURATION_FREE_SECONDS;
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
@@ -74,7 +78,7 @@ export default function QuickCaptureScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [remainingSec, setRemainingSec] = useState(VIDEO_MAX_DURATION);
+  const [remainingSec, setRemainingSec] = useState<number>(videoMaxDuration);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 미리보기 영상 플레이어 — 녹화 직후 자동 루프 재생.
@@ -118,6 +122,12 @@ export default function QuickCaptureScreen() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isRecording) {
+      setRemainingSec(videoMaxDuration);
+    }
+  }, [isRecording, videoMaxDuration]);
 
   // ─── Handlers ────────────────────────────────────────
   const handleClose = useCallback(() => {
@@ -170,10 +180,10 @@ export default function QuickCaptureScreen() {
   const handleStartRecord = useCallback(async () => {
     if (!cameraRef.current || isCapturing || isRecording) return;
     setIsRecording(true);
-    setRemainingSec(VIDEO_MAX_DURATION);
+    setRemainingSec(videoMaxDuration);
     try {
       const promise = cameraRef.current.recordAsync({
-        maxDuration: VIDEO_MAX_DURATION,
+        maxDuration: videoMaxDuration,
       });
       recordPromiseRef.current = promise;
 
@@ -194,7 +204,7 @@ export default function QuickCaptureScreen() {
       // Safety stop in case maxDuration on native side doesn't fire.
       stopTimerRef.current = setTimeout(() => {
         cameraRef.current?.stopRecording();
-      }, (VIDEO_MAX_DURATION + 0.3) * 1000);
+      }, (videoMaxDuration + 0.3) * 1000);
 
       const result = await promise;
       if (stopTimerRef.current) {
@@ -220,9 +230,9 @@ export default function QuickCaptureScreen() {
     } finally {
       recordPromiseRef.current = null;
       setIsRecording(false);
-      setRemainingSec(VIDEO_MAX_DURATION);
+      setRemainingSec(videoMaxDuration);
     }
-  }, [isCapturing, isRecording]);
+  }, [isCapturing, isRecording, videoMaxDuration]);
 
   const handleStopRecord = useCallback(() => {
     cameraRef.current?.stopRecording();
@@ -488,8 +498,20 @@ export default function QuickCaptureScreen() {
       {!isRecording && (
         <View style={[styles.hintWrap, { bottom: insets.bottom + 180 }]}>
           <Text variant="bodySmall" color="white" style={styles.hint}>
-            {t(mode === 'picture' ? 'quick.hint-photo' : 'quick.hint-video')}
+            {t(mode === 'picture' ? 'quick.hint-photo' : 'quick.hint-video', {
+              seconds: videoMaxDuration,
+            })}
           </Text>
+          {mode === 'video' && !isEntitled && (
+            <Pressable
+              onPress={() => router.push('/paywall')}
+              style={styles.hintUpgrade}
+            >
+              <Text variant="caption" color="primary" style={styles.hintUpgradeText}>
+                {t('quick.video-upgrade')}
+              </Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -629,10 +651,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: SPACING.md,
     backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 999,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   hint: {
     fontSize: 12,
+  },
+  hintUpgrade: {
+    marginTop: 6,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    backgroundColor: theme.colors.primarySurface,
+    borderRadius: 6,
+  },
+  hintUpgradeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   bottomBar: {
     position: 'absolute',
@@ -716,4 +750,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-

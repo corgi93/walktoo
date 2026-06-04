@@ -1,22 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon, Text } from '@/components/base';
+import { Icon, TabScreenHeader, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import { ScheduleForm, type ScheduleFormResult } from '@/components/feature/schedule';
 import { useToast } from '@/components/composite/toast/ToastProvider';
-import { useCoupleMemoQuery } from '@/hooks/services/couple-memos/query';
-import { useUpdateCoupleMemoMutation } from '@/hooks/services/couple-memos/mutation';
 import {
   useCreateScheduleMutation,
   useDeleteScheduleMutation,
@@ -39,70 +37,18 @@ import {
   getMonthKey,
   parseLocalDate,
 } from '@/utils/date';
+import { isImageUri } from '@/utils/media';
 
-type PlannerMode = 'schedule' | 'memo';
-
-interface MemoItem {
-  id: string;
-  text: string;
-  done: boolean;
-}
-
-const MEMO_STORAGE_PREFIX = 'pairwalk-checklist-v1:';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
-
-const createMemoItem = (text = ''): MemoItem => ({
-  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  text,
-  done: false,
-});
-
-const parseMemoItems = (content: string | undefined): MemoItem[] => {
-  if (!content?.trim()) return [];
-  if (!content.startsWith(MEMO_STORAGE_PREFIX)) {
-    return [createMemoItem(content)];
-  }
-
-  try {
-    const parsed = JSON.parse(content.slice(MEMO_STORAGE_PREFIX.length)) as
-      | MemoItem[]
-      | unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (item): item is MemoItem =>
-          typeof item === 'object' &&
-          item !== null &&
-          'id' in item &&
-          'text' in item &&
-          'done' in item,
-      )
-      .map((item) => ({
-        id: String(item.id),
-        text: String(item.text),
-        done: Boolean(item.done),
-      }));
-  } catch {
-    return [];
-  }
-};
-
-const serializeMemoItems = (items: readonly MemoItem[]) =>
-  `${MEMO_STORAGE_PREFIX}${JSON.stringify(
-    items
-      .map((item) => ({ ...item, text: item.text.trim() }))
-      .filter((item) => item.text.length > 0),
-  )}`;
 
 export default function PlannerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
   const { me, isCoupleConnected, myName, partnerName } = usePartnerDerivation();
-  const [mode, setMode] = useState<PlannerMode>('schedule');
   const [visibleMonth, setVisibleMonth] = useState(getCurrentYearMonth);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<CoupleSchedule | null>(
@@ -110,6 +56,9 @@ export default function PlannerScreen() {
   );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalToday);
+  const lastCalendarPressRef = useRef<{ date: string; time: number } | null>(
+    null,
+  );
 
   const { data: schedules = [] } = useSchedulesByMonthQuery(
     visibleMonth.year,
@@ -122,14 +71,6 @@ export default function PlannerScreen() {
   const createSchedule = useCreateScheduleMutation();
   const updateSchedule = useUpdateScheduleMutation();
   const deleteSchedule = useDeleteScheduleMutation();
-
-  const { data: memo } = useCoupleMemoQuery();
-  const updateMemo = useUpdateCoupleMemoMutation();
-  const [memoItems, setMemoItems] = useState<MemoItem[]>([]);
-
-  useEffect(() => {
-    setMemoItems(parseMemoItems(memo?.content));
-  }, [memo?.content]);
 
   const schedulesByDate = useMemo(() => {
     const groups = new Map<string, CoupleSchedule[]>();
@@ -209,26 +150,18 @@ export default function PlannerScreen() {
     });
   };
 
-  const handleSaveMemo = () => {
-    updateMemo.mutate(serializeMemoItems(memoItems), {
-      onSuccess: () => toast.success('메모를 저장했어요'),
-      onError: (error) =>
-        toast.error(getErrorMessage(error, '메모를 저장하지 못했어요')),
-    });
-  };
+  const handleCalendarDatePress = (date: string) => {
+    const now = Date.now();
+    const lastPress = lastCalendarPressRef.current;
+    const isDoublePress =
+      lastPress?.date === date && now - lastPress.time <= 450;
 
-  const updateMemoItem = (id: string, patch: Partial<MemoItem>) => {
-    setMemoItems((items) =>
-      items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
-  };
+    setSelectedDate(date);
+    lastCalendarPressRef.current = { date, time: now };
 
-  const removeMemoItem = (id: string) => {
-    setMemoItems((items) => items.filter((item) => item.id !== id));
-  };
-
-  const addMemoItem = () => {
-    setMemoItems((items) => [...items, createMemoItem()]);
+    if (isDoublePress) {
+      setShowCreateForm(true);
+    }
   };
 
   const handleWalkPress = (walk: WalkDiary) => {
@@ -249,11 +182,10 @@ export default function PlannerScreen() {
   if (!isCoupleConnected) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <Text variant="displaySmall" color="primary">
-            캘린더
-          </Text>
-        </View>
+        <TabScreenHeader
+          title="캘린더"
+          titleVariant="displaySmall"
+        />
         <View style={styles.noCoupleWrap}>
           <NoCoupleCard />
         </View>
@@ -266,47 +198,27 @@ export default function PlannerScreen() {
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <View>
-          <Text variant="displaySmall" color="primary">
-            캘린더
-          </Text>
-          <Text variant="bodySmall" color="textSecondary" mt="xs">
-            일정과 우리 기록을 둘이 같이 봐요
-          </Text>
-        </View>
-      </View>
+      <TabScreenHeader
+        title="캘린더"
+        subtitle="일정과 우리 기록을 둘이 같이 봐요"
+        titleVariant="displaySmall"
+      />
 
-      <View style={styles.segment}>
-        <SegmentButton
-          active={mode === 'schedule'}
-          icon="calendar"
-          label="캘린더"
-          onPress={() => setMode('schedule')}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScheduleCalendar
+          year={visibleMonth.year}
+          month={visibleMonth.month}
+          selectedDate={selectedDate}
+          schedulesByDate={schedulesByDate}
+          walksByDate={walksByDate}
+          myUserId={me?.id}
+          onPrev={() => moveMonth(-1)}
+          onNext={() => moveMonth(1)}
+          onSelectDate={handleCalendarDatePress}
         />
-        <SegmentButton
-          active={mode === 'memo'}
-          icon="file-text"
-          label="메모"
-          onPress={() => setMode('memo')}
-        />
-      </View>
-
-      {mode === 'schedule' ? (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          <ScheduleCalendar
-            year={visibleMonth.year}
-            month={visibleMonth.month}
-            selectedDate={selectedDate}
-            schedulesByDate={schedulesByDate}
-            walksByDate={walksByDate}
-            onPrev={() => moveMonth(-1)}
-            onNext={() => moveMonth(1)}
-            onSelectDate={setSelectedDate}
-          />
 
           <View style={styles.selectedPanel}>
             <View style={styles.selectedHeader}>
@@ -352,24 +264,17 @@ export default function PlannerScreen() {
                         onPress={() => handleWalkPress(walk)}
                         style={styles.walkCard}
                       >
-                        <View
-                          style={[
-                            styles.walkDotBadge,
-                            walk.isRevealed && styles.walkDotBadgeRevealed,
-                          ]}
-                        />
+                        <WalkPreviewImage walk={walk} size="large" />
                         <View style={styles.scheduleBody}>
                           <Text
                             variant="bodySmall"
                             weight="700"
                             numberOfLines={1}
                           >
-                            {walk.locationName || '산책 기록'}
+                            {getWalkPreviewTitle(walk)}
                           </Text>
                           <Text variant="caption" color="textSecondary" mt="xxs">
-                            {walk.isRevealed
-                              ? '둘 다 남긴 기록'
-                              : '함께 산책'}
+                            {getWalkPreviewText(walk)}
                           </Text>
                         </View>
                         <Icon
@@ -394,7 +299,12 @@ export default function PlannerScreen() {
                     <Pressable
                       key={schedule.id}
                       onPress={() => setEditingSchedule(schedule)}
-                      style={styles.scheduleCard}
+                      style={[
+                        styles.scheduleCard,
+                        isMine
+                          ? styles.scheduleCardMine
+                          : styles.scheduleCardPartner,
+                      ]}
                     >
                       <View style={styles.scheduleEmoji}>
                         <Text variant="bodyLarge">{schedule.emoji ?? '📌'}</Text>
@@ -411,7 +321,12 @@ export default function PlannerScreen() {
                           </Text>
                           <Text
                             variant="caption"
-                            color={isMine ? 'primary' : 'textSecondary'}
+                            style={[
+                              styles.scheduleOwnerBadge,
+                              isMine
+                                ? styles.scheduleOwnerMine
+                                : styles.scheduleOwnerPartner,
+                            ]}
                           >
                             {owner}
                           </Text>
@@ -433,103 +348,7 @@ export default function PlannerScreen() {
               </View>
             )}
           </View>
-        </ScrollView>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.memoCard}>
-            <View style={styles.memoTape} />
-            <View style={styles.memoHeader}>
-              <View style={styles.memoTitleWrap}>
-                <Text variant="headingSmall">커플 메모장</Text>
-                <Text variant="caption" color="textMuted" mt="xxs">
-                  장보기, 데이트 아이디어, 서로 볼 내용을 남겨요
-                </Text>
-              </View>
-              <View style={styles.memoBadge}>
-                <Icon name="heart" size={14} color={theme.colors.primary} />
-              </View>
-            </View>
-
-            <View style={styles.memoList}>
-              {memoItems.map((item) => (
-                <View key={item.id} style={styles.memoItem}>
-                  <View style={styles.memoItemRule} />
-                  <Pressable
-                    onPress={() => updateMemoItem(item.id, { done: !item.done })}
-                    style={[styles.checkBox, item.done && styles.checkBoxDone]}
-                  >
-                    {item.done && (
-                      <Icon name="check" size={14} color={theme.colors.white} />
-                    )}
-                  </Pressable>
-                  <TextInput
-                    value={item.text}
-                    onChangeText={(text) => updateMemoItem(item.id, { text })}
-                    placeholder="메모를 입력하세요"
-                    placeholderTextColor={theme.colors.gray400}
-                    style={[
-                      styles.memoItemInput,
-                      item.done && styles.memoItemInputDone,
-                    ]}
-                  />
-                  <Pressable
-                    onPress={() => removeMemoItem(item.id)}
-                    hitSlop={8}
-                    style={styles.memoRemoveButton}
-                  >
-                    <Icon name="x" size={16} color={theme.colors.gray400} />
-                  </Pressable>
-                </View>
-              ))}
-
-              {memoItems.length === 0 && (
-                <View style={styles.memoEmpty}>
-                  <Text variant="bodySmall" color="textSecondary">
-                    아직 메모가 없어요
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <Pressable onPress={addMemoItem} style={styles.addMemoButton}>
-              <Icon name="plus" size={15} color={theme.colors.primary} />
-              <Text variant="bodySmall" color="primary" ml="xs" weight="700">
-                메모 추가
-              </Text>
-            </Pressable>
-
-            <View style={styles.memoFooter}>
-              <Text variant="caption" color="textMuted">
-                {memo?.updatedAt
-                  ? `${formatDate(new Date(memo.updatedAt), {
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })} 저장`
-                  : '아직 저장된 메모가 없어요'}
-              </Text>
-              <Pressable
-                onPress={handleSaveMemo}
-                disabled={updateMemo.isPending}
-                style={[
-                  styles.saveMemoButton,
-                  updateMemo.isPending && styles.disabledButton,
-                ]}
-              >
-                <Icon name="check" size={15} color={theme.colors.white} />
-                <Text variant="caption" color="white" ml="xxs" weight="700">
-                  저장
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </ScrollView>
-      )}
+      </ScrollView>
 
       {showCreateForm && (
         <ScheduleForm
@@ -593,12 +412,73 @@ export default function PlannerScreen() {
   );
 }
 
+const getEntryPreviewText = (
+  entry: WalkDiary['myEntry'] | WalkDiary['partnerEntry'],
+) =>
+  entry?.diaryAnswer?.trim() ||
+  entry?.memo?.trim() ||
+  entry?.locationName?.trim() ||
+  '';
+
+const getWalkPreviewImageUri = (walk: WalkDiary) => {
+  const uris = [
+    ...(walk.myEntry?.photos ?? []),
+    ...(walk.partnerEntry?.photos ?? []),
+  ];
+  return uris.find(isImageUri) ?? null;
+};
+
+const getWalkPreviewTitle = (walk: WalkDiary) =>
+  walk.locationName?.trim() || getEntryPreviewText(walk.myEntry) || '우리 기록';
+
+const getWalkPreviewText = (walk: WalkDiary) =>
+  getEntryPreviewText(walk.myEntry) ||
+  getEntryPreviewText(walk.partnerEntry) ||
+  (walk.isRevealed ? '둘 다 남긴 기록' : '함께 산책');
+
+function WalkPreviewImage({
+  walk,
+  size = 'small',
+}: {
+  walk: WalkDiary;
+  size?: 'small' | 'large';
+}) {
+  const uri = getWalkPreviewImageUri(walk);
+  const isLarge = size === 'large';
+
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={isLarge ? styles.walkThumbLarge : styles.walkThumbSmall}
+        resizeMode="cover"
+      />
+    );
+  }
+
+  return (
+    <View
+      style={[
+        isLarge ? styles.walkThumbLarge : styles.walkThumbSmall,
+        styles.walkThumbEmpty,
+      ]}
+    >
+      <Icon
+        name="footprint"
+        size={isLarge ? 18 : 11}
+        color={walk.isRevealed ? theme.colors.primary : theme.colors.secondary}
+      />
+    </View>
+  );
+}
+
 function ScheduleCalendar({
   year,
   month,
   selectedDate,
   schedulesByDate,
   walksByDate,
+  myUserId,
   onPrev,
   onNext,
   onSelectDate,
@@ -608,6 +488,7 @@ function ScheduleCalendar({
   selectedDate: string;
   schedulesByDate: Map<string, CoupleSchedule[]>;
   walksByDate: Map<string, WalkDiary[]>;
+  myUserId?: string;
   onPrev: () => void;
   onNext: () => void;
   onSelectDate: (date: string) => void;
@@ -672,9 +553,11 @@ function ScheduleCalendar({
             const walks = walksByDate.get(date) ?? [];
             const isSelected = selectedDate === date;
             const isToday = today === date;
-            const hasSchedules = schedules.length > 0;
-            const hasWalks = walks.length > 0;
-            const hasRevealedWalk = walks.some((walk) => walk.isRevealed);
+            const previewSchedules = schedules.slice(0, 1);
+            const previewWalk = walks[0];
+            const extraCount =
+              Math.max(schedules.length - previewSchedules.length, 0) +
+              Math.max(walks.length - (previewWalk ? 1 : 0), 0);
 
             return (
               <Pressable
@@ -687,21 +570,55 @@ function ScheduleCalendar({
                 ]}
               >
                 <Text
-                  variant="bodySmall"
-                  color={isSelected ? 'white' : isToday ? 'primary' : 'text'}
+                  variant="caption"
+                  color={isSelected || isToday ? 'primary' : 'text'}
                   weight={isSelected || isToday ? '700' : undefined}
+                  style={[
+                    styles.dayNumber,
+                    isSelected && styles.dayNumberSelected,
+                  ]}
                 >
                   {day}
                 </Text>
-                <View style={styles.scheduleDots}>
-                  {hasSchedules && <View style={styles.scheduleDot} />}
-                  {hasWalks && (
-                    <View
-                      style={[
-                        styles.walkDot,
-                        hasRevealedWalk && styles.walkDotRevealed,
-                      ]}
-                    />
+
+                <View style={styles.dayContent}>
+                  {previewSchedules.map((schedule) => {
+                    const isMine = schedule.ownerId === myUserId;
+                    return (
+                      <View
+                        key={schedule.id}
+                        style={[
+                          styles.calendarScheduleChip,
+                          isMine
+                            ? styles.calendarScheduleMine
+                            : styles.calendarSchedulePartner,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.calendarScheduleText,
+                            isMine
+                              ? styles.calendarScheduleTextMine
+                              : styles.calendarScheduleTextPartner,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {schedule.title}
+                        </Text>
+                      </View>
+                    );
+                  })}
+
+                  {previewWalk && (
+                    <View style={styles.calendarWalkPreview}>
+                      <WalkPreviewImage walk={previewWalk} />
+                    </View>
+                  )}
+
+                  {extraCount > 0 && (
+                    <Text style={styles.calendarMoreText} numberOfLines={1}>
+                      +{extraCount}
+                    </Text>
                   )}
                 </View>
               </Pressable>
@@ -712,58 +629,25 @@ function ScheduleCalendar({
 
       <View style={styles.calendarLegend}>
         <View style={styles.legendItem}>
-          <View style={styles.scheduleDot} />
+          <View style={[styles.legendSwatch, styles.calendarScheduleMine]} />
           <Text variant="caption" color="textMuted" ml="xxs">
-            일정
+            내 일정
           </Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={styles.walkDot} />
+          <View style={[styles.legendSwatch, styles.calendarSchedulePartner]} />
+          <Text variant="caption" color="textMuted" ml="xxs">
+            연인 일정
+          </Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={styles.legendPhoto} />
           <Text variant="caption" color="textMuted" ml="xxs">
             우리 기록
           </Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.walkDot, styles.walkDotRevealed]} />
-          <Text variant="caption" color="textMuted" ml="xxs">
-            둘 다 남김
-          </Text>
-        </View>
       </View>
     </View>
-  );
-}
-
-function SegmentButton({
-  active,
-  icon,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  icon: 'calendar' | 'file-text';
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.segmentButton, active && styles.segmentButtonActive]}
-    >
-      <Icon
-        name={icon}
-        size={16}
-        color={active ? theme.colors.white : theme.colors.textSecondary}
-      />
-      <Text
-        variant="bodySmall"
-        color={active ? 'white' : 'textSecondary'}
-        ml="xs"
-        weight="700"
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
@@ -772,70 +656,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    paddingHorizontal: LAYOUT.screenPx,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
   noCoupleWrap: {
     paddingHorizontal: LAYOUT.screenPx,
     paddingTop: SPACING.lg,
   },
-  segment: {
-    flexDirection: 'row',
-    marginHorizontal: LAYOUT.screenPx,
-    padding: 4,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.gray100,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-    gap: 4,
-  },
-  segmentButton: {
-    flex: 1,
-    height: 40,
-    borderRadius: theme.radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
   scroll: {
-    paddingHorizontal: LAYOUT.screenPx,
-    paddingTop: SPACING.lg,
+    paddingHorizontal: 10,
+    paddingTop: SPACING.xs,
     paddingBottom: LAYOUT.bottomSafe,
     gap: SPACING.md,
   },
-  monthBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
-  },
   calendarCard: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    padding: SPACING.md,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surfaceWarm,
+    paddingHorizontal: 0,
+    paddingVertical: SPACING.xs,
   },
   calendarHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
   },
   iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.surface,
@@ -846,8 +693,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingBottom: SPACING.xs,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray100,
-    marginBottom: SPACING.xs,
+    borderBottomColor: theme.colors.gray200,
   },
   weekHeaderCell: {
     flex: 1,
@@ -855,90 +701,105 @@ const styles = StyleSheet.create({
   },
   calendarWeek: {
     flexDirection: 'row',
+    minHeight: 100,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
   },
   calendarCell: {
     flex: 1,
-    aspectRatio: 1,
-    margin: 2,
-    borderRadius: theme.radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 1.5,
+    paddingTop: 3,
+    paddingBottom: 4,
   },
   calendarCellToday: {
-    backgroundColor: theme.colors.primarySurface,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
+    backgroundColor: 'transparent',
   },
   calendarCellSelected: {
-    backgroundColor: theme.colors.primary,
-    borderWidth: 0,
+    borderTopWidth: 2,
+    borderTopColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySurface,
   },
-  scheduleDots: {
-    flexDirection: 'row',
-    height: 5,
+  dayNumber: {
+    fontSize: 13,
+    lineHeight: 15,
+    alignSelf: 'flex-start',
+    marginBottom: 2,
+    minWidth: 16,
+    height: 16,
+    textAlign: 'left',
+    overflow: 'hidden',
+  },
+  dayNumberSelected: {
+    backgroundColor: 'transparent',
+  },
+  dayContent: {
+    flex: 1,
     gap: 2,
-    marginTop: 2,
+    alignItems: 'stretch',
   },
-  scheduleDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.gold,
+  calendarScheduleChip: {
+    minHeight: 22,
+    borderRadius: theme.radius.xs,
+    borderWidth: 0,
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+    justifyContent: 'center',
   },
-  walkDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.secondary,
+  calendarScheduleMine: {
+    backgroundColor: '#F8C9C5',
   },
-  walkDotRevealed: {
-    backgroundColor: theme.colors.xp,
+  calendarSchedulePartner: {
+    backgroundColor: '#BFE3D1',
+  },
+  calendarScheduleText: {
+    fontFamily: FONT_FAMILY.pixel,
+    fontSize: 9,
+    lineHeight: 10,
+    fontWeight: '700',
+    includeFontPadding: false,
+  },
+  calendarScheduleTextMine: {
+    color: theme.colors.primaryDark,
+  },
+  calendarScheduleTextPartner: {
+    color: '#426B58',
+  },
+  calendarWalkPreview: {
+    alignItems: 'center',
+    marginTop: 0,
+  },
+  calendarMoreText: {
+    fontFamily: FONT_FAMILY.pixel,
+    fontSize: 8,
+    lineHeight: 10,
+    color: theme.colors.textMuted,
+    includeFontPadding: false,
   },
   calendarLegend: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.md,
+    gap: SPACING.sm,
     marginTop: SPACING.sm,
+    flexWrap: 'wrap',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  addScheduleButton: {
-    height: 48,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.primary,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-    marginBottom: SPACING.sm,
+  legendSwatch: {
+    width: 18,
+    height: 10,
+    borderRadius: theme.radius.xs,
+    borderWidth: 1,
   },
-  emptyCard: {
-    minHeight: 180,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.lg,
-  },
-  dayGroup: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  dayLabel: {
-    width: 48,
-    alignItems: 'center',
-    paddingTop: SPACING.sm,
+  legendPhoto: {
+    width: 14,
+    height: 10,
+    borderRadius: theme.radius.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.white,
   },
   scheduleList: {
     flex: 1,
@@ -957,14 +818,26 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: theme.colors.secondaryLight,
   },
-  walkDotBadge: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: theme.colors.secondary,
+  walkThumbSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.white,
+    backgroundColor: theme.colors.gray100,
+    transform: [{ rotate: '-2deg' }],
   },
-  walkDotBadgeRevealed: {
-    backgroundColor: theme.colors.xp,
+  walkThumbLarge: {
+    width: 52,
+    height: 52,
+    borderRadius: theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.gray100,
+  },
+  walkThumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedPanel: {
     borderRadius: theme.radius.lg,
@@ -1007,6 +880,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: theme.colors.borderLight,
   },
+  scheduleCardMine: {
+    backgroundColor: theme.colors.primarySurface,
+    borderColor: theme.colors.primaryLight,
+  },
+  scheduleCardPartner: {
+    backgroundColor: '#F4FBF7',
+    borderColor: theme.colors.secondaryLight,
+  },
   scheduleEmoji: {
     width: 40,
     height: 40,
@@ -1026,162 +907,21 @@ const styles = StyleSheet.create({
   scheduleTitle: {
     flex: 1,
   },
-  memoCard: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.goldLight,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xxl,
-    paddingBottom: SPACING.lg,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-    gap: SPACING.md,
-    position: 'relative',
-  },
-  memoTape: {
-    position: 'absolute',
-    top: -10,
-    alignSelf: 'center',
-    width: 88,
-    height: 20,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.accentLight,
-    opacity: 0.92,
-    transform: [{ rotate: '-2deg' }],
-  },
-  memoHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-  },
-  memoTitleWrap: {
-    flex: 1,
-  },
-  memoBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.primarySurface,
-  },
-  memoInput: {
-    minHeight: 280,
-    borderRadius: theme.radius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surfaceWarm,
-    padding: SPACING.md,
-    color: theme.colors.text,
-    fontFamily: FONT_FAMILY.pixel,
-    fontSize: 14,
-    lineHeight: 22,
-    includeFontPadding: false,
-  },
-  memoList: {
-    gap: SPACING.sm,
-  },
-  memoItem: {
-    minHeight: 50,
-    borderRadius: theme.radius.sm,
-    borderWidth: 0,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#E7DCA8',
-    backgroundColor: '#FFFBE8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: SPACING.sm,
-    paddingRight: SPACING.sm,
-    gap: SPACING.sm,
-    overflow: 'hidden',
-  },
-  memoItemRule: {
-    alignSelf: 'stretch',
-    width: 3,
-    marginVertical: SPACING.sm,
+  scheduleOwnerBadge: {
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 2,
     borderRadius: theme.radius.xs,
-    backgroundColor: theme.colors.accent,
+    overflow: 'hidden',
+    fontSize: 10,
+    lineHeight: 14,
   },
-  checkBox: {
-    width: 24,
-    height: 24,
-    borderRadius: theme.radius.sm,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.goldLight,
+  scheduleOwnerMine: {
+    color: theme.colors.primaryDark,
+    backgroundColor: theme.colors.primaryLight,
   },
-  checkBoxDone: {
-    backgroundColor: theme.colors.primary,
-  },
-  memoItemInput: {
-    flex: 1,
-    flexShrink: 1,
-    minHeight: 44,
-    paddingVertical: 8,
-    color: theme.colors.text,
-    fontFamily: FONT_FAMILY.pixel,
-    fontSize: 14,
-    lineHeight: 20,
-    includeFontPadding: false,
-  },
-  memoItemInputDone: {
-    color: theme.colors.textMuted,
-    textDecorationLine: 'line-through',
-  },
-  memoRemoveButton: {
-    width: 30,
-    height: 30,
-    flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  memoEmpty: {
-    minHeight: 112,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: '#E7DCA8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFBE8',
-  },
-  addMemoButton: {
-    height: 44,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-    backgroundColor: '#FFFBE8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  memoFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    flexWrap: 'wrap',
-  },
-  saveMemoButton: {
-    minWidth: 74,
-    height: 36,
-    paddingHorizontal: SPACING.md,
-    borderRadius: theme.radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+  scheduleOwnerPartner: {
+    color: '#426B58',
+    backgroundColor: theme.colors.secondaryLight,
   },
   disabledButton: {
     opacity: 0.5,

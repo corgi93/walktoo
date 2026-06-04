@@ -1,10 +1,10 @@
 /**
  * useEntitlement
  *
- * walkToo+ entitlement 종합 훅. 호출부에서는 이 훅의 boolean만 사용하면 됨.
+ * 기록 업그레이드 entitlement 종합 훅. 호출부에서는 이 훅의 boolean만 사용하면 됨.
  *
  * 우선순위:
- * 1. 본인 has_premium = true (1회성 이용권)
+ * 1. 본인 has_premium = true (1회성 업그레이드)
  * 2. 커플 has_premium = true (커플 공유)
  * Self-healing:
  * - RevenueCat에 entitlement 있는데 Supabase에는 반영 안 됨 → 자동으로
@@ -29,7 +29,7 @@ export interface EntitlementValue {
   coupleHasPremium: boolean;
   /** 종합 결과 — UI에서 사용할 메인 boolean */
   isEntitled: boolean;
-  /** walkToo+ 이용권 없는 free 상태 */
+  /** 기록 업그레이드 없는 free 상태 */
   isFree: boolean;
 }
 

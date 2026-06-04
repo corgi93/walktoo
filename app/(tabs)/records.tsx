@@ -9,20 +9,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { Box, Icon, Row, Text } from '@/components/base';
+import { Box, Icon, Row, TabScreenHeader, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
-import {
-  CalendarMonthNav,
-  MonthYearPicker,
-} from '@/components/feature/calendar';
 import { FootprintTimeline } from '@/components/feature/diary';
 import { RecordsMapView } from '@/components/feature/records/RecordsMapView';
-import { useCalendarMonthQuery } from '@/hooks/services/calendar/query';
+import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
-import { addMonths, getCurrentYearMonth } from '@/utils/date';
 
 type ViewMode = 'list' | 'map';
 
@@ -31,7 +26,6 @@ type ViewMode = 'list' | 'map';
 export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
   const { isCoupleConnected } = usePartnerDerivation();
-  const [{ year, month }, setYearMonth] = useState(getCurrentYearMonth);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   if (!isCoupleConnected) {
@@ -40,9 +34,6 @@ export default function RecordsScreen() {
 
   return (
     <RecordsContent
-      year={year}
-      month={month}
-      onChangeYearMonth={setYearMonth}
       insets={insets}
       viewMode={viewMode}
       onChangeViewMode={setViewMode}
@@ -53,38 +44,40 @@ export default function RecordsScreen() {
 // ─── Content ────────────────────────────────────────────
 
 function RecordsContent({
-  year,
-  month,
-  onChangeYearMonth,
   insets,
   viewMode,
   onChangeViewMode,
 }: {
-  year: number;
-  month: number;
-  onChangeYearMonth: (next: { year: number; month: number }) => void;
   insets: { top: number; bottom: number; left: number; right: number };
   viewMode: ViewMode;
   onChangeViewMode: (m: ViewMode) => void;
 }) {
   const { t } = useTranslation(['home', 'calendar']);
   const router = useRouter();
-  const { couple, myName, partnerName } = usePartnerDerivation();
-  const [showPicker, setShowPicker] = useState(false);
+  const { myName, partnerName } = usePartnerDerivation();
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const coupleStartDate = couple?.startDate;
-
-  const { walks, stamps } = useCalendarMonthQuery(year, month);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isLoading,
+    isFetchingNextPage,
+  } = useDiaryListQuery();
+  const walks = useMemo(
+    () => data?.pages.flatMap((page) => page) ?? [],
+    [data],
+  );
 
   // 우리 기록 탭은 같이 산책(together)만 노출. 각자 기록은 홈 탭에서.
   const filteredWalks = useMemo(
     () => walks.filter((w) => w.kind === 'together'),
     [walks],
   );
-
-  const handlePrev = () => onChangeYearMonth(addMonths(year, month, -1));
-  const handleNext = () => onChangeYearMonth(addMonths(year, month, +1));
+  const mapPlaceCount = useMemo(
+    () => filteredWalks.filter(hasWalkCoords).length,
+    [filteredWalks],
+  );
 
   const handleAddRecord = () => {
     router.push({ pathname: '/footprint-create', params: { kind: 'together' } });
@@ -132,38 +125,55 @@ function RecordsContent({
     [],
   );
 
-  // 공통 헤더 (제목 + 추가 + 토글 + 월)
-  const headerBlock = (
-    <>
-      <Row px="xxl" style={styles.header}>
-        <Text variant="headingLarge" color="primary">
-          {t('home:records-tab.title')}
-        </Text>
-        <Row style={styles.headerActions}>
-          <Pressable
-            onPress={handleAddRecord}
-            style={styles.addButton}
-            hitSlop={6}
-            accessibilityRole="button"
-            accessibilityLabel="기록 추가"
-          >
-            <Icon name="plus" size={13} color={theme.colors.primary} />
-            <Text variant="caption" style={styles.addButtonText}>
-              추가
-            </Text>
-          </Pressable>
-          <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
-        </Row>
-      </Row>
+  useEffect(() => {
+    if (viewMode !== 'map') return;
+    if (!hasNextPage || isFetchingNextPage) return;
+    fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, viewMode, walks.length]);
 
-      <CalendarMonthNav
-        year={year}
-        month={month}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onTapMonth={() => setShowPicker(true)}
-      />
+  const headerActions = (
+    <>
+      <Pressable
+        onPress={handleAddRecord}
+        style={styles.addButton}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel="기록 추가"
+      >
+        <Icon name="plus" size={13} color={theme.colors.primary} />
+        <Text variant="caption" style={styles.addButtonText}>
+          추가
+        </Text>
+      </Pressable>
+      <ViewToggle mode={viewMode} onChange={onChangeViewMode} />
     </>
+  );
+
+  const renderHeaderBlock = (padded = true) => (
+    <TabScreenHeader
+      title={t('home:records-tab.title')}
+      subtitle="전체 우리 기록을 이어서 봐요"
+      actions={headerActions}
+      padded={padded}
+    />
+  );
+
+  const renderStatBlock = (padded = true) => (
+    <Row style={[padded && styles.horizontalPadding, styles.statRow]}>
+      <View style={styles.stat}>
+        <Icon name="footprint" size={14} color={theme.colors.primary} />
+        <Text variant="caption" color="textSecondary" ml="xxs">
+          우리 기록 {filteredWalks.length}
+        </Text>
+      </View>
+      <View style={styles.statDivider} />
+      <View style={styles.stat}>
+        <Icon name="map-pin" size={14} color={theme.colors.accent} />
+        <Text variant="caption" color="textSecondary" ml="xxs">
+          지도 {mapPlaceCount}곳
+        </Text>
+      </View>
+    </Row>
   );
 
   return (
@@ -171,7 +181,7 @@ function RecordsContent({
       {/* 지도 모드: 헤더 + 전체 영역 지도 (ScrollView 밖) */}
       {viewMode === 'map' ? (
         <>
-          {headerBlock}
+          {renderHeaderBlock()}
           <View style={styles.mapArea}>
             <RecordsMapView
               walks={filteredWalks}
@@ -183,8 +193,7 @@ function RecordsContent({
             />
           </View>
         </>
-      ) : (
-        // 리스트 모드: 기존 ScrollView
+      ) : isLoading || filteredWalks.length === 0 ? (
         <ScrollView
           scrollEnabled={!isMapInteracting}
           nestedScrollEnabled={false}
@@ -194,57 +203,72 @@ function RecordsContent({
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {headerBlock}
-
-          {/* 산책·발자국 카운트 — 리스트 모드에서만 노출 */}
-          <Row px="xxl" style={styles.statRow}>
-            <View style={styles.stat}>
-              <Icon name="footprint" size={14} color={theme.colors.primary} />
-              <Text variant="caption" color="textSecondary" ml="xxs">
-                산책 {filteredWalks.length}
-              </Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.stat}>
-              <Icon name="star" size={14} color={theme.colors.accent} />
-              <Text variant="caption" color="textSecondary" ml="xxs">
-                발자국 {stamps.length}
-              </Text>
-            </View>
-          </Row>
-
+          {renderHeaderBlock()}
+          {renderStatBlock()}
           <View style={styles.listMode}>
-            {filteredWalks.length === 0 ? (
+            {isLoading ? (
               <Box px="xxl">
                 <Text variant="bodySmall" color="textMuted" align="center">
-                  {t('home:records-tab.walks-empty')}
+                  기록을 불러오는 중...
+                </Text>
+              </Box>
+            ) : filteredWalks.length === 0 ? (
+              <Box px="xxl">
+                <Text variant="bodySmall" color="textMuted" align="center">
+                  아직 우리 기록이 없어요
                 </Text>
               </Box>
             ) : (
-              <FootprintTimeline
-                diaries={filteredWalks}
-                myName={myName}
-                partnerName={partnerName}
-                onItemPress={handleItemPress}
-              />
+              <Box px="xxl">
+                <Text variant="bodySmall" color="textMuted" align="center">
+                  아직 우리 기록이 없어요
+                </Text>
+              </Box>
             )}
           </View>
         </ScrollView>
-      )}
-
-      {showPicker && (
-        <MonthYearPicker
-          year={year}
-          month={month}
-          coupleStartDate={coupleStartDate}
-          onSelect={onChangeYearMonth}
-          onClose={() => setShowPicker(false)}
+      ) : (
+        <FootprintTimeline
+          diaries={filteredWalks}
+          myName={myName}
+          partnerName={partnerName}
+          onItemPress={handleItemPress}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + LAYOUT.sectionGap,
+          }}
+          ListHeaderComponent={
+            <>
+              {renderHeaderBlock(false)}
+              {renderStatBlock(false)}
+            </>
+          }
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <Text variant="caption" color="textMuted" align="center" mt="md">
+                기록을 더 불러오는 중...
+              </Text>
+            ) : null
+          }
         />
       )}
 
     </View>
   );
 }
+
+const hasWalkCoords = (walk: WalkDiary) => {
+  const coords =
+    walk.locationCoords ??
+    walk.myEntry?.locationCoords ??
+    walk.partnerEntry?.locationCoords;
+  return !!coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+};
 
 // ─── ViewToggle (리스트/지도) ────────────────────────────
 
@@ -321,11 +345,7 @@ function RecordsNoCoupleFallback({
   const { t } = useTranslation(['home', 'calendar']);
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Row px="xxl" style={styles.header}>
-        <Text variant="headingLarge" color="primary">
-          {t('home:records-tab.title')}
-        </Text>
-      </Row>
+      <TabScreenHeader title={t('home:records-tab.title')} />
       <View style={styles.fallbackBody}>
         <Box px="xxl" style={{ alignItems: 'center' }}>
           <Icon name="calendar" size={48} color={theme.colors.gray300} />
@@ -351,14 +371,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: LAYOUT.headerPy,
-  },
-  headerActions: {
-    alignItems: 'center',
-    gap: SPACING.sm,
+  horizontalPadding: {
+    paddingHorizontal: LAYOUT.screenPx,
   },
   addButton: {
     flexDirection: 'row',

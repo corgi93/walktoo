@@ -110,7 +110,7 @@ export const getCurrentOffering = async (): Promise<PurchasesOffering | null> =>
 };
 
 /**
- * 현재 offering에서 walkToo+ 1회성 패키지를 찾는다.
+ * 현재 offering에서 기록 업그레이드 1회성 패키지를 찾는다.
  * 우선순위:
  * 1. lifetime package
  * 2. PRODUCT_ID와 일치하는 패키지

@@ -17,10 +17,6 @@ import { QUERY_KEYS } from '@/constants/keys';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useUnreadCountQuery } from '@/hooks/services/notification/query';
-import {
-  useCurrentReflectionQuery,
-  useReflectionProgressQuery,
-} from '@/hooks/services/reflections/query';
 import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
 import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
@@ -57,14 +53,6 @@ export default function HomeScreen() {
   const { data: totalStamps = 0 } = useTotalStampsQuery(isCoupleConnected);
   const { data: hasTodayStamp = false } = useTodayStampQuery(
     isCoupleConnected ? couple?.id : undefined,
-  );
-
-  // 이달의 회고 진행도 ───────────────────────────────────
-  const { data: currentReflection } = useCurrentReflectionQuery(
-    isCoupleConnected ? couple?.id : undefined,
-  );
-  const { data: reflectionProgress } = useReflectionProgressQuery(
-    currentReflection?.id,
   );
 
   // 오늘의 산책 (current month에서 today 필터) ────────────
@@ -192,16 +180,6 @@ export default function HomeScreen() {
             partnerCharacter={partnerCharacter}
             mySteps={mySteps}
             partnerSteps={partnerSteps}
-            reflectionProgress={
-              reflectionProgress
-                ? {
-                    total: reflectionProgress.total,
-                    myAnswered: reflectionProgress.myAnswered,
-                    partnerAnswered: reflectionProgress.partnerAnswered,
-                    isRevealed: reflectionProgress.isRevealed,
-                  }
-                : null
-            }
             totalStamps={totalStamps}
             hasTodayStamp={hasTodayStamp}
             isClaimingStamp={claimStamp.isPending}
