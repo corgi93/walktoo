@@ -17,13 +17,13 @@ interface ScrapbookLayoutProps extends PhotoLayoutProps {
 
 const REF_W = 320;
 // 디자인에 맞춰 사진을 더 크게 + row 간 간격 타이트하게
-// photo 142x164 (1:1.155 폴라로이드 비율)
-const PHOTO_W = 142;
-const PHOTO_H = 164;
+// photo 150x172 (1:1.147 폴라로이드 비율, 사진 영역 우선)
+const PHOTO_W = 150;
+const PHOTO_H = 172;
 const TOP_Y = 12;
-const TICKET_Y = TOP_Y + PHOTO_H + 10; // 사진 바로 아래
+const TICKET_Y = TOP_Y + PHOTO_H + 8; // 사진 바로 아래
 const TICKET_H = 38;
-const BOTTOM_Y = TICKET_Y + TICKET_H + 10; // 티켓 바로 아래
+const BOTTOM_Y = TICKET_Y + TICKET_H + 8; // 티켓 바로 아래
 const REF_H = BOTTOM_Y + PHOTO_H + 36; // 하단 컴퍼스 + 마진
 
 /**
@@ -83,7 +83,7 @@ export function ScrapbookLayout({
         style={{
           position: 'absolute',
           top: TOP_Y * scale,
-          left: 8 * scale,
+          left: 2 * scale,
           zIndex: 4,
         }}
         editable={editable}
@@ -112,7 +112,7 @@ export function ScrapbookLayout({
         style={{
           position: 'absolute',
           top: (TOP_Y + 4) * scale,
-          right: 8 * scale,
+          right: 2 * scale,
           zIndex: 4,
         }}
         editable={editable}
@@ -185,7 +185,7 @@ export function ScrapbookLayout({
         style={{
           position: 'absolute',
           top: BOTTOM_Y * scale,
-          left: 8 * scale,
+          left: 2 * scale,
           zIndex: 4,
         }}
         editable={editable}
@@ -214,7 +214,7 @@ export function ScrapbookLayout({
         style={{
           position: 'absolute',
           top: (BOTTOM_Y + 2) * scale,
-          right: 8 * scale,
+          right: 2 * scale,
           zIndex: 4,
         }}
         editable={editable}

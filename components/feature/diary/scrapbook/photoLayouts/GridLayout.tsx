@@ -35,8 +35,8 @@ export function GridLayout({
   // 셀 폭을 stage width에서 동적 계산 — 항상 2열
   // pixel은 두꺼운 보더+그림자가 있어 시각적으로 더 큰 폴라로이드 룩이 어울림
   const cellW = (stageWidth - GAP) / 2;
-  const cellH = cellW * (isPixel ? 1.34 : 1.18);
-  const photoH = cellH - (isPixel ? 44 : 50) * scale;
+  const cellH = cellW * (isPixel ? 1.28 : 1.12);
+  const photoH = cellH - (isPixel ? 34 : 36) * scale;
   const stageHeight = cellH * 2 + GAP + (isPixel ? 24 : 16);
 
   return (
@@ -61,7 +61,7 @@ export function GridLayout({
                   backgroundColor: t.paper,
                   borderColor: isPixel ? t.ink : t.line,
                   borderWidth: isPixel ? 3 : 1,
-                  padding: (isPixel ? 6 : 10) * scale,
+                  padding: (isPixel ? 5 : 8) * scale,
                   shadowColor: isPixel ? t.ink : 'rgba(46,38,34,0.06)',
                   shadowOffset: isPixel
                     ? { width: 4, height: 4 }

@@ -8,10 +8,10 @@ export const PLACEHOLDER_CAPTIONS: Record<
   DiaryThemeId,
   readonly [string, string, string, string]
 > = {
-  y2k_pastel: ['오늘도 너랑 ♡', 'blessed!', 'coffee ☕', 'lucky day'],
-  vintage_film: ['together.', 'a quiet day', 'café · 04', 'old town'],
-  pixel_retro: ['LOVE U', 'OK!', 'COFFEE', 'GOOD DAY'],
-  grid_minimal: ['04.21', 'note 02', 'café', 'walk · 04'],
-  dreamy_cloud: ['우리의 하루', 'soft day', 'dreaming…', 'sunny'],
-  dark_academia: ['mon amour', 'a study day', 'le café', 'rue 04'],
+  y2k_pastel: ['골목 산책', 'first walk', '카페 창가', 'day 01'],
+  vintage_film: ['sapporo', '눈 오는 길', 'film 01', '다시 올까'],
+  pixel_retro: ['night market', '같이 걷기', 'D+2', 'unexpected'],
+  grid_minimal: ['취향 노트', '오후 7시', '다음 장소', 'day 02'],
+  dreamy_cloud: ['harbor light', '트램 소리', 'soft talk', 'city night'],
+  dark_academia: ['boarding pass', '야간 비행', 'gate 7', 'see you'],
 };

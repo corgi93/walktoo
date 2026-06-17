@@ -14,10 +14,10 @@ import { useStageScale } from './useStageScale';
 type FilmStripLayoutProps = PhotoLayoutProps;
 
 const REF_W = 320;
-const STRIP_W = 138;
-const FRAME_H = 88;
-const GAP = 5;
-const PERF_W = 12;
+const STRIP_W = 150;
+const FRAME_H = 96;
+const GAP = 4;
+const PERF_W = 10;
 
 /**
  * 빈티지 필름 레이아웃.

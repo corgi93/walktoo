@@ -17,10 +17,10 @@ interface JournalSpreadLayoutProps extends PhotoLayoutProps {
 
 const REF_W = 320;
 // 4개 사진 모두 동일한 polaroid 비율(1:1.18, 세로>가로) — 사이즈 통일
-const PHOTO_W = 146;
-const PHOTO_H = 172;
+const PHOTO_W = 150;
+const PHOTO_H = 174;
 const TOP_Y = 8;
-const ROW_GAP = 10;
+const ROW_GAP = 8;
 const BOTTOM_Y = TOP_Y + PHOTO_H + ROW_GAP; // 190
 const NOTE_TOP = BOTTOM_Y + PHOTO_H + 14; // 376
 const REF_H = NOTE_TOP + 122; // 498 — 노트 영역 + 작은 마진
@@ -69,7 +69,7 @@ export function JournalSpreadLayout({
         style={{
           position: 'absolute',
           top: TOP_Y * scale,
-          left: 8 * scale,
+          left: 4 * scale,
           zIndex: 4,
         }}
         editable={editable}
@@ -98,7 +98,7 @@ export function JournalSpreadLayout({
         style={{
           position: 'absolute',
           top: (TOP_Y + 4) * scale,
-          right: 8 * scale,
+          right: 4 * scale,
           zIndex: 4,
         }}
         editable={editable}
@@ -127,7 +127,7 @@ export function JournalSpreadLayout({
         style={{
           position: 'absolute',
           top: BOTTOM_Y * scale,
-          left: 8 * scale,
+          left: 4 * scale,
           zIndex: 4,
         }}
         editable={editable}
@@ -156,7 +156,7 @@ export function JournalSpreadLayout({
         style={{
           position: 'absolute',
           top: (BOTTOM_Y + 2) * scale,
-          right: 8 * scale,
+          right: 4 * scale,
           zIndex: 4,
         }}
         editable={editable}

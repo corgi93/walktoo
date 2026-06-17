@@ -15,9 +15,9 @@ interface CollageLayoutProps extends PhotoLayoutProps {
 }
 
 const REF_W = 320;
-const PHOTO_W = 130;
-const PHOTO_H = 154; // 1:1.18 폴라로이드 비율 통일
-const REF_H = PHOTO_H * 2 + 32; // 2x2 + 위·아래 마진
+const PHOTO_W = 144;
+const PHOTO_H = 168; // 1:1.16 폴라로이드 비율, 사진 영역 우선
+const REF_H = PHOTO_H * 2 + 28; // 2x2 + 위·아래 마진
 
 /**
  * Y2K 콜라주 레이아웃.
@@ -39,10 +39,10 @@ export function CollageLayout({
   const { scale, onLayout } = useStageScale(REF_W);
 
   // 4슬롯 같은 폴라로이드 비율, 2x2 grid + 회전으로 콜라주 느낌
-  const xLeft = 14;
-  const xRight = REF_W - PHOTO_W - 14;
-  const yTop = 8;
-  const yBottom = PHOTO_H + 22;
+  const xLeft = 3;
+  const xRight = REF_W - PHOTO_W - 3;
+  const yTop = 6;
+  const yBottom = PHOTO_H + 18;
   const slots: readonly {
     x: number;
     y: number;
@@ -52,9 +52,9 @@ export function CollageLayout({
     capIdx: number;
   }[] = [
     { x: xLeft, y: yTop, rot: -3, tapeIdx: 0, tRot: -12, capIdx: 0 },
-    { x: xRight, y: yTop + 6, rot: 4, tapeIdx: 1, tRot: 11, capIdx: 1 },
+    { x: xRight, y: yTop + 5, rot: 4, tapeIdx: 1, tRot: 11, capIdx: 1 },
     { x: xLeft + 6, y: yBottom, rot: 2, tapeIdx: 2, tRot: -8, capIdx: 2 },
-    { x: xRight - 4, y: yBottom + 4, rot: -5, tapeIdx: 3, tRot: 10, capIdx: 3 },
+    { x: xRight - 6, y: yBottom + 3, rot: -5, tapeIdx: 3, tRot: 10, capIdx: 3 },
   ];
 
   return (

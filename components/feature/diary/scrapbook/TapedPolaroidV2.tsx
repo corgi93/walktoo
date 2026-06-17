@@ -107,15 +107,15 @@ export function TapedPolaroidV2({
         style={[
           styles.paper,
           {
-            paddingBottom: caption ? 28 : 14,
+            paddingBottom: caption ? 24 : 10,
             borderColor: t.line,
           },
         ]}
       >
         {/* photo area */}
         <PhotoArea
-          width={width - 16}
-          height={H - (caption ? 36 : 22) - 16}
+          width={width - 12}
+          height={H - (caption ? 28 : 16) - 12}
           tint={tint}
           photoUri={photoUri}
           isVideo={isVideo}
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   paper: {
     backgroundColor: '#FFFFFF',
-    padding: 8,
+    padding: 6,
     borderWidth: 1,
     position: 'relative',
   },
@@ -383,11 +383,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 6,
+    bottom: 4,
     alignItems: 'center',
   },
   captionText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   addSlot: {
     ...StyleSheet.absoluteFillObject,
