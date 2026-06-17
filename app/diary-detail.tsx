@@ -43,7 +43,11 @@ import { useEntitlement } from '@/hooks/useEntitlement';
 import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
-import type { DiaryTheme } from '@/styles/diaryThemes';
+import { useThemePack } from '@/hooks/useThemePack';
+import {
+  DEFAULT_DIARY_THEME_ID,
+  type DiaryTheme,
+} from '@/styles/diaryThemes';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
 import { FootprintEntry } from '@/types/diary';
@@ -106,6 +110,7 @@ export default function DiaryDetailScreen() {
 
   // ─── 다꾸 테마 ────────────────────────────────────────
   const { theme: dt, themeId, setTheme } = useDiaryTheme();
+  const { guardSaveWithTheme } = useThemePack();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // ─── 수정/입력 모드 ───────────────────────────────────
@@ -229,52 +234,60 @@ export default function DiaryDetailScreen() {
   };
 
   const handleSave = () => {
-    if (hasMyEntry && myEntry) {
-      updateEntry.mutate(
-        {
-          walkId,
-          entryId: myEntry.id,
-          memo: diaryAnswer.trim(),
-          photos,
-          ...(walkKind === 'each' && {
-            locationName: myLocationName.trim(),
-          }),
-          diaryAnswer: diaryAnswer.trim(),
-          coupleAnswer: coupleAnswer.trim(),
-        },
-        {
-          onSuccess: () => router.back(),
-          onError: (e) =>
-            dialog.alert(
-              t('diary:detail.form.edit-failed-title'),
-              e.message || t('diary:detail.form.save-retry'),
-            ),
-        },
-      );
-    } else {
-      addEntry.mutate(
-        {
-          walkId,
-          memo: diaryAnswer.trim(),
-          photos,
-          ...(walkKind === 'each' && {
-            locationName: myLocationName.trim(),
-          }),
-          diaryQuestionId: diaryQuestion.id,
-          diaryAnswer: diaryAnswer.trim(),
-          coupleQuestionId: coupleQuestion.id,
-          coupleAnswer: coupleAnswer.trim(),
-        },
-        {
-          onSuccess: () => router.back(),
-          onError: (e) =>
-            dialog.alert(
-              t('diary:detail.form.save-failed-title'),
-              e.message || t('diary:detail.form.save-retry'),
-            ),
-        },
-      );
-    }
+    const proceed = () => {
+      if (hasMyEntry && myEntry) {
+        updateEntry.mutate(
+          {
+            walkId,
+            entryId: myEntry.id,
+            memo: diaryAnswer.trim(),
+            photos,
+            ...(walkKind === 'each' && {
+              locationName: myLocationName.trim(),
+            }),
+            diaryAnswer: diaryAnswer.trim(),
+            coupleAnswer: coupleAnswer.trim(),
+          },
+          {
+            onSuccess: () => router.back(),
+            onError: (e) =>
+              dialog.alert(
+                t('diary:detail.form.edit-failed-title'),
+                e.message || t('diary:detail.form.save-retry'),
+              ),
+          },
+        );
+      } else {
+        addEntry.mutate(
+          {
+            walkId,
+            memo: diaryAnswer.trim(),
+            photos,
+            ...(walkKind === 'each' && {
+              locationName: myLocationName.trim(),
+            }),
+            diaryQuestionId: diaryQuestion.id,
+            diaryAnswer: diaryAnswer.trim(),
+            coupleQuestionId: coupleQuestion.id,
+            coupleAnswer: coupleAnswer.trim(),
+          },
+          {
+            onSuccess: () => router.back(),
+            onError: (e) =>
+              dialog.alert(
+                t('diary:detail.form.save-failed-title'),
+                e.message || t('diary:detail.form.save-retry'),
+              ),
+          },
+        );
+      }
+    };
+
+    // 잠긴 테마를 미리보기 중이면 저장 시점에 결제/무료저장 유도 (추억 저장은 안 막음)
+    guardSaveWithTheme(themeId, {
+      onProceed: proceed,
+      onRevertToFree: () => setTheme(DEFAULT_DIARY_THEME_ID),
+    });
   };
 
   const showForm = !hasMyEntry || isEditing;

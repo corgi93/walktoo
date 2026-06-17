@@ -57,3 +57,7 @@ export const THEME_PACK = {
   PRICE_KRW: 3_300,
   PRICE_USD: 2.49,
 } as const;
+
+/** 해당 테마가 여행 무드 테마팩(유료) 소속인지 — 미보유 시 미리보기는 되고 저장 시 게이트. */
+export const isThemePackThemeId = (id: string): boolean =>
+  (THEME_PACK.THEME_IDS as readonly string[]).includes(id);

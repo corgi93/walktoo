@@ -25,6 +25,8 @@ import {
 } from '@/components/feature/diary/scrapbook';
 import { PREMIUM } from '@/constants/premium';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
+import { useThemePack } from '@/hooks/useThemePack';
+import { DEFAULT_DIARY_THEME_ID } from '@/styles/diaryThemes';
 import type { Coords, ProviderId } from '@/lib/location';
 import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
@@ -53,6 +55,7 @@ export default function FootprintCreateScreen() {
   const resetPhotoBooth = usePhotoBoothStore((s) => s.reset);
   // ─── 다꾸 테마 ────────────────────────────────────────
   const { theme: dt, themeId, setTheme } = useDiaryTheme();
+  const { guardSaveWithTheme } = useThemePack();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // 날짜는 항상 오늘 (선택 UI 제거)
@@ -195,31 +198,39 @@ export default function FootprintCreateScreen() {
       return;
     }
 
-    createDiary.mutate(
-      {
-        date,
-        kind,
-        locationName: locationName.trim(),
-        locationCoords,
-        locationAddress,
-        locationSource,
-        memo: diaryAnswer.trim(), // 하위호환: memo에도 저장
-        photos,
-        diaryQuestionId: diaryQuestion.id,
-        diaryAnswer: diaryAnswer.trim(),
-        coupleQuestionId: coupleQuestion.id,
-        coupleAnswer: coupleAnswer.trim(),
-      },
-      {
-        onSuccess: () => router.back(),
-        onError: (error) => {
-          dialog.alert(
-            t('diary:create.save-failed-title'),
-            error.message || t('diary:create.save-failed'),
-          );
+    const proceed = () => {
+      createDiary.mutate(
+        {
+          date,
+          kind,
+          locationName: locationName.trim(),
+          locationCoords,
+          locationAddress,
+          locationSource,
+          memo: diaryAnswer.trim(), // 하위호환: memo에도 저장
+          photos,
+          diaryQuestionId: diaryQuestion.id,
+          diaryAnswer: diaryAnswer.trim(),
+          coupleQuestionId: coupleQuestion.id,
+          coupleAnswer: coupleAnswer.trim(),
         },
-      },
-    );
+        {
+          onSuccess: () => router.back(),
+          onError: (error) => {
+            dialog.alert(
+              t('diary:create.save-failed-title'),
+              error.message || t('diary:create.save-failed'),
+            );
+          },
+        },
+      );
+    };
+
+    // 잠긴 테마를 미리보기 중이면 저장 시점에 결제/무료저장 유도 (추억 저장은 안 막음)
+    guardSaveWithTheme(themeId, {
+      onProceed: proceed,
+      onRevertToFree: () => setTheme(DEFAULT_DIARY_THEME_ID),
+    });
   };
 
   return (
