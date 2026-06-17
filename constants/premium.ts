@@ -27,17 +27,33 @@ export const PREMIUM = {
   VIDEO_DURATION_FREE_SECONDS: 3,
   VIDEO_DURATION_PREMIUM_SECONDS: 5,
 
-  /** 다이어리 테마는 초기 진입 장벽을 낮추기 위해 모두 무료로 제공한다. */
-  FREE_DIARY_THEME_IDS: [
-    'y2k_pastel',
-    'vintage_film',
-    'pixel_retro',
-    'grid_minimal',
-    'dreamy_cloud',
-    'dark_academia',
-  ],
+  /**
+   * 무료 다이어리 테마. 진입 장벽을 낮추기 위해 3종은 무료로 열어두고,
+   * 나머지 3종은 여행 무드 테마팩(non-consumable)으로 판매한다.
+   * 이미 저장된 다이어리의 테마 표시는 게이팅하지 않는다 — 새 선택만 잠근다.
+   */
+  FREE_DIARY_THEME_IDS: ['y2k_pastel', 'pixel_retro', 'grid_minimal'],
 
   /** 가격 fallback. 초기 부담을 낮춘 소액 업그레이드 가격. */
   PRICE_KRW: 2_200,
   PRICE_USD: 1.99,
+} as const;
+
+/**
+ * 여행 무드 테마팩 — 단건 1회성 결제 (non-consumable IAP)
+ *
+ * - 삿포로 필름 / 홍콩 야경 / 마지막 공항 테마 3종을 영구 해제
+ * - 기록 업그레이드와 별도 상품. 커플 한 명만 결제하면 양쪽 적용.
+ * - RevenueCat 콘솔의 product/entitlement ID와 정확히 일치해야 함.
+ */
+export const THEME_PACK = {
+  ENTITLEMENT_ID: 'walktoo_theme_pack_travel',
+  PRODUCT_ID: 'com.walktoo.theme_pack_travel',
+
+  /** 팩에 포함되는 프리미엄 테마 (FREE_DIARY_THEME_IDS의 여집합과 일치 유지) */
+  THEME_IDS: ['vintage_film', 'dreamy_cloud', 'dark_academia'],
+
+  /** 가격 fallback. 스토어 가격이 source of truth. */
+  PRICE_KRW: 3_300,
+  PRICE_USD: 2.49,
 } as const;

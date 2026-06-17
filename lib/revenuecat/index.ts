@@ -19,7 +19,7 @@ import type {
   PurchasesPackage,
 } from 'react-native-purchases';
 
-import { PREMIUM } from '@/constants/premium';
+import { PREMIUM, THEME_PACK } from '@/constants/premium';
 
 // ─── 환경 ────────────────────────────────────────────────
 
@@ -125,21 +125,48 @@ export const findLifetimePackage = (
   return matched ?? null;
 };
 
+/**
+ * 여행 무드 테마팩 패키지를 모든 offering에서 찾는다.
+ * 테마팩은 current offering이 아닌 별도 offering에 둘 수 있어 전체를 훑는다.
+ */
+export const getThemePackPackage =
+  async (): Promise<PurchasesPackage | null> => {
+    if (!initialized) return null;
+    const Purchases = getPurchases();
+    if (!Purchases) return null;
+    try {
+      const offerings = await Purchases.getOfferings();
+      for (const offering of Object.values(offerings.all)) {
+        const matched = offering.availablePackages.find(
+          (p) => p.product.identifier === THEME_PACK.PRODUCT_ID,
+        );
+        if (matched) return matched;
+      }
+      return null;
+    } catch (e) {
+      console.warn('[RevenueCat] getThemePackPackage failed:', e);
+      return null;
+    }
+  };
+
 // ─── 구매 / 복원 ─────────────────────────────────────────
 
 export interface PurchaseOutcome {
   ok: boolean;
   /** 사용자가 dialog를 취소함 (에러 표시 X) */
   userCancelled?: boolean;
-  /** 활성 entitlement 보유 여부 */
+  /** 활성 entitlement 보유 여부 (기록 업그레이드) */
   hasEntitlement?: boolean;
+  /** 여행 무드 테마팩 entitlement 보유 여부 (restore 시 함께 확인) */
+  hasThemePack?: boolean;
   /** RevenueCat appUserID (Supabase 동기화에 사용) */
   appUserId?: string;
   errorMessage?: string;
 }
 
-export const purchaseLifetime = async (
+const purchaseWithEntitlement = async (
   pkg: PurchasesPackage,
+  entitlementId: string,
 ): Promise<PurchaseOutcome> => {
   if (!initialized) {
     return { ok: false, errorMessage: 'sdk-unavailable' };
@@ -150,7 +177,8 @@ export const purchaseLifetime = async (
   }
   try {
     const result = await Purchases.purchasePackage(pkg);
-    const hasEntitlement = hasActiveEntitlement(result.customerInfo);
+    const hasEntitlement =
+      !!result.customerInfo.entitlements.active[entitlementId];
     const appUserId = await Purchases.getAppUserID();
     return { ok: hasEntitlement, hasEntitlement, appUserId };
   } catch (e: unknown) {
@@ -161,6 +189,16 @@ export const purchaseLifetime = async (
     return { ok: false, errorMessage: err.message ?? 'unknown' };
   }
 };
+
+export const purchaseLifetime = (
+  pkg: PurchasesPackage,
+): Promise<PurchaseOutcome> =>
+  purchaseWithEntitlement(pkg, PREMIUM.ENTITLEMENT_ID);
+
+export const purchaseThemePack = (
+  pkg: PurchasesPackage,
+): Promise<PurchaseOutcome> =>
+  purchaseWithEntitlement(pkg, THEME_PACK.ENTITLEMENT_ID);
 
 export const restorePurchases = async (): Promise<PurchaseOutcome> => {
   if (!initialized) {
@@ -173,8 +211,14 @@ export const restorePurchases = async (): Promise<PurchaseOutcome> => {
   try {
     const customerInfo = await Purchases.restorePurchases();
     const hasEntitlement = hasActiveEntitlement(customerInfo);
+    const hasThemePack = hasActiveThemePackEntitlement(customerInfo);
     const appUserId = await Purchases.getAppUserID();
-    return { ok: hasEntitlement, hasEntitlement, appUserId };
+    return {
+      ok: hasEntitlement || hasThemePack,
+      hasEntitlement,
+      hasThemePack,
+      appUserId,
+    };
   } catch (e: unknown) {
     const err = e as { message?: string };
     return { ok: false, errorMessage: err.message ?? 'unknown' };
@@ -185,6 +229,10 @@ export const restorePurchases = async (): Promise<PurchaseOutcome> => {
 
 export const hasActiveEntitlement = (info: CustomerInfo): boolean => {
   return !!info.entitlements.active[PREMIUM.ENTITLEMENT_ID];
+};
+
+export const hasActiveThemePackEntitlement = (info: CustomerInfo): boolean => {
+  return !!info.entitlements.active[THEME_PACK.ENTITLEMENT_ID];
 };
 
 export const getCustomerInfo = async (): Promise<CustomerInfo | null> => {

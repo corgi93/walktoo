@@ -29,6 +29,8 @@ export interface Database {
           character_type: string;
           has_premium: boolean;
           premium_purchased_at: string | null;
+          has_theme_pack: boolean;
+          theme_pack_purchased_at: string | null;
           revenuecat_user_id: string | null;
           created_at: string;
           updated_at: string;
@@ -47,6 +49,8 @@ export interface Database {
           character_type?: string;
           has_premium?: boolean;
           premium_purchased_at?: string | null;
+          has_theme_pack?: boolean;
+          theme_pack_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
         };
         Update: {
@@ -62,6 +66,8 @@ export interface Database {
           character_type?: string;
           has_premium?: boolean;
           premium_purchased_at?: string | null;
+          has_theme_pack?: boolean;
+          theme_pack_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
         };
         Relationships: [];
@@ -76,6 +82,8 @@ export interface Database {
           first_met_date: string | null;
           has_premium: boolean;
           premium_purchaser_id: string | null;
+          has_theme_pack: boolean;
+          theme_pack_purchaser_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -85,6 +93,8 @@ export interface Database {
           first_met_date?: string | null;
           has_premium?: boolean;
           premium_purchaser_id?: string | null;
+          has_theme_pack?: boolean;
+          theme_pack_purchaser_id?: string | null;
         };
         Update: {
           user2_id?: string | null;
@@ -92,6 +102,8 @@ export interface Database {
           first_met_date?: string | null;
           has_premium?: boolean;
           premium_purchaser_id?: string | null;
+          has_theme_pack?: boolean;
+          theme_pack_purchaser_id?: string | null;
         };
         Relationships: [
           {
@@ -429,6 +441,12 @@ export interface Database {
         };
       };
       mark_premium_purchased: {
+        Args: { p_revenuecat_user_id: string };
+        Returns: {
+          success: boolean;
+        };
+      };
+      mark_theme_pack_purchased: {
         Args: { p_revenuecat_user_id: string };
         Returns: {
           success: boolean;

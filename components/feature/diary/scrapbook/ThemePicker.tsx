@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal as RNModal,
   Pressable,
   ScrollView,
@@ -7,8 +8,19 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import type { PurchasesPackage } from 'react-native-purchases';
 
 import { Icon, Text } from '@/components/base';
+import { useToast } from '@/components/composite/toast/ToastProvider';
+import { THEME_PACK } from '@/constants/premium';
+import { useMarkThemePackPurchasedMutation } from '@/hooks/services/entitlements/mutation';
+import { useEntitlement } from '@/hooks/useEntitlement';
+import {
+  getThemePackPackage,
+  isRevenueCatReady,
+  purchaseThemePack,
+} from '@/lib/revenuecat';
 import {
   DIARY_THEME_LIST,
   type DiaryTheme,
@@ -27,9 +39,15 @@ interface ThemePickerProps {
   onClose: () => void;
 }
 
+const isPackTheme = (id: DiaryThemeId): boolean =>
+  (THEME_PACK.THEME_IDS as readonly DiaryThemeId[]).includes(id);
+
 /**
  * 테마 고르기 — 바텀시트 모달.
  * 각 테마 미니 프리뷰 (paper + tape + tints + 액센트 dot) + 라벨.
+ *
+ * 여행 무드 테마팩(미보유 시 잠금) — 새 선택만 게이팅한다.
+ * 이미 저장된 다이어리의 테마 표시는 게이팅하지 않는다 (추억 볼모 금지).
  */
 export function ThemePicker({
   open,
@@ -38,6 +56,66 @@ export function ThemePicker({
   onClose,
 }: ThemePickerProps) {
   const insets = useSafeAreaInsets();
+  const toast = useToast();
+  const { t } = useTranslation(['premium']);
+  const { isThemePackEntitled } = useEntitlement();
+  const markThemePack = useMarkThemePackPurchasedMutation();
+
+  const [packPkg, setPackPkg] = useState<PurchasesPackage | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+
+  // 모달이 열릴 때 테마팩 패키지 가격 로드 (미보유 시에만)
+  useEffect(() => {
+    if (!open || isThemePackEntitled) return;
+    let cancelled = false;
+    (async () => {
+      const pkg = await getThemePackPackage();
+      if (!cancelled) setPackPkg(pkg);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isThemePackEntitled]);
+
+  const packPrice =
+    packPkg?.product.priceString ??
+    `₩${THEME_PACK.PRICE_KRW.toLocaleString('ko-KR')}`;
+
+  const handlePurchasePack = async () => {
+    if (isPurchasing) return;
+    if (!isRevenueCatReady() || !packPkg) {
+      toast.error(t('premium:result.sdk-unavailable'));
+      return;
+    }
+
+    setIsPurchasing(true);
+    const outcome = await purchaseThemePack(packPkg);
+    if (outcome.userCancelled) {
+      setIsPurchasing(false);
+      return;
+    }
+    if (!outcome.ok || !outcome.appUserId) {
+      setIsPurchasing(false);
+      toast.error(t('premium:result.failed'));
+      return;
+    }
+
+    const sync = await markThemePack.mutateAsync(outcome.appUserId);
+    setIsPurchasing(false);
+    if (sync.success) {
+      toast.success(t('premium:theme-pack.purchased'));
+    } else {
+      toast.error(t('premium:result.failed'));
+    }
+  };
+
+  const handlePressTile = (theme: DiaryTheme, locked: boolean) => {
+    if (locked) {
+      toast.info(t('premium:theme-pack.locked-hint'));
+      return;
+    }
+    onPick(theme.id);
+  };
 
   return (
     <RNModal
@@ -62,7 +140,7 @@ export function ThemePicker({
               테마 고르기
             </Text>
             <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-              모든 테마를 자유롭게 골라볼 수 있어요
+              여행지의 무드로 다이어리를 꾸며요
             </Text>
           </View>
 
@@ -70,15 +148,59 @@ export function ThemePicker({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.grid}
           >
-            {DIARY_THEME_LIST.map((t) => (
-              <ThemeTile
-                key={t.id}
-                theme={t}
-                selected={t.id === currentId}
-                onPress={() => onPick(t.id)}
-              />
-            ))}
+            {DIARY_THEME_LIST.map((themeItem) => {
+              const locked = !isThemePackEntitled && isPackTheme(themeItem.id);
+              return (
+                <ThemeTile
+                  key={themeItem.id}
+                  theme={themeItem}
+                  selected={themeItem.id === currentId}
+                  locked={locked}
+                  onPress={() => handlePressTile(themeItem, locked)}
+                />
+              );
+            })}
           </ScrollView>
+
+          {!isThemePackEntitled && (
+            <View style={styles.packCard}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="bodySmall" color="text" weight="700">
+                  {t('premium:theme-pack.title')}
+                </Text>
+                <Text
+                  variant="caption"
+                  color="textSecondary"
+                  style={{ marginTop: 2 }}
+                >
+                  {t('premium:theme-pack.description')}
+                </Text>
+                <Text
+                  variant="caption"
+                  color="textMuted"
+                  style={{ marginTop: 2 }}
+                >
+                  {t('premium:theme-pack.note')}
+                </Text>
+              </View>
+              <Pressable
+                style={[styles.packBtn, isPurchasing && styles.packBtnDisabled]}
+                onPress={handlePurchasePack}
+                disabled={isPurchasing}
+              >
+                {isPurchasing ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={appTheme.colors.white}
+                  />
+                ) : (
+                  <Text variant="caption" color="white" weight="700">
+                    {packPrice}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          )}
 
           <Pressable style={styles.doneBtn} onPress={onClose}>
             <Text variant="bodyMedium" color="white" style={{ fontWeight: '700' }}>
@@ -96,10 +218,12 @@ export function ThemePicker({
 function ThemeTile({
   theme: t,
   selected,
+  locked,
   onPress,
 }: {
   theme: DiaryTheme;
   selected: boolean;
+  locked: boolean;
   onPress: () => void;
 }) {
   return (
@@ -111,6 +235,7 @@ function ThemeTile({
           borderColor: selected ? t.accent : t.line,
           borderWidth: selected ? 2.5 : 1.5,
         },
+        locked && styles.tileLocked,
       ]}
       onPress={onPress}
     >
@@ -188,6 +313,10 @@ function ThemeTile({
       {selected ? (
         <View style={[styles.checkBadge, { backgroundColor: t.accent }]}>
           <Icon name="check" size={14} color={appTheme.colors.white} />
+        </View>
+      ) : locked ? (
+        <View style={styles.lockBadge}>
+          <Icon name="lock" size={12} color={appTheme.colors.white} />
         </View>
       ) : null}
 
@@ -289,6 +418,45 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tileLocked: {
+    opacity: 0.72,
+  },
+  lockBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: appTheme.colors.text,
+  },
+  packCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginTop: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: appTheme.colors.border,
+    backgroundColor: appTheme.colors.primarySurface,
+  },
+  packBtn: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    minWidth: 76,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: appTheme.colors.primary,
+    borderWidth: 1.5,
+    borderColor: appTheme.colors.border,
+  },
+  packBtnDisabled: {
+    opacity: 0.55,
   },
   doneBtn: {
     marginTop: SPACING.md,

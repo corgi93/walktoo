@@ -14,7 +14,10 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { Icon, PixelCard, Row, Text } from '@/components/base';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { PREMIUM } from '@/constants/premium';
-import { useMarkPremiumPurchasedMutation } from '@/hooks/services/entitlements/mutation';
+import {
+  useMarkPremiumPurchasedMutation,
+  useMarkThemePackPurchasedMutation,
+} from '@/hooks/services/entitlements/mutation';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import {
   findLifetimePackage,
@@ -33,6 +36,7 @@ export default function PaywallScreen() {
   const { t } = useTranslation(['premium', 'common']);
   const { isEntitled } = useEntitlement();
   const markPremium = useMarkPremiumPurchasedMutation();
+  const markThemePack = useMarkThemePackPurchasedMutation();
 
   const [lifetimePackage, setLifetimePackage] =
     useState<PurchasesPackage | null>(null);
@@ -103,9 +107,18 @@ export default function PaywallScreen() {
       return;
     }
 
-    const sync = await markPremium.mutateAsync(outcome.appUserId);
+    // 기록 업그레이드와 테마팩 — 복원된 entitlement만 각각 동기화
+    let synced = false;
+    if (outcome.hasEntitlement) {
+      const sync = await markPremium.mutateAsync(outcome.appUserId);
+      synced = synced || sync.success;
+    }
+    if (outcome.hasThemePack) {
+      const sync = await markThemePack.mutateAsync(outcome.appUserId);
+      synced = synced || sync.success;
+    }
     setIsRestoring(false);
-    if (sync.success) {
+    if (synced) {
       toast.success(t('premium:result.restored'));
       router.back();
     } else {
@@ -160,15 +173,18 @@ export default function PaywallScreen() {
 
         <View style={styles.benefits}>
           <BenefitItem
-            title={t('premium:benefits.walk-book-title')}
-            icon="book-open"
-          />
-          <BenefitItem
             title={t('premium:benefits.photos-title')}
             icon="camera"
           />
           <BenefitItem title={t('premium:benefits.couple-title')} icon="heart" />
-          <BenefitItem title={t('premium:benefits.restore-title')} icon="unlock" />
+          <BenefitItem
+            title={t('premium:benefits.one-time-title')}
+            icon="check-circle"
+          />
+          <BenefitItem
+            title={t('premium:benefits.walk-book-title')}
+            icon="book-open"
+          />
         </View>
 
         <Pressable

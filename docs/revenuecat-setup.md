@@ -5,6 +5,8 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 
 ## 0. 핵심 ID
 
+### 기록 업그레이드
+
 | 항목 | 값 |
 |---|---|
 | **Product ID** (Apple/Google 동일) | `com.walktoo.record_upgrade` |
@@ -13,7 +15,18 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | **Type** | Non-consumable (구독 없는 1회성 업그레이드) |
 | **무료 체험** | 없음 |
 
-코드에서는 `constants/premium.ts`의 `PREMIUM.PRODUCT_ID` / `PREMIUM.ENTITLEMENT_ID` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
+### 여행 무드 테마팩
+
+| 항목 | 값 |
+|---|---|
+| **Product ID** (Apple/Google 동일) | `com.walktoo.theme_pack_travel` |
+| **Entitlement ID** (RevenueCat) | `walktoo_theme_pack_travel` |
+| **Offering ID** (RevenueCat) | 아무 offering이나 가능 — 클라이언트가 전체 offering에서 product ID로 찾는다 |
+| **Type** | Non-consumable (1회성, 커플 공유) |
+| **포함 테마** | 삿포로 필름 / 홍콩 야경 / 마지막 공항 (`vintage_film`, `dreamy_cloud`, `dark_academia`) |
+| **가격** | ₩3,300 / $2.49 |
+
+코드에서는 `constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
 
 ---
 
@@ -55,12 +68,16 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 3. **Products**:
    - **+ Product** → Apple → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
    - **+ Product** → Google → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
+   - 같은 방식으로 `com.walktoo.theme_pack_travel`도 양쪽 모두 추가
 4. **Entitlements**:
    - **+ Entitlement** → Identifier: `walktoo_record_upgrade` → Display name: `Record Upgrade`
-   - 위 두 product를 이 entitlement에 attach
+   - **+ Entitlement** → Identifier: `walktoo_theme_pack_travel` → Display name: `Travel Mood Theme Pack`
+   - 각 product를 해당 entitlement에 attach (기록 업그레이드 ↔ record_upgrade, 테마팩 ↔ theme_pack)
 5. **Offerings**:
    - 기본 offering이 `default` 이름으로 자동 생성됨
-   - **Packages**: `Lifetime` 패키지에 위 product들 attach
+   - **Packages**: `Lifetime` 패키지에 기록 업그레이드 product attach
+   - 테마팩은 `default` offering에 custom package(`theme_pack`)로 추가하거나 별도 offering에 둔다
+     — 클라이언트(`getThemePackPackage`)는 전체 offering을 훑어 product ID로 찾으므로 어디에 둬도 동작한다
    - **Mark as current** 체크
 6. **API Keys** (좌측 메뉴 → Project settings → API keys):
    - iOS public SDK key 복사
@@ -82,13 +99,21 @@ EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=goog_xxxxxxxxxxxxxxxxxxxxxxxxxx
 ```bash
 # 010 마이그레이션 적용
 psql $DATABASE_URL -f supabase/010_premium.sql
+# 테마팩 마이그레이션 적용
+psql $DATABASE_URL -f supabase/theme_pack.sql
 # 또는 Supabase Studio SQL Editor에 붙여넣고 Run
 ```
 
-마이그레이션은:
+010 마이그레이션은:
 - `profiles`에 `has_premium`, `premium_trial_ends_at`, `premium_purchased_at`, `revenuecat_user_id` 컬럼 추가
 - `couples`에 `has_premium`, `premium_purchaser_id` 컬럼 추가
 - RPC 3개 추가: `start_trial_if_needed`, `mark_premium_purchased`, `is_entitled`
+
+테마팩 마이그레이션(`supabase/theme_pack.sql`)은:
+- `profiles`에 `has_theme_pack`, `theme_pack_purchased_at` 컬럼 추가
+- `couples`에 `has_theme_pack`, `theme_pack_purchaser_id` 컬럼 추가
+- RPC 추가: `mark_theme_pack_purchased`
+- 클라이언트는 컬럼이 아직 없어도 동작한다(legacy 폴백) — 단, 테마팩 결제 동기화는 마이그레이션 후에만 가능하므로 **테마팩 상품을 스토어에 활성화하기 전에 반드시 적용**
 
 ## 6. Native Build (필수)
 

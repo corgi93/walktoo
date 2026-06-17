@@ -65,6 +65,19 @@ export default function WalkBookScreen() {
           </Text>
         </PixelCard>
 
+        {/* 생성 기능 준비 중 고지 — 결제 사용자가 생성 버튼을 찾다 이탈하지 않게 */}
+        <View style={styles.comingSoon}>
+          <Icon name="clock" size={15} color={theme.colors.secondary} />
+          <Text
+            variant="caption"
+            color="textSecondary"
+            ml="sm"
+            style={{ flex: 1, lineHeight: 16 }}
+          >
+            {t('premium:walk-book.coming-soon')}
+          </Text>
+        </View>
+
         <View style={styles.scope}>
           <ScopeItem icon="calendar" label={t('premium:walk-book.scope-period')} />
           <ScopeItem icon="map-pin" label={t('premium:walk-book.scope-cover')} />
@@ -196,6 +209,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
+  },
+  comingSoon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1.5,
+    borderColor: theme.colors.secondaryLight,
+    backgroundColor: theme.colors.surfaceWarm,
   },
   scope: {
     flexDirection: 'row',

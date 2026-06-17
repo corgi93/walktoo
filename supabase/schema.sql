@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   -- premium
   has_premium           BOOLEAN NOT NULL DEFAULT false,
   premium_purchased_at  TIMESTAMPTZ,
+  has_theme_pack        BOOLEAN NOT NULL DEFAULT false,
+  theme_pack_purchased_at TIMESTAMPTZ,
   revenuecat_user_id    TEXT,
   --
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -47,6 +49,8 @@ CREATE TABLE IF NOT EXISTS public.couples (
   -- premium (공유)
   has_premium          BOOLEAN NOT NULL DEFAULT false,
   premium_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  has_theme_pack          BOOLEAN NOT NULL DEFAULT false,
+  theme_pack_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   --
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -822,6 +826,25 @@ BEGIN
 END;
 $$;
 
+-- 6-8b. 여행 무드 테마팩 구매 마킹 (기록 업그레이드와 별도 non-consumable)
+CREATE OR REPLACE FUNCTION public.mark_theme_pack_purchased(p_revenuecat_user_id TEXT)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_couple_id UUID;
+BEGIN
+  UPDATE public.profiles
+  SET has_theme_pack = true,
+      theme_pack_purchased_at = COALESCE(theme_pack_purchased_at, now()),
+      revenuecat_user_id = p_revenuecat_user_id
+  WHERE id = auth.uid() RETURNING couple_id INTO v_couple_id;
+  IF v_couple_id IS NOT NULL THEN
+    UPDATE public.couples SET has_theme_pack = true, theme_pack_purchaser_id = auth.uid()
+    WHERE id = v_couple_id;
+  END IF;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
 -- ─── 회고북 크레딧 ─────────────────────────────────────
 
 -- 6-10. 회고북 크레딧 조회 (없으면 0으로 간주)
@@ -988,6 +1011,7 @@ $$;
 -- ────────────────────────────────────────────────────────────
 
 GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT)   TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_theme_pack_purchased(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_book_credits()             TO authenticated;
 GRANT EXECUTE ON FUNCTION public.add_book_credits(INTEGER)      TO authenticated;
 GRANT EXECUTE ON FUNCTION public.redeem_stamps_for_book()       TO authenticated;
