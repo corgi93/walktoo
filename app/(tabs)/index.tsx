@@ -15,7 +15,7 @@ import { useToast } from '@/components/composite/toast/ToastProvider';
 import { STAMP } from '@/constants/game-config';
 import { QUERY_KEYS } from '@/constants/keys';
 import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation';
-import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
+import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { useUnreadCountQuery } from '@/hooks/services/notification/query';
 import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
 import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
@@ -26,7 +26,7 @@ import { usePedometer } from '@/hooks/usePedometer';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
-import { getCurrentYearMonth, getLocalToday } from '@/utils/date';
+import { getLocalToday } from '@/utils/date';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -55,14 +55,35 @@ export default function HomeScreen() {
     isCoupleConnected ? couple?.id : undefined,
   );
 
-  // 오늘의 산책 (current month에서 today 필터) ────────────
-  const { year, month } = getCurrentYearMonth();
   const today = getLocalToday();
-  const { data: monthWalks } = useDiaryByMonthQuery(year, month);
-  const todayWalk = useMemo(() => {
-    const todayWalks = monthWalks?.filter((w) => w.date === today);
-    return todayWalks?.find((w) => w.kind === 'each') ?? todayWalks?.[0];
-  }, [monthWalks, today]);
+
+  // 홈 지도/각자 모먼트/오늘 사진첩은 월 제한 없이 전체 기록을 사용한다.
+  const {
+    data: walkPages,
+    fetchNextPage: fetchNextWalkPage,
+    hasNextPage: hasNextWalkPage,
+    isFetchingNextPage: isFetchingNextWalkPage,
+  } = useDiaryListQuery();
+  const allWalks = useMemo(
+    () => walkPages?.pages.flatMap((page) => page) ?? [],
+    [walkPages],
+  );
+  const todayWalk = useMemo(
+    () => allWalks.find((w) => w.date === today && w.kind === 'each'),
+    [allWalks, today],
+  );
+
+  useEffect(() => {
+    if (!isCoupleConnected) return;
+    if (!hasNextWalkPage || isFetchingNextWalkPage) return;
+    fetchNextWalkPage();
+  }, [
+    allWalks.length,
+    fetchNextWalkPage,
+    hasNextWalkPage,
+    isCoupleConnected,
+    isFetchingNextWalkPage,
+  ]);
 
   // 홈 지도 조작 중에는 상위 ScrollView가 드래그를 가져가지 않게 잠근다.
   const [isMapInteracting, setIsMapInteracting] = useState(false);
@@ -106,6 +127,7 @@ export default function HomeScreen() {
     QUERY_KEYS.steps.today,
     QUERY_KEYS.stamps.today,
     QUERY_KEYS.stamps.total,
+    QUERY_KEYS.diary.list,
   ]);
 
   // 처음 만난 날 모달 ─────────────────────────────────────
@@ -173,7 +195,7 @@ export default function HomeScreen() {
           <WidgetBoard
             firstMetDate={couple?.firstMetDate}
             todayWalk={todayWalk}
-            recentWalks={monthWalks ?? []}
+            walks={allWalks}
             myName={myName}
             partnerName={partnerName}
             myCharacter={myCharacter}

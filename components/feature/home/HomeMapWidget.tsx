@@ -10,7 +10,7 @@ import {
 import type { Coords } from '@/lib/location';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
-import type { WalkDiary } from '@/types';
+import { getWalkLocationSummary, type WalkDiary } from '@/types';
 
 interface HomeMapWidgetProps {
   walks: readonly WalkDiary[];
@@ -42,7 +42,7 @@ export function HomeMapWidget({
           nextMarkers.push({
             id: walk.id,
             coords,
-            title: walk.locationName || '우리 기록',
+            title: getWalkLocationSummary(walk) || '우리 기록',
             subtitle: walk.date,
           });
         }
@@ -72,7 +72,9 @@ export function HomeMapWidget({
         </View>
 
         <Pressable
-          onPress={() => router.push('/(tabs)/records')}
+          onPress={() =>
+            router.push({ pathname: '/(tabs)/records', params: { view: 'map' } })
+          }
           style={styles.mapButton}
           hitSlop={8}
         >
@@ -107,7 +109,7 @@ export function HomeMapWidget({
 
       <View style={styles.footer}>
         <Text variant="caption" color="textMuted">
-          이번 달 위치 기록
+          전체 위치 기록
         </Text>
         <View style={styles.countBadge}>
           <Text variant="caption" color="primary" weight="700">

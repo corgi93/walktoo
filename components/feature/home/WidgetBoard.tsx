@@ -33,7 +33,7 @@ const FRAMES_MAP: Record<CharacterType, typeof BOY_FRAMES> = {
 interface WidgetBoardProps {
   firstMetDate?: string;
   todayWalk?: WalkDiary;
-  recentWalks: readonly WalkDiary[];
+  walks: readonly WalkDiary[];
   myName: string;
   partnerName: string;
   myCharacter?: CharacterType;
@@ -52,7 +52,7 @@ interface WidgetBoardProps {
 export function WidgetBoard({
   firstMetDate,
   todayWalk,
-  recentWalks,
+  walks,
   myName,
   partnerName,
   myCharacter = 'boy',
@@ -187,11 +187,11 @@ export function WidgetBoard({
       </View>
 
       {/* 각자 모먼트 둘러보기 — 과거 each 기록이 있을 때만 노출 */}
-      <EachMomentsBrowseLink walks={recentWalks} />
+      <EachMomentsBrowseLink walks={walks} />
 
       {/* Row 3 ─ 우리 지도 */}
       <HomeMapWidget
-        walks={recentWalks}
+        walks={walks}
         onMapInteractionStart={onMapInteractionStart}
         onMapInteractionEnd={onMapInteractionEnd}
       />

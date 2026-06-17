@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -26,7 +26,16 @@ type ViewMode = 'list' | 'map';
 export default function RecordsScreen() {
   const insets = useSafeAreaInsets();
   const { isCoupleConnected } = usePartnerDerivation();
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const params = useLocalSearchParams<{ view?: string }>();
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    params.view === 'map' ? 'map' : 'list',
+  );
+
+  useEffect(() => {
+    if (params.view === 'map' || params.view === 'list') {
+      setViewMode(params.view);
+    }
+  }, [params.view]);
 
   if (!isCoupleConnected) {
     return <RecordsNoCoupleFallback insets={insets} />;
