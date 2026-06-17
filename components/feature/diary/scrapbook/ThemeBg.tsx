@@ -1,6 +1,7 @@
-import React, { useId } from 'react';
+import React, { useCallback, useId, useState } from 'react';
 import {
   Image,
+  LayoutChangeEvent,
   StyleProp,
   StyleSheet,
   View,
@@ -36,8 +37,9 @@ interface ThemeBgProps {
  *  3. SVG 패턴 — grid_minimal / pixel_retro / y2k_pastel
  *  4. children (wrapper 모드에서)
  *
- * 텍스처는 resizeMode="cover"로 화면을 덮는다. Android에서 repeat 타일이
- * 긴 스크롤과 섞일 때 경계/끊김이 보이는 경우가 있어 단일 cover 레이어를 쓴다.
+ * 텍스처는 측정된 영역 전체에 작은 타일을 반복 배치한다. Android에서
+ * resizeMode="repeat" 또는 긴 단일 cover 이미지가 스크롤 중 경계를 만들 수 있어
+ * 명시적인 tile grid로 모든 테마의 긴 스크롤 배경을 덮는다.
  */
 export function ThemeBg({ theme, children, style }: ThemeBgProps) {
   const uid = useId().replace(/[:]/g, '');
@@ -59,7 +61,7 @@ export function ThemeBg({ theme, children, style }: ThemeBgProps) {
 
   // Wrapper 모드 — 자식 콘텐츠 높이만큼 자라고 텍스처가 그 전체를 덮음
   return (
-    <View style={style}>
+    <View style={[{ backgroundColor: theme.bg }, style]}>
       {texture && (
         <TextureLayer texture={texture} opacity={textureOpacity} />
       )}
@@ -76,15 +78,59 @@ function TextureLayer({
   texture: ReturnType<typeof textureSrc>;
   opacity: number;
 }) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setSize((prev) => {
+      if (
+        Math.abs(prev.width - width) < 1 &&
+        Math.abs(prev.height - height) < 1
+      ) {
+        return prev;
+      }
+      return { width, height };
+    });
+  }, []);
+
   if (!texture) return null;
 
+  const tile = 220;
+  const maxTiles = 120;
+  const cols = Math.max(1, Math.ceil(size.width / tile));
+  // 행 단위로 클램프 — 캡에 걸려도 마지막 행이 부분적으로 비지 않게
+  const rows = Math.min(
+    Math.max(1, Math.ceil(size.height / tile)),
+    Math.max(1, Math.floor(maxTiles / cols)),
+  );
+  const count = cols * rows;
+
   return (
-    <View style={styles.fill} pointerEvents="none">
-      <Image
-        source={texture}
-        style={[styles.fill, { opacity }]}
-        resizeMode="cover"
-      />
+    <View
+      style={[styles.fill, styles.clip]}
+      pointerEvents="none"
+      onLayout={handleLayout}
+    >
+      {Array.from({ length: count }).map((_, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        return (
+          <Image
+            key={`texture-${row}-${col}`}
+            source={texture}
+            style={[
+              styles.tile,
+              {
+                width: tile,
+                height: tile,
+                left: col * tile,
+                top: row * tile,
+                opacity,
+              },
+            ]}
+            resizeMode="cover"
+          />
+        );
+      })}
     </View>
   );
 }
@@ -145,5 +191,12 @@ function PatternLayer({ theme, patId }: { theme: DiaryTheme; patId: string }) {
 const styles = StyleSheet.create({
   fill: {
     ...StyleSheet.absoluteFillObject,
+  },
+  // iOS는 overflow 기본이 visible — 경계 밖 타일이 영역 밖으로 보이지 않게
+  clip: {
+    overflow: 'hidden',
+  },
+  tile: {
+    position: 'absolute',
   },
 });

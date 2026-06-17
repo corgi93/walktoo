@@ -346,7 +346,9 @@ export default function DiaryDetailScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={{ paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap }}>
+          <View
+            style={{ paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap }}
+          >
           <Box px="xxl">
             {/* 디자인의 DiaryPage 형태 — rounded 카드 wrapper 없이 ThemeBg 위에 직접 콘텐츠 */}
             <View style={styles.diaryPage}>
@@ -971,7 +973,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.lg,
   },
   scroll: {
-    // paddingBottom은 ThemeBg wrapper로 이동 — 텍스처가 그 영역까지 덮게
+    // 배경 텍스처는 화면 전체 absoluteFill ThemeBg가 담당 — 콘텐츠는 transparent 유지
   },
   scroller: {
     backgroundColor: 'transparent',

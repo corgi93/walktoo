@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingTop: LAYOUT.sectionGap,
-    // paddingBottom은 ThemeBg wrapper로 이동
+    // 배경 텍스처는 화면 전체 absoluteFill ThemeBg가 담당 — 콘텐츠는 transparent 유지
   },
   scroller: {
     backgroundColor: 'transparent',
