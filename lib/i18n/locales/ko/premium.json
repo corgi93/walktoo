@@ -1,9 +1,9 @@
 {
   "brand": "기록 업그레이드",
-  "tagline": "기본 기록은 무료로, 특별한 날만 조금 더 예쁘고 길게 남겨요",
+  "tagline": "기본 기록은 무료로, 특별한 날만 더 길고 풍성하게 남겨요",
   "benefits": {
     "section-title": "이런 게 좋아져요",
-    "walk-book-title": "추억 카드와 산책북 (준비 중)",
+    "walk-book-title": "산책북은 필요한 날만 별도",
     "photos-title": "사진 8장, 영상 5초까지",
     "photos-description": "기본 4장/3초에서 이 기록을 더 풍성하게 남겨요",
     "couple-title": "한 명만 결제하면 양쪽 적용",
@@ -23,9 +23,9 @@
     "gate-free-save": "무료 테마로 저장"
   },
   "price": {
-    "lifetime-label": "초기 업그레이드가",
+    "lifetime-label": "1회성 커플 업그레이드",
     "lifetime-value": "₩{{price}}",
-    "one-time-note": "구독 없이 한 번만 결제해요"
+    "one-time-note": "둘 중 한 명만 결제하면 함께 적용돼요"
   },
   "actions": {
     "start": "지금 시작하기",
@@ -54,7 +54,8 @@
     "eyebrow": "준비 중인 결과물",
     "title": "산책북 만들기",
     "description": "쌓인 장소와 사진을 PDF 또는 이미지 앨범으로 엮는 흐름부터 준비해요.",
-    "coming-soon": "PDF·이미지 앨범 생성은 준비 중이에요. 기능이 열리면 이 화면에서 바로 만들 수 있어요.",
+    "price-note": "예정가 {{price}}부터 · 만들 때만 결제",
+    "coming-soon": "PDF·이미지 앨범 생성은 준비 중이에요. 기록 업그레이드와 별도인 1회성 결과물 상품으로 열릴 예정이에요.",
     "cta": "산책북 만들기",
     "screen-title": "우리의 산책북",
     "screen-description": "최근 기록을 골라 산책북으로 만드는 첫 버전이에요. 기본 기록은 계속 무료로 남아요.",
@@ -72,5 +73,5 @@
     "upgrade": "기록 업그레이드",
     "active": "업그레이드 사용 중"
   },
-  "fine-print": "구독이 아닌 1회성 구매입니다. 구매와 환불은 Apple/Google 정책에 따라 처리됩니다."
+  "fine-print": "구독이 아닌 1회성 구매입니다. 산책북 같은 생성 결과물은 별도 상품이며, 구매와 환불은 Apple/Google 정책에 따라 처리됩니다."
 }

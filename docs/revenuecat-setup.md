@@ -14,6 +14,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | **Offering ID** (RevenueCat) | `default` (현재 offering) |
 | **Type** | Non-consumable (구독 없는 1회성 업그레이드) |
 | **무료 체험** | 없음 |
+| **가격** | ₩3,300 / $2.49 |
 
 ### 여행 무드 테마팩
 
@@ -26,7 +27,16 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | **포함 테마** | 삿포로 필름 / 홍콩 야경 / 마지막 공항 (`vintage_film`, `dreamy_cloud`, `dark_academia`) |
 | **가격** | ₩3,300 / $2.49 |
 
-코드에서는 `constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
+### 향후 결과물 상품 (결제 플로우 구현 전에는 활성화 금지)
+
+| 상품 | Product ID | Type | 가격 |
+|---|---|---|---:|
+| 추억 카드 이미지 | `com.walktoo.memory_card_image` | Consumable | ₩1,500 / $1.49 |
+| 산책북 기본 | `com.walktoo.walk_book_basic` | Consumable | ₩6,900 / $5.99 |
+| 산책북 긴 기간 | `com.walktoo.walk_book_extended` | Consumable | ₩8,900 / $7.99 |
+| 기념일 리포트 | `com.walktoo.anniversary_report` | Consumable | ₩5,900 / $4.99 |
+
+코드에서는 `constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` / `RESULT_PRODUCTS.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
 
 ---
 
@@ -38,8 +48,8 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
    - Reference Name: `walkToo Record Upgrade`
    - Product ID: `com.walktoo.record_upgrade`
 3. 가격 설정:
-   - 한국 (KRW): **₩2,200**
-   - 글로벌 (USD): **$1.99**
+   - 한국 (KRW): **₩3,300**
+   - 글로벌 (USD): **$2.49**
    - 다른 국가는 Apple 자동 환산 사용
 4. 표시 정보 (다국어):
    - 한국어: "기록 업그레이드"
@@ -54,8 +64,8 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 2. **상품 만들기**
    - 상품 ID: `com.walktoo.record_upgrade`
    - 이름: `기록 업그레이드`
-   - 설명: `구독 없이 사진, 짧은 영상, 다이어리 테마 경험을 확장합니다`
-3. 가격: **₩2,200** (다른 국가는 자동 환산)
+   - 설명: `구독 없이 사진과 짧은 영상 기록을 더 풍성하게 남깁니다`
+3. 가격: **₩3,300** (다른 국가는 자동 환산)
 4. 상태: **활성**
 5. 라이선스 테스터 추가 (sandbox 결제 테스트용)
 
@@ -69,6 +79,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
    - **+ Product** → Apple → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
    - **+ Product** → Google → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
    - 같은 방식으로 `com.walktoo.theme_pack_travel`도 양쪽 모두 추가
+   - 결과물 상품은 생성/다운로드/재시도 플로우가 붙기 전에는 RevenueCat에 연결하지 않는다
 4. **Entitlements**:
    - **+ Entitlement** → Identifier: `walktoo_record_upgrade` → Display name: `Record Upgrade`
    - **+ Entitlement** → Identifier: `walktoo_theme_pack_travel` → Display name: `Travel Mood Theme Pack`
@@ -151,7 +162,7 @@ npx expo run:android --device
 ## 8. App Store / Google Play 심사 시 주의사항
 
 - IAP가 있는 앱은 첫 제출 시 IAP 메타데이터(스크린샷, 리뷰 노트)를 함께 제출해야 한다
-- 리뷰 노트에 "Record Upgrade is a one-time non-consumable purchase. It expands optional media and decoration features; core diary records remain free." 명시
+- 리뷰 노트에 "Record Upgrade is a one-time non-consumable purchase. It expands optional media capacity; core diary records remain free." 명시
 - 환불 정책 안내 페이지(앱 내 또는 웹) 링크 제공 권장
 
 ## 9. 향후 개선 (Phase 2)

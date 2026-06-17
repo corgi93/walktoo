@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Button, Icon, PixelCard, Row, Text } from '@/components/base';
+import { RESULT_PRODUCTS } from '@/constants/premium';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
@@ -26,6 +27,7 @@ export default function WalkBookScreen() {
   const router = useRouter();
   const { t } = useTranslation(['premium', 'common']);
   const { data, isLoading } = useDiaryListQuery();
+  const walkBookPrice = `₩${RESULT_PRODUCTS.WALK_BOOK_BASIC.PRICE_KRW.toLocaleString('ko-KR')}`;
 
   const walks = useMemo(
     () => data?.pages.flatMap((page) => page).slice(0, PREVIEW_LIMIT) ?? [],
@@ -63,6 +65,11 @@ export default function WalkBookScreen() {
           <Text variant="bodySmall" color="textSecondary" mt="sm">
             {t('premium:walk-book.screen-description')}
           </Text>
+          <View style={styles.pricePill}>
+            <Text variant="caption" color="primary" align="center">
+              {t('premium:walk-book.price-note', { price: walkBookPrice })}
+            </Text>
+          </View>
         </PixelCard>
 
         {/* 생성 기능 준비 중 고지 — 결제 사용자가 생성 버튼을 찾다 이탈하지 않게 */}
@@ -199,6 +206,16 @@ const styles = StyleSheet.create({
   },
   hero: {
     padding: SPACING.xl,
+  },
+  pricePill: {
+    alignSelf: 'flex-start',
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
   },
   heroIcon: {
     width: 48,

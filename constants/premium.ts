@@ -34,9 +34,12 @@ export const PREMIUM = {
    */
   FREE_DIARY_THEME_IDS: ['y2k_pastel', 'pixel_retro', 'grid_minimal'],
 
-  /** 가격 fallback. 초기 부담을 낮춘 소액 업그레이드 가격. */
-  PRICE_KRW: 2_200,
-  PRICE_USD: 1.99,
+  /**
+   * 가격 fallback. 스토어 가격이 source of truth.
+   * 2,200원은 런칭 프로모션으로만 쓰고, 기본 기준가는 3,300원으로 둔다.
+   */
+  PRICE_KRW: 3_300,
+  PRICE_USD: 2.49,
 } as const;
 
 /**
@@ -56,6 +59,44 @@ export const THEME_PACK = {
   /** 가격 fallback. 스토어 가격이 source of truth. */
   PRICE_KRW: 3_300,
   PRICE_USD: 2.49,
+} as const;
+
+/**
+ * 결과물 상품 가격 기준
+ *
+ * - 기록 접근권이 아니라, 이미 쌓인 기록을 이미지/PDF/리포트로 생성하는 상품
+ * - 실제 IAP 등록과 결제 플로우가 붙기 전까지는 UI에서 "준비 중"으로만 노출한다.
+ * - 결과물은 서버 생성/저장 비용이 있으므로 영구 무제한 권리로 팔지 않는다.
+ */
+export const RESULT_PRODUCTS = {
+  MEMORY_CARD_IMAGE: {
+    PRODUCT_ID: 'com.walktoo.memory_card_image',
+    PRICE_KRW: 1_500,
+    PRICE_USD: 1.49,
+  },
+  WALK_BOOK_BASIC: {
+    PRODUCT_ID: 'com.walktoo.walk_book_basic',
+    PRICE_KRW: 6_900,
+    PRICE_USD: 5.99,
+  },
+  WALK_BOOK_EXTENDED: {
+    PRODUCT_ID: 'com.walktoo.walk_book_extended',
+    PRICE_KRW: 8_900,
+    PRICE_USD: 7.99,
+  },
+  ANNIVERSARY_REPORT: {
+    PRODUCT_ID: 'com.walktoo.anniversary_report',
+    PRICE_KRW: 5_900,
+    PRICE_USD: 4.99,
+  },
+} as const;
+
+export const PRODUCT_BUNDLES = {
+  RECORD_AND_THEME_PACK: {
+    PRODUCT_ID: 'com.walktoo.bundle_record_theme',
+    PRICE_KRW: 5_900,
+    PRICE_USD: 4.49,
+  },
 } as const;
 
 /** 해당 테마가 여행 무드 테마팩(유료) 소속인지 — 미보유 시 미리보기는 되고 저장 시 게이트. */
