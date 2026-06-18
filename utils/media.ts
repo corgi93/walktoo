@@ -6,9 +6,23 @@ const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
 export const MAX_SHORT_VIDEO_DURATION_FREE_MS = 3_000;
 export const MAX_SHORT_VIDEO_DURATION_PREMIUM_MS = 5_000;
 export const MAX_SHORT_VIDEO_DURATION_MS = MAX_SHORT_VIDEO_DURATION_PREMIUM_MS;
-export const MAX_SHORT_VIDEO_BYTES = 20 * 1024 * 1024;
+
+/**
+ * 업로드 허용 영상 용량 상한 (압축 후 검증). 보관 비용을 통제하려고
+ * 20MB → 12MB로 낮췄다. 720p로 압축되면 5초 영상이 보통 1~3MB라 넉넉하다.
+ * 압축 라이브러리가 없는 환경(미리빌드 dev client 등)에서는 원본이 이 값을
+ * 넘으면 업로드를 막는다. 자세한 정책은 docs/media-retention.md 참고.
+ */
+export const MAX_SHORT_VIDEO_BYTES = 12 * 1024 * 1024;
+
+/** 엔트리(한 기록)당 영상 첨부 한도. 비용 상한 — "짧은 모먼트" 한 컷. */
+export const MAX_VIDEOS_PER_ENTRY = 1;
+
 export const OPTIMIZED_IMAGE_MAX_WIDTH = 1600;
 export const OPTIMIZED_IMAGE_QUALITY = 0.78;
+
+/** 영상 압축 타깃 — 긴 변 기준(px). 720p급. */
+export const VIDEO_COMPRESS_MAX_DIMENSION = 1280;
 
 export function getMediaExtension(uri: string): string {
   const path = uri.split('?')[0] ?? uri;
