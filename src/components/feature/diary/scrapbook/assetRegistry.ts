@@ -5,7 +5,7 @@
  * 테마 토큰에서는 문자열 ID로 참조하고 (`'tape-coral-solid'`), 컴포넌트가 이 맵에서 조회.
  *
  * 새 에셋 추가:
- *  1. assets/diary/{tapes|stickers|frames|textures}/<name>.<ext> 에 파일 추가
+ *  1. src/assets/diary/{tapes|stickers|frames|textures}/<name>.<ext> 에 파일 추가
  *  2. 아래 맵에 ID → require 한 줄 추가
  *  3. diaryThemes.ts 에서 해당 ID 사용
  */
@@ -117,7 +117,7 @@ export type DiaryFrameId = keyof typeof DIARY_FRAMES;
 // 단색 bg 위에 종이/필름/양피지 느낌을 더함. 파일 없으면 textureSrc()가
 // undefined를 반환하고 ThemeBg는 텍스처 레이어를 건너뜀 (graceful).
 //
-// 파일을 assets/diary/textures/ 에 떨군 뒤 아래 한 줄씩 주석 해제하면 켜짐.
+// 파일을 src/assets/diary/textures/ 에 떨군 뒤 아래 한 줄씩 주석 해제하면 켜짐.
 
 export const DIARY_TEXTURES: Partial<Record<DiaryTextureId, ImageSourcePropType>> = {
   'y2k-paper': require('@/assets/diary/textures/y2k-paper.jpg'),

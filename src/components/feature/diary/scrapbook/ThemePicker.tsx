@@ -21,6 +21,8 @@ import {
 import { theme as appTheme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 
+import { ImageSticker } from './ImageSticker';
+import { ImageTape } from './ImageTape';
 import { Sticker } from './Sticker';
 import { WashiTape } from './WashiTape';
 
@@ -156,6 +158,9 @@ function ThemeTile({
   locked: boolean;
   onPress: () => void;
 }) {
+  const previewTape = t.imgTapes[0];
+  const previewSticker = t.imgStickers[0];
+
   return (
     <Pressable
       style={[
@@ -176,15 +181,26 @@ function ThemeTile({
           { backgroundColor: t.paper, borderColor: t.line },
         ]}
       >
-        <WashiTape
-          width={36}
-          height={12}
-          rotate={-10}
-          color={t.tapes[0].color}
-          pattern={t.tapes[0].pattern}
-          patternColor={t.tapes[0].patternColor}
-          style={{ top: -4, left: 8 }}
-        />
+        {previewTape ? (
+          <ImageTape
+            id={previewTape}
+            width={42}
+            height={12}
+            rotate={-10}
+            opacity={0.98}
+            style={{ top: -4, left: 6 }}
+          />
+        ) : (
+          <WashiTape
+            width={36}
+            height={12}
+            rotate={-10}
+            color={t.tapes[0].color}
+            pattern={t.tapes[0].pattern}
+            patternColor={t.tapes[0].patternColor}
+            style={{ top: -4, left: 8 }}
+          />
+        )}
         <View style={styles.swatchRow}>
           {t.tints.slice(0, 4).map((c, i) => (
             <View
@@ -253,7 +269,14 @@ function ThemeTile({
       ) : null}
 
       {/* 데코 스티커 — 살짝 분위기 보여주기 */}
-      {!t.isDark && (
+      {previewSticker ? (
+        <ImageSticker
+          id={previewSticker}
+          size={22}
+          rotate={-8}
+          style={{ position: 'absolute', top: 6, left: 6 }}
+        />
+      ) : (
         <Sticker
           kind={t.stickers[0]}
           size={18}

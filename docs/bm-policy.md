@@ -77,7 +77,7 @@ walkToo는 기록을 막고 결제를 유도하지 않는다. 기본 기록 경�
 | 항목 | 정책 |
 | --- | --- |
 | 가격 | 3,300원 (fallback, 스토어 가격이 기준) |
-| 포함 테마 | 삿포로 필름, 홍콩 야경, 마지막 공항 |
+| 포함 테마 | 삿포로 필름, 홍콩 야경, 도쿄 레코드샵 |
 | Product ID | `com.walktoo.theme_pack_travel` |
 | Entitlement ID | `walktoo_theme_pack_travel` |
 
@@ -137,7 +137,7 @@ walkToo는 기록을 막고 결제를 유도하지 않는다. 기본 기록 경�
 - 무료 짧은 영상: 3초
 - 업그레이드 짧은 영상: 5초
 - 무료 다이어리 테마: 후쿠오카 골목(y2k_pastel), 방콕 야시장(pixel_retro), 타이완 노트(grid_minimal)
-- 여행 무드 테마팩: 삿포로 필름(vintage_film), 홍콩 야경(dreamy_cloud), 마지막 공항(dark_academia)
+- 여행 무드 테마팩: 삿포로 필름(vintage_film), 홍콩 야경(dreamy_cloud), 도쿄 레코드샵(dark_academia)
 - 기록 업그레이드 가격 fallback: 3,300원 / 테마팩: 3,300원
 - 결과물 가격 기준: 추억 카드 1,500원 / 산책북 기본 6,900원 / 산책북 긴 기간 8,900원 / 기념일 리포트 5,900원
 - Product ID: `com.walktoo.record_upgrade` / `com.walktoo.theme_pack_travel`

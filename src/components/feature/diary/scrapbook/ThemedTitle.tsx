@@ -41,7 +41,7 @@ export function ThemedTitle({
             titleBase,
             {
               color: t.accent,
-              letterSpacing: -0.5,
+              letterSpacing: 0,
               textShadowColor: t.tints[1],
               textShadowOffset: { width: 2, height: 2 },
               textShadowRadius: 0,
@@ -79,7 +79,7 @@ export function ThemedTitle({
             {
               fontStyle: 'italic',
               fontSize: size * 1.1,
-              letterSpacing: -0.5,
+              letterSpacing: 0,
             },
             style,
           ]}
@@ -142,7 +142,7 @@ export function ThemedTitle({
         <Text
           style={[
             titleBase,
-            { fontStyle: 'italic', letterSpacing: -0.8 },
+            { fontStyle: 'italic', letterSpacing: 0 },
             style,
           ]}
         >
@@ -210,7 +210,7 @@ export function ThemedTitle({
   // clean (grid_minimal)
   return (
     <View>
-      <Text style={[titleBase, { letterSpacing: -1 }, style]}>{text}</Text>
+      <Text style={[titleBase, { letterSpacing: 0 }, style]}>{text}</Text>
       {sub && (
         <Text
           style={[

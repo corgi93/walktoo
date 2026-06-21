@@ -27,8 +27,8 @@ const BOTTOM_Y = TICKET_Y + TICKET_H + 8; // 티켓 바로 아래
 const REF_H = BOTTOM_Y + PHOTO_H + 36; // 하단 컴퍼스 + 마진
 
 /**
- * 다크 아카데미아 — 빈티지 앨범 스프레드.
- * 위 2 photos + 가운데 ADMIT ONE 티켓 + 아래 2 photos.
+ * 레코드샵 스크랩북 — 빈티지 앨범 스프레드.
+ * 위 2 photos + 가운데 티켓 라벨 + 아래 2 photos.
  *
  * 디자인 fidelity: 사진 142x164로 크게, 위·아래 row 간격 타이트하게.
  */
@@ -36,9 +36,9 @@ export function ScrapbookLayout({
   theme: t,
   photos,
   captions,
-  ticketTitle = 'cinéma de paris',
-  ticketLabel = '· ADMIT ONE ·',
-  ticketDate = '04·21·26 · 19:30',
+  ticketTitle = 'tokyo record shop',
+  ticketLabel = '· SIDE A ·',
+  ticketDate = '33 RPM · 19:30',
   editable = false,
   onAddPhoto,
   onRemovePhoto,

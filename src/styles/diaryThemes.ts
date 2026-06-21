@@ -1,17 +1,15 @@
 /**
  * walkToo 다꾸 (diary-deco) 테마 토큰
  *
- * 6종 테마 — 해외 여행지의 무드(골목, 필름, 야시장, 야경)를
+ * 6종 테마 — 해외 여행지의 무드(골목, 필름, 야시장, 야경, 레코드샵)를
  * 다이어리용 컬러 팔레트, 와시테이프, 스티커 셋으로 재해석.
  * 전체적으로 빈티지 + Y2K 레트로 코트 — 바랜 크림 페이퍼 위에
  * 살짝 채도 낮춘 레트로 팝 톤. 무드별 구분은 유지.
  * 데이터 레이어와는 무관 — 표시 레이어에서만 소비.
  *
- * 폰트는 디바이스에 로드된 게 없으면 시스템 폴백.
- *  - 'pixel' → NeoDunggeunmo (이미 로드)
- *  - 'hand'  → 시스템 (한글 디바이스 기본 글꼴) — 추후 Gaegu 추가 가능
- *  - 'serif' → system serif fallback
- *  - 'sans'  → system sans fallback
+ * 폰트는 새 native asset을 늘리지 않고 디바이스 기본 폴백을 사용한다.
+ *  - bodyFont는 긴 기록/입력 가독성을 위해 NeoDunggeunmo 유지
+ *  - titleFont/handFont/monoFont만 테마별 짧은 제목·캡션·날짜에 사용
  *
  * @see Downloads/walktoo/diary.jsx 원본 디자인
  */
@@ -53,7 +51,7 @@ export type DiaryLayoutKind =
   | 'filmstrip' // vintage_film — vertical filmstrip with sprockets
   | 'grid' // grid_minimal / pixel_retro — 2x2 uniform
   | 'journal' // dreamy_cloud — 1 hero + 2 small + 1 wide + handwritten note
-  | 'scrapbook'; // dark_academia — 2x2 + center ticket strip
+  | 'scrapbook'; // tokyo record shop — 2x2 + center ticket strip
 
 // ─── Title Mode ─────────────────────────────────────────
 
@@ -63,25 +61,27 @@ export type TitleMode =
   | 'pixel' // pixel retro — 도트 픽셀
   | 'clean' // grid minimal — 깔끔한 산세
   | 'italic' // dreamy cloud — 이탤릭 세리프
-  | 'dark'; // dark academia — 대문자 세리프
+  | 'dark'; // legacy high-contrast — 대문자 세리프
 
 // ─── Font Family Resolution ─────────────────────────────
+
+const PIXEL_FONT = 'NeoDunggeunmo';
 
 const SYSTEM_SERIF = Platform.select({
   ios: 'Times New Roman',
   android: 'serif',
   default: 'serif',
-});
+}) ?? 'serif';
 const SYSTEM_MONO = Platform.select({
   ios: 'Menlo',
   android: 'monospace',
   default: 'monospace',
-});
+}) ?? 'monospace';
 const SYSTEM_SANS = Platform.select({
-  ios: 'System',
+  ios: 'Helvetica Neue',
   android: 'sans-serif',
   default: 'sans-serif',
-});
+}) ?? 'sans-serif';
 
 // ─── Theme ──────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ export interface DiaryTheme {
   /** 본문 폰트 */
   bodyFont: string;
   bodyWeight: '400' | '500' | '600' | '700';
-  /** 손글씨 폰트 — 캡션·답변 */
+  /** 짧은 캡션·시그니처 폰트 */
   handFont: string;
   handWeight: '400' | '500' | '600' | '700';
   /** 모노 폰트 — 날짜, 라벨 */
@@ -158,8 +158,6 @@ export type DiaryThemeId =
 
 // ─── 6 Themes ───────────────────────────────────────────
 
-const PIXEL_FONT = 'NeoDunggeunmo';
-
 export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
   y2k_pastel: {
     id: 'y2k_pastel',
@@ -178,9 +176,9 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: PIXEL_FONT,
+    handFont: SYSTEM_SANS,
     handWeight: '400',
-    monoFont: PIXEL_FONT,
+    monoFont: SYSTEM_MONO,
     gridOpacity: 0.14,
     tapes: [
       { pattern: 'stripe', color: '#FFE9B0' },
@@ -238,13 +236,13 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accent: '#98674A',
     accentDeep: '#623E29',
     tints: ['#D6C0A2', '#C3CFCF', '#EADCC0', '#B69E84', '#A2825F'],
-    titleFont: PIXEL_FONT,
-    titleWeight: '400',
+    titleFont: SYSTEM_SERIF,
+    titleWeight: '700',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: PIXEL_FONT,
-    handWeight: '400',
-    monoFont: PIXEL_FONT,
+    handFont: SYSTEM_SERIF,
+    handWeight: '600',
+    monoFont: SYSTEM_MONO,
     gridOpacity: 0,
     tapes: [
       { pattern: 'solid', color: '#D9B48A' },
@@ -346,13 +344,13 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accent: '#4E7A6F',
     accentDeep: '#2C544C',
     tints: ['#EDE8DC', '#D8E6DE', '#EDD4C9', '#EBE6D8', '#D3DFE4'],
-    titleFont: PIXEL_FONT,
-    titleWeight: '400',
+    titleFont: SYSTEM_SANS,
+    titleWeight: '600',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: PIXEL_FONT,
+    handFont: SYSTEM_SANS,
     handWeight: '400',
-    monoFont: PIXEL_FONT,
+    monoFont: SYSTEM_MONO,
     gridOpacity: 0.4,
     tapes: [{ pattern: 'solid', color: '#E8E4DC' }],
     stickers: ['checkmark'],
@@ -388,13 +386,13 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accent: '#6B92BC',
     accentDeep: '#3D6790',
     tints: ['#C9DCE6', '#D0E0EA', '#DCD0E2', '#EAC6C0', '#EEE0A8'],
-    titleFont: PIXEL_FONT,
-    titleWeight: '400',
+    titleFont: SYSTEM_SERIF,
+    titleWeight: '700',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: PIXEL_FONT,
-    handWeight: '400',
-    monoFont: PIXEL_FONT,
+    handFont: SYSTEM_SERIF,
+    handWeight: '600',
+    monoFont: SYSTEM_MONO,
     gridOpacity: 0.12,
     tapes: [
       { pattern: 'dot', color: '#CFE3F0' },
@@ -427,47 +425,49 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
 
   dark_academia: {
     id: 'dark_academia',
-    name: '마지막 공항',
-    emoji: '✦',
-    desc: '야간 비행 전, 마지막 페이지',
-    bg: '#211C18',
-    paper: '#EEE1C8',
-    line: '#897856',
-    ink: '#1A1612',
-    inkSoft: '#4A4238',
-    accent: '#97362E',
-    accentDeep: '#571C18',
-    tints: ['#E2D2B6', '#D5C097', '#C0AD84', '#B28774', '#897654'],
+    name: '도쿄 레코드샵',
+    emoji: '♪',
+    desc: '작은 음반가게와 파란 간판',
+    bg: '#EAF1EC',
+    paper: '#FFF7E6',
+    line: '#7A9EA3',
+    ink: '#27323A',
+    inkSoft: '#5C6970',
+    accent: '#4F9EAF',
+    accentDeep: '#2F6776',
+    tints: ['#F6D7A8', '#BFE1DC', '#F4AFA1', '#D8D6F0', '#F3E46D'],
     titleFont: PIXEL_FONT,
     titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: PIXEL_FONT,
+    handFont: SYSTEM_SANS,
     handWeight: '400',
     monoFont: PIXEL_FONT,
-    gridOpacity: 0,
+    gridOpacity: 0.18,
     tapes: [
-      { pattern: 'solid', color: '#8A7A5A' },
-      { pattern: 'stripe', color: '#B09770', patternColor: 'rgba(26,22,18,0.4)' },
+      { pattern: 'grid', color: '#8FB7B7', patternColor: 'rgba(255,245,220,0.4)' },
+      { pattern: 'stripe', color: '#F4AFA1', patternColor: 'rgba(39,50,58,0.22)' },
     ],
-    stickers: ['star', 'sparkle'],
-    imgTapes: ['mustard-solid', 'stars-brown', 'journal'],
+    stickers: ['star', 'sparkle', 'heart'],
+    imgTapes: ['doodle-blue', 'wave-blue', 'journal', 'teal-solid'],
     imgStickers: [
+      'star-yellow-2',
+      'text-signature',
+      'pin-blue',
+      'hot-air-balloon',
+      'camera-vintage-2',
+      'arrow-teal-r',
       'tag-ticket',
       'compass',
-      'clipboard',
       'camera-vintage',
-      'text-signature',
+      'heart-pink-soft',
+      'hearts-pink-pair',
       'rose-single',
       'flowers-vase',
-      'coffee-cup-saucer',
-      'croissant',
       'cd-music',
       'label-cafe',
       'text-grateful',
       'text-blessed',
-      'star-yellow',
-      'heart-pink',
     ],
     imgFrames: [
       'ornate-bronze',
@@ -476,11 +476,11 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
       'ornate-2',
       'wood-dark',
     ],
-    bgTexture: 'academia-wood',
-    bgTextureOpacity: 0.35,
+    bgTexture: 'pixel-paper',
+    bgTextureOpacity: 0.32,
     layout: 'scrapbook',
-    titleMode: 'dark',
-    isDark: true,
+    titleMode: 'pixel',
+    isDark: false,
   },
 };
 

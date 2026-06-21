@@ -13,5 +13,5 @@ export const PLACEHOLDER_CAPTIONS: Record<
   pixel_retro: ['night market', '같이 걷기', 'D+2', 'unexpected'],
   grid_minimal: ['취향 노트', '오후 7시', '다음 장소', 'day 02'],
   dreamy_cloud: ['harbor light', '트램 소리', 'soft talk', 'city night'],
-  dark_academia: ['boarding pass', '야간 비행', 'gate 7', 'see you'],
+  dark_academia: ['record shop', 'side A', '파란 간판', '33 rpm'],
 };

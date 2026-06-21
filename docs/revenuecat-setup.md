@@ -24,7 +24,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | **Entitlement ID** (RevenueCat) | `walktoo_theme_pack_travel` |
 | **Offering ID** (RevenueCat) | 아무 offering이나 가능 — 클라이언트가 전체 offering에서 product ID로 찾는다 |
 | **Type** | Non-consumable (1회성, 커플 공유) |
-| **포함 테마** | 삿포로 필름 / 홍콩 야경 / 마지막 공항 (`vintage_film`, `dreamy_cloud`, `dark_academia`) |
+| **포함 테마** | 삿포로 필름 / 홍콩 야경 / 도쿄 레코드샵 (`vintage_film`, `dreamy_cloud`, `dark_academia`) |
 | **가격** | ₩3,300 / $2.49 |
 
 ### 향후 결과물 상품 (결제 플로우 구현 전에는 활성화 금지)
@@ -36,7 +36,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | 산책북 긴 기간 | `com.walktoo.walk_book_extended` | Consumable | ₩8,900 / $7.99 |
 | 기념일 리포트 | `com.walktoo.anniversary_report` | Consumable | ₩5,900 / $4.99 |
 
-코드에서는 `constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` / `RESULT_PRODUCTS.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
+코드에서는 `src/constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` / `RESULT_PRODUCTS.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
 
 ---
 

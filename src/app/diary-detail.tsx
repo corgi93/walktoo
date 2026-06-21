@@ -324,7 +324,7 @@ export default function DiaryDetailScreen() {
       {/* 배경 텍스처/패턴 — 화면 전체에 absoluteFill로 깔림 (헤더·safe area 포함) */}
       <ThemeBg theme={dt} />
 
-      {/* ── 헤더 ── 다크 테마(다크 아카데미아 등)에서는 ink가 검정에 가까워 안보이므로 paper(밝은색)로 반전 */}
+      {/* ── 헤더 ── 다크 테마에서는 ink가 배경에 묻히므로 paper(밝은색)로 반전 */}
       <Row px="xxl" style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Icon
@@ -338,14 +338,7 @@ export default function DiaryDetailScreen() {
           ml="md"
           style={{
             color: dt.isDark ? dt.paper : dt.ink,
-            fontFamily: dt.titleFont,
             fontWeight: '700',
-            fontStyle:
-              dt.titleMode === 'italic' ||
-              dt.titleMode === 'serif' ||
-              dt.titleMode === 'dark'
-                ? 'italic'
-                : 'normal',
           }}
         >
           {t('diary:detail.title')}
@@ -933,8 +926,8 @@ function EachTextBubble({
       <Text
         style={{
           color: text ? dt.ink : dt.inkSoft,
-          fontFamily: dt.handFont,
-          fontWeight: dt.handWeight,
+          fontFamily: dt.bodyFont,
+          fontWeight: dt.bodyWeight,
           fontSize: 15,
           lineHeight: 22,
         }}
@@ -970,8 +963,8 @@ function ReadAnswer({
     <Text
       style={{
         color: answer ? dt.ink : dt.inkSoft,
-        fontFamily: dt.handFont,
-        fontWeight: dt.handWeight,
+        fontFamily: dt.bodyFont,
+        fontWeight: dt.bodyWeight,
         fontSize: 16,
         lineHeight: 24,
       }}

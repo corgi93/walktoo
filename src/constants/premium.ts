@@ -45,7 +45,7 @@ export const PREMIUM = {
 /**
  * 여행 무드 테마팩 — 단건 1회성 결제 (non-consumable IAP)
  *
- * - 삿포로 필름 / 홍콩 야경 / 마지막 공항 테마 3종을 영구 해제
+ * - 삿포로 필름 / 홍콩 야경 / 도쿄 레코드샵 테마 3종을 영구 해제
  * - 기록 업그레이드와 별도 상품. 커플 한 명만 결제하면 양쪽 적용.
  * - RevenueCat 콘솔의 product/entitlement ID와 정확히 일치해야 함.
  */

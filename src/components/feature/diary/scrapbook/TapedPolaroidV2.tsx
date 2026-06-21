@@ -263,8 +263,8 @@ function PhotoArea({
       ) : (
         <View style={styles.placeholderWrap}>{children}</View>
       )}
-      {/* warm wash — 빈티지/다크 테마이거나 placeholder일 때만. 실제 사진은 clean */}
-      {(t.id === 'vintage_film' || t.id === 'dark_academia' || !photoUri) && (
+      {/* warm wash — 빈티지 테마이거나 placeholder일 때만. 실제 사진은 clean */}
+      {(t.id === 'vintage_film' || !photoUri) && (
         <View pointerEvents="none" style={styles.wash} />
       )}
       {/* scanlines — 빈티지/픽셀 테마 + placeholder만 (실제 사진 텍스처 가리지 않게) */}

@@ -18,9 +18,10 @@ interface ThemedHandwriteInputProps {
 }
 
 /**
- * 손글씨 톤 textarea.
- * - y2k_pastel/pixel_retro/dreamy_cloud: 노트선(repeating 가로선) 배경
- * - vintage_film/grid_minimal/dark_academia: 깔끔
+ * 산책일기 textarea.
+ * 긴 기록/입력은 테마별 포인트 폰트 대신 bodyFont를 써서 가독성을 유지한다.
+ * - y2k_pastel/pixel_retro/dreamy_cloud/dark_academia: 노트선(repeating 가로선) 배경
+ * - vintage_film/grid_minimal: 깔끔
  *
  * 데이터: value/onChangeText props만. 기존 폼 state 그대로 연결.
  */
@@ -37,7 +38,8 @@ export function ThemedHandwriteInput({
   const lined =
     t.id === 'y2k_pastel' ||
     t.id === 'pixel_retro' ||
-    t.id === 'dreamy_cloud';
+    t.id === 'dreamy_cloud' ||
+    t.id === 'dark_academia';
 
   const lineHeight = 24;
   const minHeight = lineHeight * minLines + 8;
@@ -67,8 +69,8 @@ export function ThemedHandwriteInput({
         style={[
           styles.input,
           {
-            fontFamily: t.handFont,
-            fontWeight: t.handWeight,
+            fontFamily: t.bodyFont,
+            fontWeight: t.bodyWeight,
             color: t.ink,
             lineHeight,
           },
