@@ -103,3 +103,25 @@ export async function optimizeImageForUpload(uri: string): Promise<string> {
     return uri;
   }
 }
+
+/**
+ * 업로드 전 영상 압축 자리 — 720p급(VIDEO_COMPRESS_MAX_DIMENSION)으로 재인코딩하면
+ * 용량을 크게 줄일 수 있다. 현재는 패스스루(no-op)다.
+ *
+ * 활성화: `react-native-compressor` 설치 + dev client 재빌드 후 아래 블록의 주석을
+ * 해제한다. (네이티브 모듈이라 Expo Go에서는 동작하지 않으므로 try/catch로 감싼다.)
+ * 미설치 상태에서도 MAX_SHORT_VIDEO_BYTES(12MB) 상한이 보관 비용을 막는다.
+ *
+ *   if (uri.startsWith('http') || !isVideoUri(uri)) return uri;
+ *   try {
+ *     const { Video } = await import('react-native-compressor');
+ *     const out = await Video.compress(uri, {
+ *       compressionMethod: 'auto',
+ *       maxSize: VIDEO_COMPRESS_MAX_DIMENSION,
+ *     });
+ *     return out || uri;
+ *   } catch { return uri; }
+ */
+export async function compressVideoForUpload(uri: string): Promise<string> {
+  return uri;
+}

@@ -59,6 +59,14 @@ export const walksRepository = {
   /** 산책 삭제 */
   delete: (id: string) => supabase.from('walks').delete().eq('id', id),
 
+  /** 엔트리 사진 URL 조회 (Storage 정리 시 diff용) */
+  findEntryPhotos: (entryId: string) =>
+    supabase
+      .from('footprint_entries')
+      .select('photos')
+      .eq('id', entryId)
+      .single<{ photos: string[] }>(),
+
   /** 발자취 엔트리 생성 */
   createEntry: (data: EntryInsert) =>
     supabase

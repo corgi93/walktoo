@@ -54,7 +54,9 @@ import { FootprintEntry } from '@/types/diary';
 import { formatDate, parseLocalDate } from '@/utils/date';
 import {
   getLocalFileSize,
+  isVideoUri,
   MAX_SHORT_VIDEO_BYTES,
+  MAX_VIDEOS_PER_ENTRY,
 } from '@/utils/media';
 
 // ─── Component ──────────────────────────────────────────
@@ -224,7 +226,27 @@ export default function DiaryDetailScreen() {
         }
         sizeCheckedAssets.push(asset);
       }
-      const uris = sizeCheckedAssets.map((a) => a.uri);
+
+      // 엔트리당 영상 1개 한도 — 이미 담긴 영상 + 새로 고른 영상 합산 (보관 비용 상한)
+      let videoBudget = MAX_VIDEOS_PER_ENTRY - photos.filter(isVideoUri).length;
+      let droppedVideo = false;
+      const cappedAssets = sizeCheckedAssets.filter((asset) => {
+        if (asset.type !== 'video') return true;
+        if (videoBudget <= 0) {
+          droppedVideo = true;
+          return false;
+        }
+        videoBudget -= 1;
+        return true;
+      });
+      if (droppedVideo) {
+        dialog.alert(
+          '',
+          t('diary:create.video-limit', { count: MAX_VIDEOS_PER_ENTRY }),
+        );
+      }
+
+      const uris = cappedAssets.map((a) => a.uri);
       setPhotos((prev) => [...prev, ...uris].slice(0, photoLimit));
     }
   };

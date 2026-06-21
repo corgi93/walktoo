@@ -1,8 +1,13 @@
 import type { WalkDiary, CreateWalkDiaryInput, FootprintEntry } from '@/types/diary';
 
 import { notificationsService } from '../notifications/notifications.service';
+import { storageService } from '../storage';
 import type { FootprintEntryRow } from '../types/database.types';
 import { walksRepository, type WalkWithEntries } from './walks.repository';
+
+/** 원격(http) URL만 추려낸다 — 로컬 미업로드 항목 제외 */
+const remoteUrls = (urls: readonly string[] | null | undefined): string[] =>
+  (urls ?? []).filter((u) => typeof u === 'string' && u.startsWith('http'));
 
 const isLocationSchemaCacheError = (error: unknown): boolean => {
   const message =
@@ -277,6 +282,9 @@ export const walksService = {
       coupleAnswer?: string;
     },
   ) => {
+    // 교체 전 사진 목록을 확보해 둔다 (제거된 파일을 Storage에서 정리하려고)
+    const { data: before } = await walksRepository.findEntryPhotos(entryId);
+
     const { error } = await walksRepository.updateEntry(entryId, {
       memo,
       photos,
@@ -287,12 +295,36 @@ export const walksService = {
       ...(answerData?.coupleAnswer !== undefined && { couple_answer: answerData.coupleAnswer }),
     });
     if (error) throw error;
+
+    // 새 목록에서 빠진 원격 사진을 Storage에서 삭제 (best-effort)
+    const removed = remoteUrls(before?.photos).filter(
+      (url) => !photos.includes(url),
+    );
+    if (removed.length > 0) {
+      await storageService.deletePhotos(removed);
+    }
   },
 
-  /** 산책 삭제 */
+  /** 산책 삭제 — DB 삭제 후 연결된 미디어를 Storage에서 정리 */
   remove: async (walkId: string) => {
+    // 삭제 전 모든 엔트리 사진 URL을 모은다 (DB 삭제 후엔 못 가져옴)
+    let mediaUrls: string[] = [];
+    try {
+      const { data } = await walksRepository.findById(walkId);
+      mediaUrls = remoteUrls(
+        (data?.footprint_entries ?? []).flatMap((e) => e.photos ?? []),
+      );
+    } catch {
+      // 조회 실패해도 삭제는 진행 — 남은 파일은 cleanup이 회수
+    }
+
     const { error } = await walksRepository.delete(walkId);
     if (error) throw error;
+
+    // DB가 지워진 뒤에만 Storage 정리 (best-effort)
+    if (mediaUrls.length > 0) {
+      await storageService.deletePhotos(mediaUrls);
+    }
   },
 
   /** 내부: 산책 생성 시 상대방에게 알림 */
