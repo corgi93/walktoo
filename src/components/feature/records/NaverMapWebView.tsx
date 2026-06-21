@@ -12,6 +12,7 @@ export interface WebMapMarker {
   coords: Coords;
   title?: string;
   subtitle?: string;
+  thumbnailUrl?: string;
 }
 
 interface NaverMapWebViewProps {
@@ -89,40 +90,83 @@ const buildHtml = ({
     }
     #status.hidden { display: none; }
 
-    /* ── Marker — 원형 도트, 활성화 시 펄스 + 라벨 ── */
+    /* ── Marker — 첫 사진 썸네일, 활성화 시 펄스 + 라벨 ── */
     .pinWrap {
       position: relative;
-      width: 40px;
-      height: 40px;
+      width: 56px;
+      height: 68px;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      flex-direction: column;
       cursor: pointer;
     }
-    .pinDot {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #ef746f;
+    .pinFrame {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #fff5f4;
       border: 3px solid #ffffff;
-      box-shadow: 0 4px 10px rgba(44, 44, 46, .28);
-      transition: transform .18s ease, background .18s ease;
+      box-shadow: 4px 4px 0 rgba(44, 44, 46, .18);
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
       position: relative;
       z-index: 2;
     }
-    .pinWrap.active .pinDot {
-      transform: scale(1.35);
-      background: #df5d58;
-      box-shadow: 0 6px 16px rgba(223, 93, 88, .55);
+    .pinPhoto {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .pinDot {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ef746f;
+      border: 3px solid #ffffff;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .pinFrame.noPhoto {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(135deg, rgba(232, 112, 106, .18), rgba(129, 178, 154, .14)),
+        #fff5f4;
+    }
+    .pinFrame.noPhoto .pinDot {
+      display: block;
+    }
+    .pinTail {
+      width: 14px;
+      height: 14px;
+      margin-top: -7px;
+      background: #ffffff;
+      border-right: 3px solid #ffffff;
+      border-bottom: 3px solid #ffffff;
+      box-shadow: 4px 4px 0 rgba(44, 44, 46, .14);
+      transform: rotate(45deg);
+      position: relative;
+      z-index: 1;
+    }
+    .pinWrap.active .pinFrame {
+      transform: translateY(-3px) scale(1.12);
+      border-color: #fdeae8;
+      box-shadow: 5px 5px 0 rgba(196, 82, 76, .28);
     }
     /* 활성화 펄스 링 */
     .pinPulse {
       position: absolute;
-      top: 50%;
+      top: 24px;
       left: 50%;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
       transform: translate(-50%, -50%);
       background: rgba(223, 93, 88, .35);
       opacity: 0;
@@ -133,13 +177,13 @@ const buildHtml = ({
     }
     @keyframes pulse {
       0%   { transform: translate(-50%, -50%) scale(1);   opacity: .6; }
-      80%  { transform: translate(-50%, -50%) scale(3);   opacity: 0; }
-      100% { transform: translate(-50%, -50%) scale(3);   opacity: 0; }
+      80%  { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
     }
     /* 활성화 라벨 */
     .pinLabel {
       position: absolute;
-      bottom: calc(100% - 4px);
+      bottom: calc(100% + 2px);
       left: 50%;
       transform: translateX(-50%) translateY(0);
       max-width: 160px;
@@ -208,10 +252,18 @@ const buildHtml = ({
 
     const buildContent = (item, isActive) => {
       const label = escapeHtml(item.title);
+      const thumbnail = item.thumbnailUrl
+        ? '<img class="pinPhoto" src="' + escapeHtml(item.thumbnailUrl) + '" alt="" onerror="this.parentElement.classList.add(\\'noPhoto\\'); this.remove();" />'
+        : '';
       const activeCls = isActive ? ' active' : '';
+      const photoCls = item.thumbnailUrl ? '' : ' noPhoto';
       return '<div class="pinWrap' + activeCls + '" data-id="' + item.id + '">'
         + '<div class="pinPulse"></div>'
+        + '<div class="pinFrame' + photoCls + '">'
+        + thumbnail
         + '<div class="pinDot"></div>'
+        + '</div>'
+        + '<div class="pinTail"></div>'
         + '<div class="pinLabel">' + label + '</div>'
         + '</div>';
     };
@@ -226,7 +278,7 @@ const buildHtml = ({
         title: item.title || '',
         icon: {
           content: buildContent(item, false),
-          anchor: new naver.maps.Point(20, 20)
+          anchor: new naver.maps.Point(28, 58)
         }
       });
       markerMap[item.id] = { marker, item };
@@ -240,7 +292,7 @@ const buildHtml = ({
         const isActive = key === id;
         entry.marker.setIcon({
           content: buildContent(entry.item, isActive),
-          anchor: new naver.maps.Point(20, 20)
+          anchor: new naver.maps.Point(28, 58)
         });
         // 활성 마커는 zIndex 끌어올려 라벨이 다른 마커 위에 보이게
         entry.marker.setZIndex(isActive ? 1000 : 100);

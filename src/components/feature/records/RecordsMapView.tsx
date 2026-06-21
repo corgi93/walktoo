@@ -9,6 +9,7 @@ import type { Coords } from '@/lib/location';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
+import { isImageUri } from '@/utils/media';
 
 interface RecordsMapViewProps {
   walks: readonly WalkDiary[];
@@ -22,9 +23,20 @@ interface RecordsMapViewProps {
 interface PinnedWalk {
   walk: WalkDiary;
   coords: Coords;
+  thumbnailUrl?: string;
 }
 
 const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
+
+function getFirstImageUri(
+  ...photoGroups: (readonly string[] | undefined)[]
+): string | undefined {
+  for (const photos of photoGroups) {
+    const imageUri = photos?.find(isImageUri);
+    if (imageUri) return imageUri;
+  }
+  return undefined;
+}
 
 /**
  * 기록 탭 — 지도 모드.
@@ -44,12 +56,49 @@ export function RecordsMapView({
   const pinnedWalks = useMemo<PinnedWalk[]>(() => {
     const result: PinnedWalk[] = [];
     for (const w of walks) {
-      const c =
-        w.locationCoords ??
-        w.myEntry?.locationCoords ??
-        w.partnerEntry?.locationCoords;
-      if (c && Number.isFinite(c.lat) && Number.isFinite(c.lng)) {
-        result.push({ walk: w, coords: c });
+      if (
+        w.locationCoords &&
+        Number.isFinite(w.locationCoords.lat) &&
+        Number.isFinite(w.locationCoords.lng)
+      ) {
+        result.push({
+          walk: w,
+          coords: w.locationCoords,
+          thumbnailUrl: getFirstImageUri(
+            w.myEntry?.photos,
+            w.partnerEntry?.photos,
+          ),
+        });
+        continue;
+      }
+      if (
+        w.myEntry?.locationCoords &&
+        Number.isFinite(w.myEntry.locationCoords.lat) &&
+        Number.isFinite(w.myEntry.locationCoords.lng)
+      ) {
+        result.push({
+          walk: w,
+          coords: w.myEntry.locationCoords,
+          thumbnailUrl: getFirstImageUri(
+            w.myEntry.photos,
+            w.partnerEntry?.photos,
+          ),
+        });
+        continue;
+      }
+      if (
+        w.partnerEntry?.locationCoords &&
+        Number.isFinite(w.partnerEntry.locationCoords.lat) &&
+        Number.isFinite(w.partnerEntry.locationCoords.lng)
+      ) {
+        result.push({
+          walk: w,
+          coords: w.partnerEntry.locationCoords,
+          thumbnailUrl: getFirstImageUri(
+            w.partnerEntry.photos,
+            w.myEntry?.photos,
+          ),
+        });
       }
     }
     return result;
@@ -58,11 +107,12 @@ export function RecordsMapView({
   const initialCenter = pinnedWalks[0]?.coords ?? SEOUL_CENTER;
   const markers = useMemo<WebMapMarker[]>(
     () =>
-      pinnedWalks.map(({ walk, coords }) => ({
+      pinnedWalks.map(({ walk, coords, thumbnailUrl }) => ({
         id: walk.id,
         coords,
         title: walk.locationName || '기록',
         subtitle: walk.date,
+        thumbnailUrl,
       })),
     [pinnedWalks],
   );
