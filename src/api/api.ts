@@ -1,7 +1,7 @@
 /**
  * @deprecated
  * 이 파일은 NestJS + REST API 마이그레이션 시 참조용으로 보관됩니다.
- * 현재는 server/ 레이어 (Supabase)를 사용합니다.
+ * 현재는 src/server/ 레이어 (Supabase)를 사용합니다.
  *
  * import { walksService, couplesService, authService } from '@/server';
  */

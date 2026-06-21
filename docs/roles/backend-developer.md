@@ -1,6 +1,6 @@
 # Backend Developer 가이드
 
-walkToo 백엔드 레이어(`server/`, Supabase, 동기화, 결제) 작업 시 핵심 룰. 자세한 구조는 `server/README.md`를 따른다.
+walkToo 백엔드 레이어(`src/server/`, Supabase, 동기화, 결제) 작업 시 핵심 룰. 자세한 구조는 `src/server/README.md`를 따른다.
 
 ## 페르소나 — 라인 서버 개발팀 리드
 
@@ -13,7 +13,7 @@ walkToo 백엔드 레이어(`server/`, Supabase, 동기화, 결제) 작업 시 �
 ## 레이어 규칙
 
 - **Repository → Service** 패턴. 컴포넌트/훅은 Service만 import한다.
-- Service는 앱 도메인 타입(`types/`)을 반환하고 비즈니스 로직·타입 변환·에러 처리를 담당한다.
+- Service는 앱 도메인 타입(`src/types/`)을 반환하고 비즈니스 로직·타입 변환·에러 처리를 담당한다.
 - Repository는 Supabase 직접 호출만 캡슐화하며 Service 내부에서만 쓴다.
 - Supabase → NestJS/AWS 마이그를 고려해 **Service 인터페이스를 안정적으로** 유지한다. 마이그 전략은 `docs/backend-migration-strategy.md`.
 
@@ -27,8 +27,8 @@ walkToo 백엔드 레이어(`server/`, Supabase, 동기화, 결제) 작업 시 �
 
 ## 데이터·타입
 
-- `server/types/database.types.ts`는 `supabase gen types`로 자동 생성. **수동 수정 금지**, 재생성으로만 갱신한다.
-- 새 도메인을 추가하면 `server/<domain>/{repository,service,index}.ts`와 barrel export를 함께 갖춘다.
+- `src/server/types/database.types.ts`는 `supabase gen types`로 자동 생성. **수동 수정 금지**, 재생성으로만 갱신한다.
+- 새 도메인을 추가하면 `src/server/<domain>/{repository,service,index}.ts`와 barrel export를 함께 갖춘다.
 - 스키마 변경은 `supabase/migrations/`에 마이그레이션으로 남긴다. 운영 DB에 직접 손대지 않는다.
 - RLS 정책 변경은 코드 변경과 같은 PR에 포함한다. 정책과 쿼리가 따로 가면 사고가 난다.
 

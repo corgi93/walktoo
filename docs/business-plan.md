@@ -88,7 +88,7 @@ BEP 관점에서 기록 업그레이드와 테마팩은 운영비 일부를 방�
 
 업그레이드 가격을 바꾸면 다음을 같은 작업에서 맞춘다.
 
-1. `constants/premium.ts`
+1. `src/constants/premium.ts`
 2. `docs/revenuecat-setup.md`
 3. `docs/bm-policy.md`
 4. Apple App Store Connect

@@ -1,21 +1,21 @@
 # Backend Migration Strategy
 
-walkToo는 현재 Supabase를 직접 백엔드로 사용한다. 다만 코드 구조는 이후 NestJS + AWS로 옮길 수 있도록 `server/` 레이어를 먼저 둔 상태다. 이 문서는 현재 구조 진단, 보완 과제, 그리고 실제 마이그레이션 순서를 정리한다.
+walkToo는 현재 Supabase를 직접 백엔드로 사용한다. 다만 코드 구조는 이후 NestJS + AWS로 옮길 수 있도록 `src/server/` 레이어를 먼저 둔 상태다. 이 문서는 현재 구조 진단, 보완 과제, 그리고 실제 마이그레이션 순서를 정리한다.
 
 ## 결론
 
-방향은 맞다. 화면과 훅 대부분은 `@/server` 또는 도메인별 service를 호출하고, `server/README.md`에 적힌 Repository → Service 분리 원칙도 잡혀 있다. 이 구조 덕분에 앱 화면 전체가 Supabase 쿼리 문법에 직접 묶이는 상황은 상당히 피했다.
+방향은 맞다. 화면과 훅 대부분은 `@/server` 또는 도메인별 service를 호출하고, `src/server/README.md`에 적힌 Repository → Service 분리 원칙도 잡혀 있다. 이 구조 덕분에 앱 화면 전체가 Supabase 쿼리 문법에 직접 묶이는 상황은 상당히 피했다.
 
 하지만 아직 "Repository만 교체하면 AWS 백엔드로 전환된다"는 상태는 아니다. 일부 도메인은 Service 안에서 Supabase를 직접 호출하고, 앱 코드 일부도 `@/server/client`를 직접 import한다. 서비스가 잘 되어 백엔드 분리가 필요해질 때를 대비하려면 Supabase 의존성을 더 안쪽으로 밀어 넣는 보완 작업이 필요하다.
 
 ## 현재 잘한 점
 
-- `server/` 폴더가 앱 내부 Backend Facade 역할을 한다.
+- `src/server/` 폴더가 앱 내부 Backend Facade 역할을 한다.
 - `auth`, `couples`, `walks`, `storage`, `notifications`는 Service/Repository 패턴이 비교적 잘 분리되어 있다.
 - 화면과 React Query hooks는 대부분 Service를 통해 데이터를 가져온다.
-- 앱 도메인 타입은 `types/`에 있고, Supabase row 타입은 `server/types/database.types.ts`에 있어 방향성이 좋다.
-- Supabase Auth 세션 저장은 `server/client.ts`에서 Expo SecureStore adapter로 캡슐화되어 있다.
-- `server/API.md`에 REST API 전환 후의 endpoint 초안이 이미 있다.
+- 앱 도메인 타입은 `src/types/`에 있고, Supabase row 타입은 `src/server/types/database.types.ts`에 있어 방향성이 좋다.
+- Supabase Auth 세션 저장은 `src/server/client.ts`에서 Expo SecureStore adapter로 캡슐화되어 있다.
+- `src/server/API.md`에 REST API 전환 후의 endpoint 초안이 이미 있다.
 - `supabase/schema.sql`이 idempotent 형태라 초기 AWS PostgreSQL 스키마 이관 기준점으로 쓸 수 있다.
 
 ## 현재 부족한 점
@@ -24,26 +24,26 @@ walkToo는 현재 Supabase를 직접 백엔드로 사용한다. 다만 코드 �
 
 아래 파일은 Repository 없이 Service에서 `supabase.from()` 또는 `supabase.rpc()`를 직접 사용한다.
 
-- `server/daily-steps/daily-steps.service.ts`
-- `server/reflections/reflections.service.ts`
-- `server/schedules/schedules.service.ts`
-- `server/memory-stamps/memory-stamps.service.ts`
-- `server/entitlements/entitlements.service.ts`
-- `server/packs/packs.service.ts`
+- `src/server/daily-steps/daily-steps.service.ts`
+- `src/server/reflections/reflections.service.ts`
+- `src/server/schedules/schedules.service.ts`
+- `src/server/memory-stamps/memory-stamps.service.ts`
+- `src/server/entitlements/entitlements.service.ts`
+- `src/server/packs/packs.service.ts`
 
 이 상태에서는 NestJS/API 전환 시 Service까지 같이 고쳐야 한다. 단기적으로는 동작에 문제 없지만, 마이그레이션 비용을 낮추려면 각 도메인에 Repository를 추가하는 편이 좋다.
 
 ### 2. 앱 코드가 Supabase client를 직접 import하는 곳이 있다
 
-- `app/login.tsx`
-- `hooks/useBackgroundStepSync.ts`
-- `server/index.ts`의 `export { supabase } from './client'`
+- `src/app/login.tsx`
+- `src/hooks/useBackgroundStepSync.ts`
+- `src/server/index.ts`의 `export { supabase } from './client'`
 
-`app/login.tsx`는 Google web OAuth fallback에서 `supabase.auth.signInWithOAuth()`와 `exchangeCodeForSession()`을 직접 호출한다. 이 로직은 `authService` 또는 `authRepository`로 이동시키는 것이 좋다.
+`src/app/login.tsx`는 Google web OAuth fallback에서 `supabase.auth.signInWithOAuth()`와 `exchangeCodeForSession()`을 직접 호출한다. 이 로직은 `authService` 또는 `authRepository`로 이동시키는 것이 좋다.
 
-`hooks/useBackgroundStepSync.ts`는 백그라운드 task 안에서 Supabase auth와 `daily_steps` upsert를 직접 수행한다. 최소한 현재 유저 조회는 `authService`, 걸음수 저장은 `dailyStepsService`를 통해 호출하게 바꾸는 것이 좋다.
+`src/hooks/useBackgroundStepSync.ts`는 백그라운드 task 안에서 Supabase auth와 `daily_steps` upsert를 직접 수행한다. 최소한 현재 유저 조회는 `authService`, 걸음수 저장은 `dailyStepsService`를 통해 호출하게 바꾸는 것이 좋다.
 
-`server/index.ts`에서 `supabase`를 공개 export하면 이후 코드에서 Supabase 직접 접근이 퍼질 수 있다. 디버깅 목적이 아니라면 공개 export를 제거하거나 `server/client.ts`를 내부 전용으로 취급한다.
+`src/server/index.ts`에서 `supabase`를 공개 export하면 이후 코드에서 Supabase 직접 접근이 퍼질 수 있다. 디버깅 목적이 아니라면 공개 export를 제거하거나 `src/server/client.ts`를 내부 전용으로 취급한다.
 
 ### 3. Supabase RPC에 비즈니스 로직이 많이 들어가 있다
 
@@ -77,49 +77,49 @@ Supabase에서는 RLS가 안전장치 역할을 한다. NestJS + AWS로 옮기�
 
 마이그레이션을 지금 시작하지 않더라도 아래는 서비스 성장 전에 해두면 비용이 낮다.
 
-1. `server/index.ts`에서 `supabase` 공개 export 제거
-2. `app/login.tsx`의 web OAuth 직접 호출을 `authService`로 이동
-3. `hooks/useBackgroundStepSync.ts`의 direct Supabase upsert를 `dailyStepsService`로 이동
+1. `src/server/index.ts`에서 `supabase` 공개 export 제거
+2. `src/app/login.tsx`의 web OAuth 직접 호출을 `authService`로 이동
+3. `src/hooks/useBackgroundStepSync.ts`의 direct Supabase upsert를 `dailyStepsService`로 이동
 4. Repository 없는 도메인에 Repository 추가
-5. Supabase RPC 목록을 `server/API.md` 또는 별도 문서에 "API 전환 대상"으로 정리
+5. Supabase RPC 목록을 `src/server/API.md` 또는 별도 문서에 "API 전환 대상"으로 정리
 6. 각 Service 메서드의 input/output 타입을 명시적으로 export
 7. Storage는 새 저장부터 `photoKey` 또는 `objectKey` 중심으로 저장하는 방향 검토
-8. `server/API.md`를 실제 앱 Service 메서드 기준으로 최신화
+8. `src/server/API.md`를 실제 앱 Service 메서드 기준으로 최신화
 
 ## 권장 목표 구조
 
 현재 앱 내부 구조:
 
 ```txt
-app/components/hooks
-  -> hooks/services/*
-  -> server/*Service
-  -> server/*Repository
+src/app + src/components + src/hooks
+  -> src/hooks/services/*
+  -> src/server/*Service
+  -> src/server/*Repository
   -> Supabase client
 ```
 
 마이그레이션 전 준비 완료 구조:
 
 ```txt
-app/components/hooks
-  -> hooks/services/*
-  -> server/*Service
-  -> server/*Repository interface
+src/app + src/components + src/hooks
+  -> src/hooks/services/*
+  -> src/server/*Service
+  -> src/server/*Repository interface
   -> Supabase repository implementation
 ```
 
 AWS 전환 후 구조:
 
 ```txt
-app/components/hooks
-  -> hooks/services/*
-  -> server/*Service
+src/app + src/components + src/hooks
+  -> src/hooks/services/*
+  -> src/server/*Service
   -> HTTP API client repository
   -> NestJS API on AWS
   -> RDS/S3/etc.
 ```
 
-핵심은 앱 화면과 React Query hook을 바꾸지 않고, `server/` 내부 구현만 교체하는 것이다.
+핵심은 앱 화면과 React Query hook을 바꾸지 않고, `src/server/` 내부 구현만 교체하는 것이다.
 
 ## AWS 목표 아키텍처
 
@@ -157,24 +157,24 @@ NestJS API
 
 목표: 지금 제품을 빠르게 검증하되, 나중에 발목 잡을 결합만 줄인다.
 
-- direct Supabase import를 `server/` 내부로 제한
+- direct Supabase import를 `src/server/` 내부로 제한
 - Repository 없는 Service에 Repository 추가
 - 모든 Service 메서드의 request/response 타입을 명시
-- `server/API.md`를 현재 Service 기능과 맞춘다
+- `src/server/API.md`를 현재 Service 기능과 맞춘다
 - Supabase SQL 함수, trigger, RLS 정책을 목록화한다
 - DB schema는 `supabase/schema.sql` 하나로 재현 가능하게 유지한다
 
 완료 기준:
 
-- `app/`, `components/`, `hooks/`에서 `@/server/client` import가 없다
-- `server/client.ts`는 repository 구현에서만 import한다
-- `rg "supabase\\." app components hooks` 결과가 0에 가깝다
+- `src/app/`, `src/components/`, `src/hooks/`에서 `@/server/client` import가 없다
+- `src/server/client.ts`는 repository 구현에서만 import한다
+- `rg "supabase\\." src/app src/components src/hooks` 결과가 0에 가깝다
 
 ### Phase 1. API 계약 고정
 
 목표: 실제 NestJS를 만들기 전에 앱이 기대하는 계약을 고정한다.
 
-- `server/API.md`를 OpenAPI로 승격하거나, 최소한 endpoint별 request/response를 최신화한다
+- `src/server/API.md`를 OpenAPI로 승격하거나, 최소한 endpoint별 request/response를 최신화한다
 - 기존 Service 메서드를 API endpoint와 1:1 또는 기능 단위로 매핑한다
 - 에러 코드를 통일한다: `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `VALIDATION_ERROR`
 - pagination, date range, timezone 기준을 문서화한다
@@ -362,9 +362,9 @@ Auth는 가장 조심해서 옮긴다. 가능하면 DB/API 이전 후 마지막�
 
 ## 마이그레이션 전 체크리스트
 
-- [ ] `app/`, `components/`, `hooks/`에서 Supabase client 직접 import 제거
+- [ ] `src/app/`, `src/components/`, `src/hooks/`에서 Supabase client 직접 import 제거
 - [ ] 모든 도메인에 Repository 또는 API client adapter 추가
-- [ ] `server/API.md` 최신화
+- [ ] `src/server/API.md` 최신화
 - [ ] Supabase RPC 목록과 대체 NestJS service 메서드 매핑
 - [ ] RLS 정책을 API authorization policy로 매핑
 - [ ] Storage object key 전략 결정
