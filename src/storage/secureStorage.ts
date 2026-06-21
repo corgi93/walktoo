@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 // ─── Secure Storage Utility ─────────────────────────────
-// Supabase Auth는 server/client.ts의 ExpoSecureStoreAdapter를 통해
+// Supabase Auth는 src/server/client.ts의 ExpoSecureStoreAdapter를 통해
 // 자동으로 세션/토큰을 관리합니다.
 // 이 모듈은 앱 자체적으로 필요한 보안 저장소 유틸리티입니다.
 

@@ -58,7 +58,7 @@ if (__DEV__) {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    NeoDunggeunmo: require("../assets/fonts/NeoDunggeunmo.ttf"),
+    NeoDunggeunmo: require("@/assets/fonts/NeoDunggeunmo.ttf"),
   });
 
   useEffect(() => {

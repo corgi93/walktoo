@@ -5,7 +5,7 @@
  * 수동으로 수정하지 마세요.
  *
  * 사용법:
- *   npx supabase gen types typescript --project-id <project-id> > server/types/database.types.ts
+ *   npx supabase gen types typescript --project-id <project-id> > src/server/types/database.types.ts
  *
  * 아래는 walkToo 스키마 기반 placeholder입니다.
  * Supabase 프로젝트 연결 후 자동 생성된 파일로 교체하세요.

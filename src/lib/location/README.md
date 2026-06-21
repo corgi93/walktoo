@@ -5,7 +5,7 @@
 ## 아키텍처
 
 ```
-lib/location/
+src/lib/location/
 ├── types.ts          # Coords, Place, PickedLocation (provider 무관)
 ├── provider.ts       # LocationProvider 인터페이스
 ├── naver.ts          # 네이버 지역검색 + NCP Reverse Geocoding
@@ -13,8 +13,8 @@ lib/location/
 ├── select.ts         # locale/env 기반 자동 선택
 └── index.ts
 
-hooks/useLocationSearch.ts        # 디바운스 검색 hook
-components/feature/diary/LocationPicker/  # 검색 + 선택 UI
+src/hooks/useLocationSearch.ts        # 디바운스 검색 hook
+src/components/feature/diary/LocationPicker/  # 검색 + 선택 UI
 ```
 
 비즈니스 로직(검색·저장·표시)은 `Place` / `PickedLocation` 인터페이스만 알면 됨.
@@ -85,7 +85,7 @@ ALTER TABLE public.walks
 
 마이그레이션 후 Supabase TypeScript 타입 재생성:
 ```bash
-npx supabase gen types typescript --project-id YOUR_PROJECT > server/types/database.types.ts
+npx supabase gen types typescript --project-id YOUR_PROJECT > src/server/types/database.types.ts
 ```
 
 ## Phase 1 ✅ (현재)

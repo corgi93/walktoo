@@ -1,11 +1,11 @@
-# server/ — 백엔드 레이어
+# src/server/ — 백엔드 레이어
 
 walkToo의 서버 통신 레이어입니다. NestJS 스타일의 **Repository → Service** 패턴을 사용합니다.
 
 ## 구조
 
 ```
-server/
+src/server/
 ├── client.ts                     # Supabase 클라이언트 초기화
 ├── index.ts                      # barrel export
 │
@@ -36,7 +36,7 @@ server/
 ## 레이어 규칙
 
 ```
-  화면/훅 (app/, hooks/)
+  화면/훅 (src/app/, src/hooks/)
         │
         ▼
   ┌─────────────┐
@@ -48,7 +48,7 @@ server/
   └─────────────┘
 ```
 
-- **Service**: 컴포넌트/훅에서 import하는 유일한 레이어. 앱 도메인 타입(`types/`)을 반환합니다.
+- **Service**: 컴포넌트/훅에서 import하는 유일한 레이어. 앱 도메인 타입(`src/types/`)을 반환합니다.
 - **Repository**: Service 내부에서만 사용. Supabase 응답 타입을 그대로 반환합니다.
 
 ```typescript
@@ -72,7 +72,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```bash
 npx supabase gen types typescript \
   --project-id <your-project-id> \
-  > server/types/database.types.ts
+  > src/server/types/database.types.ts
 ```
 
 ---
@@ -82,7 +82,7 @@ npx supabase gen types typescript \
 ### Phase 1: 현재 (Supabase)
 
 - MAU 0 ~ 50만까지 Supabase Pro로 운영
-- `server/` 레이어가 Supabase 의존성을 캡슐화
+- `src/server/` 레이어가 Supabase 의존성을 캡슐화
 - 컴포넌트/훅은 Service 인터페이스에만 의존
 
 ### Phase 2: 전환 결정 시점
@@ -118,7 +118,7 @@ RLS          ──────────→      NestJS Guards
    - REST API 엔드포인트 구현
 
 3. **프론트 전환** (변경 최소화)
-   - `server/client.ts`만 Supabase → axios/fetch로 교체
+   - `src/server/client.ts`만 Supabase → axios/fetch로 교체
    - Repository 레이어만 수정 (Supabase 쿼리 → REST API 호출)
    - **Service 인터페이스 유지 → 컴포넌트 변경 0**
 
