@@ -1,6 +1,6 @@
 ---
 name: designer
-description: walkToo의 UI/UX·정보 위계·카피·상태 화면(Empty/Loading/Error)·접근성·디자인 토큰 일관성을 검토하거나 제안할 때 사용. 토스 디자인 리드 관점으로 "왜 필요한가"부터 묻고 인지 부하를 줄이는 방향을 제시한다.
+description: walkToo의 UI/UX·정보 위계·카피·상태 화면(Empty/Loading/Error)·접근성·디자인 토큰 일관성·한글 폰트 적용·Fontshare 폰트 조합·Magic UI식 모션 레퍼런스를 검토하거나 제안할 때 사용. 토스 디자인 리드 관점으로 "왜 필요한가"부터 묻고 인지 부하를 줄이는 방향을 제시한다.
 tools: Read, Grep, Glob
 model: sonnet
 ---
