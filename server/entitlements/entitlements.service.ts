@@ -3,7 +3,7 @@ import { supabase } from '../client';
 // ─── Types ──────────────────────────────────────────────
 
 export interface EntitlementStatus {
-  /** 본인이 평생 이용권 결제 완료 */
+  /** 본인이 walkToo+ 결제 완료 */
   hasPremium: boolean;
   /** 트라이얼 만료 시각 (ISO 8601), 한 번도 set 안 됐으면 null */
   trialEndsAt: string | null;

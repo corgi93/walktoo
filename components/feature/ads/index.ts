@@ -1,0 +1,1 @@
+export { NativeAdCard } from './NativeAdCard';

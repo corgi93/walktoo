@@ -1,7 +1,7 @@
 /**
  * RevenueCat SDK 래퍼
  *
- * - 1회성 결제 (non-consumable) 전용
+ * - 월 구독 결제 전용
  * - API 키가 없거나 native 모듈이 없으면 모든 호출이 no-op
  * - SDK 호출 결과는 모두 graceful 처리 (throw X, 호출부에서 결과 분기)
  *
@@ -112,15 +112,15 @@ export const getCurrentOffering = async (): Promise<PurchasesOffering | null> =>
 };
 
 /**
- * 현재 offering에서 walkToo+ 1회성 패키지를 찾는다.
+ * 현재 offering에서 walkToo+ 월 구독 패키지를 찾는다.
  * 우선순위:
- * 1. lifetime package
+ * 1. monthly package
  * 2. PRODUCT_ID와 일치하는 패키지
  */
-export const findLifetimePackage = (
+export const findPremiumPackage = (
   offering: PurchasesOffering,
 ): PurchasesPackage | null => {
-  if (offering.lifetime) return offering.lifetime;
+  if (offering.monthly) return offering.monthly;
   const matched = offering.availablePackages.find(
     (p) => p.product.identifier === PREMIUM.PRODUCT_ID,
   );
@@ -140,7 +140,7 @@ export interface PurchaseOutcome {
   errorMessage?: string;
 }
 
-export const purchaseLifetime = async (
+export const purchasePremium = async (
   pkg: PurchasesPackage,
 ): Promise<PurchaseOutcome> => {
   if (!initialized) {

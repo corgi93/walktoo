@@ -4,7 +4,7 @@
  * walkToo+ entitlement 종합 훅. 호출부에서는 이 훅의 boolean만 사용하면 됨.
  *
  * 우선순위:
- * 1. 본인 has_premium = true (영구)
+ * 1. 본인 has_premium = true
  * 2. 커플 has_premium = true (커플 공유)
  * 3. premium_trial_ends_at > now() (트라이얼 활성)
  *
@@ -33,7 +33,7 @@ export interface EntitlementValue {
   trialEndsAt: string | null;
   /** 종합 결과 — UI에서 사용할 메인 boolean */
   isEntitled: boolean;
-  /** 트라이얼/구독 모두 없는 free 상태 */
+  /** 트라이얼/유료 권한 모두 없는 free 상태 */
   isFree: boolean;
 }
 

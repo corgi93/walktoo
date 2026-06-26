@@ -9,7 +9,7 @@ import { useGetMeQuery } from '../user/query';
  * walkToo+ entitlement 종합 상태.
  *
  * 우선순위:
- * 1. 본인 has_premium = true (평생 이용권 결제)
+ * 1. 본인 has_premium = true (walkToo+ 결제)
  * 2. 커플 has_premium = true (상대가 결제)
  * 3. premium_trial_ends_at > now() (트라이얼 활성)
  *

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, Row, Text } from '@/components/base';
+import { NativeAdCard } from '@/components/feature/ads';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
   CalendarGrid,
@@ -13,6 +14,7 @@ import {
 } from '@/components/feature/calendar';
 import { FootprintTimeline } from '@/components/feature/diary';
 import { MonthStrip, RecentWalksWidget } from '@/components/feature/records';
+import { ADS } from '@/constants/ads';
 import { useCalendarMonthQuery } from '@/hooks/services/calendar/query';
 import { useReflectionProgressQuery } from '@/hooks/services/reflections/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
@@ -197,6 +199,11 @@ function RecordsContent({
 
             {/* 최근 산책 3개 horizontal — 월이 아니라 전체 최신 3개 */}
             <RecentWalksWidget limit={3} />
+            <NativeAdCard
+              placement={ADS.NATIVE_RECORDS_PLACEMENT}
+              itemCount={walks.length}
+              minItems={ADS.RECORDS_MIN_WALKS}
+            />
           </>
         ) : (
           <View style={styles.listMode}>
@@ -207,12 +214,19 @@ function RecordsContent({
                 </Text>
               </Box>
             ) : (
-              <FootprintTimeline
-                diaries={walks}
-                myName={myName}
-                partnerName={partnerName}
-                onItemPress={handleItemPress}
-              />
+              <>
+                <FootprintTimeline
+                  diaries={walks}
+                  myName={myName}
+                  partnerName={partnerName}
+                  onItemPress={handleItemPress}
+                />
+                <NativeAdCard
+                  placement={ADS.NATIVE_RECORDS_PLACEMENT}
+                  itemCount={walks.length}
+                  minItems={ADS.RECORDS_MIN_WALKS}
+                />
+              </>
             )}
           </View>
         )}

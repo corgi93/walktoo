@@ -15,6 +15,7 @@ import { useGetMeQuery } from "@/hooks/services/user/query";
 import { useNotificationSetup } from "@/hooks/useNotification";
 import { useStepSync } from "@/hooks/useStepSync";
 import { useBackgroundStepSync } from "@/hooks/useBackgroundStepSync";
+import { initAdMob } from "@/lib/ads";
 import "@/lib/i18n"; // i18next 초기화 (side-effect import)
 import { initRevenueCat } from "@/lib/revenuecat";
 import { theme } from "@/styles/theme";
@@ -79,6 +80,7 @@ export default function RootLayout() {
             <NotificationInitializer />
             <StepSyncInitializer />
             <EntitlementInitializer />
+            <AdsInitializer />
             <GlobalLoadingBar />
             <GlobalDialog />
             <Suspense fallback={<LoadingOverlay />}>
@@ -152,6 +154,14 @@ function EntitlementInitializer() {
     startTrial.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id]);
+
+  return null;
+}
+
+function AdsInitializer() {
+  useEffect(() => {
+    void initAdMob();
+  }, []);
 
   return null;
 }

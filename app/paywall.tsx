@@ -16,10 +16,10 @@ import { PREMIUM } from '@/constants/premium';
 import { useMarkPremiumPurchasedMutation } from '@/hooks/services/entitlements/mutation';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import {
-  findLifetimePackage,
+  findPremiumPackage,
   getCurrentOffering,
   isRevenueCatReady,
-  purchaseLifetime,
+  purchasePremium,
   restorePurchases,
 } from '@/lib/revenuecat';
 import { theme } from '@/styles/theme';
@@ -34,7 +34,8 @@ export default function PaywallScreen() {
   const toast = useToast();
   const { t } = useTranslation(['premium', 'common']);
 
-  const { isEntitled, isInTrial, trialEndsAt } = useEntitlement();
+  const { hasPremium, coupleHasPremium, isInTrial, trialEndsAt } =
+    useEntitlement();
   const markPurchased = useMarkPremiumPurchasedMutation();
 
   const [pkg, setPkg] = useState<PurchasesPackage | null>(null);
@@ -51,10 +52,10 @@ export default function PaywallScreen() {
       const offering = await getCurrentOffering();
       if (cancelled) return;
       if (!offering) return;
-      const lifetime = findLifetimePackage(offering);
-      if (lifetime) {
-        setPkg(lifetime);
-        setPriceLabel(lifetime.product.priceString);
+      const premiumPackage = findPremiumPackage(offering);
+      if (premiumPackage) {
+        setPkg(premiumPackage);
+        setPriceLabel(premiumPackage.product.priceString);
       }
     })();
     return () => {
@@ -70,7 +71,7 @@ export default function PaywallScreen() {
       return;
     }
     setIsProcessing(true);
-    const outcome = await purchaseLifetime(pkg);
+    const outcome = await purchasePremium(pkg);
     setIsProcessing(false);
 
     if (outcome.userCancelled) return; // 조용히 닫기
@@ -197,7 +198,7 @@ export default function PaywallScreen() {
         <Box px="xxl" style={styles.priceSection}>
           <PixelCard style={styles.priceCard} bg={theme.colors.primarySurface}>
             <Text variant="caption" color="textMuted" align="center">
-              {t('premium:price.lifetime-label')}
+              {t('premium:price.plan-label')}
             </Text>
             <Text
               variant="displayLarge"
@@ -208,7 +209,7 @@ export default function PaywallScreen() {
               {priceLabel}
             </Text>
             <Text variant="caption" color="primary" align="center" mt="xxs">
-              {t('premium:price.one-time-note')}
+              {t('premium:price.billing-note')}
             </Text>
           </PixelCard>
         </Box>
@@ -229,7 +230,7 @@ export default function PaywallScreen() {
           { paddingBottom: insets.bottom + LAYOUT.headerPy },
         ]}
       >
-        {isEntitled ? (
+        {hasPremium || coupleHasPremium ? (
           <Button
             variant="secondary"
             size="large"
