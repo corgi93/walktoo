@@ -41,6 +41,9 @@ export const authRepository = {
 
   signOut: () => supabase.auth.signOut(),
 
+  /** 계정 삭제 (커플 데이터 보존형 소프트 삭제 RPC) */
+  deleteAccount: () => supabase.rpc('delete_my_account'),
+
   getSession: () => supabase.auth.getSession(),
 
   getUser: () => supabase.auth.getUser(),

@@ -32,6 +32,7 @@ export interface Database {
           has_theme_pack: boolean;
           theme_pack_purchased_at: string | null;
           revenuecat_user_id: string | null;
+          deleted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +53,7 @@ export interface Database {
           has_theme_pack?: boolean;
           theme_pack_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
+          deleted_at?: string | null;
         };
         Update: {
           nickname?: string;
@@ -69,6 +71,7 @@ export interface Database {
           has_theme_pack?: boolean;
           theme_pack_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
+          deleted_at?: string | null;
         };
         Relationships: [];
       };
@@ -480,6 +483,12 @@ export interface Database {
         Returns: {
           success: boolean;
           reason?: 'no_couple' | 'no_credits';
+        };
+      };
+      delete_my_account: {
+        Args: Record<string, never>;
+        Returns: {
+          success: boolean;
         };
       };
       is_entitled: {

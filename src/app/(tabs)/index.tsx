@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from 'react-i18next';
 
-import { Box } from '@/components/base';
+import { Box, Icon, PixelCard, Row, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import {
   FirstMetDatePicker,
@@ -33,13 +33,14 @@ import { getLocalToday } from '@/utils/date';
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { t } = useTranslation(['home']);
+  const { t } = useTranslation(['home', 'couple']);
 
   // 데이터 ────────────────────────────────────────────────
   const {
     me,
     couple,
     isCoupleConnected,
+    isPartnerDeleted,
     myName,
     partnerName,
     partnerId,
@@ -191,6 +192,24 @@ export default function HomeScreen() {
           </Box>
         )}
 
+        {isCoupleConnected && isPartnerDeleted && (
+          <Box px="xxl" style={styles.partnerDeletedWrap}>
+            <PixelCard bg={theme.colors.surfaceWarm}>
+              <Row style={styles.partnerDeletedRow}>
+                <Icon name="heart" size={18} color={theme.colors.textMuted} />
+                <View style={styles.partnerDeletedText}>
+                  <Text variant="bodyMedium">
+                    {t('couple:partner-deleted.home-title', { name: partnerName })}
+                  </Text>
+                  <Text variant="caption" color="textSecondary" mt="xxs">
+                    {t('couple:partner-deleted.home-subtitle')}
+                  </Text>
+                </View>
+              </Row>
+            </PixelCard>
+          </Box>
+        )}
+
         {isCoupleConnected && (
           <WidgetBoard
             firstMetDate={couple?.firstMetDate}
@@ -241,5 +260,16 @@ const styles = StyleSheet.create({
   },
   noCoupleWrap: {
     marginTop: 16,
+  },
+  partnerDeletedWrap: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  partnerDeletedRow: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  partnerDeletedText: {
+    flex: 1,
   },
 });

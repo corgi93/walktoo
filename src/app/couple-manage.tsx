@@ -21,7 +21,7 @@ export default function CoupleManageScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation(['couple', 'common']);
-  const { couple, partner } = usePartnerDerivation();
+  const { couple, partner, isPartnerDeleted } = usePartnerDerivation();
   const updateFirstMetDate = useUpdateFirstMetDateMutation();
   const disconnect = useDisconnectCoupleMutation();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -64,21 +64,37 @@ export default function CoupleManageScreen() {
       <Box px="xxl" style={{ marginTop: 24 }}>
         <PixelCard style={styles.partnerCard}>
           <View style={styles.partnerAvatar}>
-            <Icon name="heart" size={24} color={theme.colors.primary} />
+            <Icon
+              name="heart"
+              size={24}
+              color={isPartnerDeleted ? theme.colors.textMuted : theme.colors.primary}
+            />
           </View>
           <Text variant="headingSmall" mt="md">
             {partner?.nickname ?? t('common:fallback.partner-nickname')}
           </Text>
           <Text variant="caption" color="textSecondary" mt="xs">
-            {t('couple:manage.my-partner')}
+            {isPartnerDeleted
+              ? t('couple:partner-deleted.manage-title')
+              : t('couple:manage.my-partner')}
           </Text>
         </PixelCard>
+
+        {isPartnerDeleted && (
+          <PixelCard style={styles.tombstone} bg={theme.colors.surfaceWarm}>
+            <Text variant="caption" color="textSecondary" style={styles.tombstoneText}>
+              {t('couple:partner-deleted.manage-body', {
+                name: partner?.nickname ?? t('common:fallback.partner-nickname'),
+              })}
+            </Text>
+          </PixelCard>
+        )}
       </Box>
 
       <Box px="xxl" style={{ marginTop: 24 }}>
         <PixelCard style={styles.menuCard}>
           <Pressable
-            style={styles.menuItem}
+            style={[styles.menuItem, isPartnerDeleted && styles.menuItemLast]}
             onPress={() => setShowDatePicker(true)}
           >
             <Row style={{ alignItems: 'center', flex: 1 }}>
@@ -95,18 +111,22 @@ export default function CoupleManageScreen() {
             <Icon name="chevron-right" size={16} color={theme.colors.gray400} />
           </Pressable>
 
-          <Pressable
-            style={[styles.menuItem, styles.menuItemLast]}
-            onPress={handleDisconnect}
-          >
-            <Row style={{ alignItems: 'center', flex: 1 }}>
-              <Icon name="unlink" size={18} color={theme.colors.error} />
-              <Text variant="bodyMedium" color="error" ml="md">
-                {t('couple:manage.unlink-button')}
-              </Text>
-            </Row>
-            <Icon name="chevron-right" size={16} color={theme.colors.gray400} />
-          </Pressable>
+          {/* 상대가 탈퇴한 경우 연결 해제를 숨긴다 — 해제하면 내 couple_id가
+              끊겨 둘이 함께 남긴 기록을 더 이상 볼 수 없게 되기 때문. */}
+          {!isPartnerDeleted && (
+            <Pressable
+              style={[styles.menuItem, styles.menuItemLast]}
+              onPress={handleDisconnect}
+            >
+              <Row style={{ alignItems: 'center', flex: 1 }}>
+                <Icon name="unlink" size={18} color={theme.colors.error} />
+                <Text variant="bodyMedium" color="error" ml="md">
+                  {t('couple:manage.unlink-button')}
+                </Text>
+              </Row>
+              <Icon name="chevron-right" size={16} color={theme.colors.gray400} />
+            </Pressable>
+          )}
         </PixelCard>
       </Box>
 
@@ -148,6 +168,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primarySurface,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tombstone: {
+    marginTop: 12,
+    padding: 16,
+  },
+  tombstoneText: {
+    lineHeight: 18,
   },
   menuCard: {
     padding: 0,

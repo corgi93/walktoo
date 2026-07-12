@@ -29,6 +29,12 @@ export default function SplashAuthScreen() {
           const user = await authService.getCurrentUser();
           if (user) {
             const profile = await couplesService.getMyProfile(user.id);
+            // 소프트 삭제된(탈퇴) 계정이 캐시된 세션으로 되살아나지 않도록 차단
+            if (profile.deletedAt) {
+              await authService.signOut().catch(() => {});
+              router.replace("/login");
+              return;
+            }
             if (!profile.isProfileComplete) {
               router.replace("/profile-setup");
               return;

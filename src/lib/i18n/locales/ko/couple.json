@@ -52,5 +52,12 @@
   "joined-notification": {
     "title": "💞 연인과 연결되었어요",
     "body": "{{name}}님과 함께 산책을 시작해보세요"
+  },
+  "partner-deleted": {
+    "home-title": "{{name}}님이 walkToo를 떠났어요",
+    "home-subtitle": "함께 남긴 산책과 사진은 여기 그대로 있어요",
+    "manage-title": "떠난 연인",
+    "manage-body": "{{name}}님은 계정을 삭제했어요.\n둘이 함께 남긴 기록은 사라지지 않고 계속 볼 수 있어요.",
+    "manage-badge": "탈퇴"
   }
 }

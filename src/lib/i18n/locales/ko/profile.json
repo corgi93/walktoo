@@ -23,7 +23,8 @@
     "calendar": "함께한 시간",
     "upgrade-premium": "기록 업그레이드",
     "stats": "산책 통계",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "delete-account": "계정 삭제"
   },
   "edit": {
     "title": "프로필 수정",
@@ -42,6 +43,13 @@
     "title": "로그아웃",
     "message": "정말 로그아웃 하시겠어요?",
     "confirm": "로그아웃",
+    "cancel": "취소"
+  },
+  "delete-account-confirm": {
+    "title": "계정을 삭제할까요?",
+    "message-couple": "이 작업은 되돌릴 수 없어요.\n\n둘이 함께 남긴 산책·사진·기록은 연인에게 그대로 남아, 연인은 우리의 추억을 계속 볼 수 있어요. 다만 내 계정과 로그인 정보는 영구히 삭제돼요.",
+    "message-solo": "이 작업은 되돌릴 수 없어요.\n\n내 계정과 로그인 정보, 걸음 기록이 영구히 삭제돼요.",
+    "confirm": "계정 삭제",
     "cancel": "취소"
   }
 }

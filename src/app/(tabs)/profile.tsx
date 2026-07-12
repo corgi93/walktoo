@@ -5,7 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, IconName, PixelCard, Row, Text } from '@/components/base';
-import { useLogoutMutation } from '@/hooks/services/auth/mutation';
+import {
+  useDeleteAccountMutation,
+  useLogoutMutation,
+} from '@/hooks/services/auth/mutation';
 import { useCoupleStatsQuery } from '@/hooks/services/couple/query';
 import { useTotalStampsQuery } from '@/hooks/services/stamps/query';
 import { useGetMeQuery } from '@/hooks/services/user/query';
@@ -25,6 +28,7 @@ export default function ProfileScreen() {
   const { data: me } = useGetMeQuery();
   const { data: stats } = useCoupleStatsQuery();
   const logout = useLogoutMutation();
+  const deleteAccount = useDeleteAccountMutation();
   const { refreshing, onRefresh } = useRefresh();
   const { isEntitled } = useEntitlement();
 
@@ -41,6 +45,22 @@ export default function ProfileScreen() {
         text: t('logout-confirm.confirm'),
         style: 'destructive',
         onPress: () => logout.mutate(),
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    if (deleteAccount.isPending) return;
+    // 커플 여부에 따라 안내 문구를 다르게 — 연인이 있으면 "상대에게 기록이 남는다"를 강조.
+    const message = hasCoupleId
+      ? t('delete-account-confirm.message-couple')
+      : t('delete-account-confirm.message-solo');
+    Alert.alert(t('delete-account-confirm.title'), message, [
+      { text: t('delete-account-confirm.cancel'), style: 'cancel' },
+      {
+        text: t('delete-account-confirm.confirm'),
+        style: 'destructive',
+        onPress: () => deleteAccount.mutate(),
       },
     ]);
   };
@@ -196,8 +216,14 @@ export default function ProfileScreen() {
               iconName="log-out"
               label={t('menu.logout')}
               isDestructive
-              isLast
               onPress={handleLogout}
+            />
+            <MenuItem
+              iconName="trash"
+              label={t('menu.delete-account')}
+              isDestructive
+              isLast
+              onPress={handleDeleteAccount}
             />
           </PixelCard>
         </Box>

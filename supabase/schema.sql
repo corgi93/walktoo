@@ -33,10 +33,16 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   has_theme_pack        BOOLEAN NOT NULL DEFAULT false,
   theme_pack_purchased_at TIMESTAMPTZ,
   revenuecat_user_id    TEXT,
+  -- 계정 삭제(소프트). NULL이면 활성 계정.
+  deleted_at            TIMESTAMPTZ,
   --
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- 기존 배포용 idempotent 컬럼 추가 (계정 삭제 소프트 마커)
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- 1-2. couples (커플)
 CREATE TABLE IF NOT EXISTS public.couples (
@@ -1006,6 +1012,47 @@ END;
 $$;
 
 
+-- 계정 삭제 (커플 데이터 보존형 소프트 삭제)
+--   하드 삭제 시 FK CASCADE로 커플/공유 기록이 연쇄 삭제되므로, 한 명이 떠나도
+--   남은 상대가 둘의 추억을 계속 볼 수 있도록 소프트 삭제로 구현한다.
+--   자세한 근거는 supabase/account_deletion.sql 주석 참고.
+CREATE OR REPLACE FUNCTION public.delete_my_account()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+
+  -- (1) 프로필 소프트 삭제 + PII 제거. 닉네임·캐릭터·사진은 공유 기록의
+  --     일부라 남기고, couple_id도 유지한다(남은 상대의 조회 권한 보존).
+  UPDATE public.profiles
+  SET deleted_at         = COALESCE(deleted_at, now()),
+      phone              = '',
+      push_token         = NULL,
+      revenuecat_user_id = NULL
+  WHERE id = v_uid;
+
+  -- (2) 개인 전용(비공유) 데이터만 삭제.
+  DELETE FROM public.daily_steps   WHERE user_id = v_uid;
+  DELETE FROM public.notifications WHERE recipient_id = v_uid;
+
+  -- (3) 로그인 영구 차단 + auth PII 제거.
+  DELETE FROM auth.identities WHERE user_id = v_uid;
+  UPDATE auth.users
+  SET email              = 'deleted+' || v_uid::text || '@deleted.walktoo.app',
+      phone              = NULL,
+      raw_user_meta_data = '{}'::jsonb,
+      banned_until       = now() + interval '100 years'
+  WHERE id = v_uid;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+
 -- ────────────────────────────────────────────────────────────
 -- 7. GRANTS
 -- ────────────────────────────────────────────────────────────
@@ -1018,3 +1065,4 @@ GRANT EXECUTE ON FUNCTION public.redeem_stamps_for_book()       TO authenticated
 GRANT EXECUTE ON FUNCTION public.consume_book_credit()          TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_entitled()                  TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_reflection_progress(UUID)  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_my_account()            TO authenticated;
