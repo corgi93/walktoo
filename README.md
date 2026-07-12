@@ -7,5 +7,5 @@
 ### screenshot
 
 <p align="center">
-  <img src="assets/screenshots/login.png" width="280" />
+  <img src="src/assets/screenshots/login.png" width="280" />
 </p>

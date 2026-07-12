@@ -1,0 +1,109 @@
+{
+  "app-name": "walkToo",
+  "dday": {
+    "set-prompt": "처음 만난 날을 설정해주세요",
+    "met-text": "만난 지",
+    "format": "D+{{days}}",
+    "picker-title": "처음 만난 날이 언제인가요?"
+  },
+  "steps": {
+    "today": "오늘의 걸음",
+    "today-label": "오늘의 걸음",
+    "goal-suffix": "/ {{goal}}"
+  },
+  "today": {
+    "done": "기록됨",
+    "waiting-reveal": "둘 다 쓰면 열려요",
+    "empty-mine": "셀카로 보내기",
+    "empty-partner": "기다리는 중…"
+  },
+  "timeline": {
+    "title": "추억의 발자국",
+    "stamp-count": "{{count}}개의 기록"
+  },
+  "photobooth": {
+    "title": "포토부스",
+    "hint": "사진 꾸미기"
+  },
+  "memory-draw": {
+    "title": "추억 뽑기",
+    "subtitle": "오늘의 한 장면을 뽑아봐",
+    "cta": "TAP",
+    "count": "{{count}}개의 추억",
+    "screen-title": "추억 뽑기",
+    "screen-sub": "지나간 한 장면을 다시 만나봐",
+    "empty-title": "아직 뽑을 추억이 없어요",
+    "empty-hint": "산책 기록을 남기면 여기서 다시 만날 수 있어요",
+    "empty-cta": "오늘의 산책 기록하기",
+    "rolling": "✦ 뽑는 중..",
+    "again": "다시 뽑기 ♡",
+    "open": "이 산책 보기",
+    "no-photo": "사진 없이 글로 남긴 날",
+    "no-teaser": "그날의 이야기를 기다리는 중…",
+    "q-prefix": "Q.",
+    "card-stamp": "MEMORY #{{num}}"
+  },
+  "mission": {
+    "title": "오늘의 미션",
+    "progress-percent": "{{percent}}%",
+    "claim-button": "추억의 발자국 받기 (+{{count}})",
+    "claim-done": "오늘의 발자국 수집 완료"
+  },
+  "stamp": {
+    "claim-success": "추억의 발자국 {{count}}개를 받았어요! 🐾",
+    "claim-already": "오늘의 발자국은 이미 받았어요",
+    "claim-failed": "발자국을 받지 못했어요"
+  },
+  "recent-walks": {
+    "title": "최근 산책",
+    "status-both": "둘 다 완료",
+    "status-me-only": "나만 완료",
+    "status-partner-only": "상대만 완료",
+    "status-none": "둘 다 안 씀",
+    "status-revealed": "둘 다 완료",
+    "status-pending": "나만 완료"
+  },
+  "recent-walks-section": {
+    "title": "최근 산책",
+    "empty": "아직 산책 기록이 없어요"
+  },
+  "recent-notifications": {
+    "title": "최근 알림"
+  },
+  "cta": {
+    "create-walk": "오늘의 산책 기록하기"
+  },
+  "solo": {
+    "no-partner": "아직 내 사람이 없어요",
+    "connect-prompt": "연결하면 둘만의 산책이 시작돼요"
+  },
+  "tab": {
+    "home": "홈",
+    "records": "우리 기록",
+    "planner": "공유",
+    "profile": "마이"
+  },
+  "unified-mission": {
+    "title": "오늘 우리의 걸음",
+    "solo-title": "오늘의 걸음",
+    "progress-percent": "{{percent}}%",
+    "goal-suffix": "/ {{goal}}",
+    "steps-unit": "걸음",
+    "kcal-unit": "{{value}} kcal",
+    "claim-button": "추억의 발자국 받기 (+{{count}})",
+    "claim-done": "오늘 발자국 받기 완료"
+  },
+  "nudge": {
+    "title": "{{name}} 콕 찌르기 🫟",
+    "description": "오늘 하루 한 번만 알림을 보낼 수 있어요.",
+    "confirm": "콕 찌르기",
+    "already-sent": "오늘은 이미 콕 찔렀어요 🤏"
+  },
+  "records-tab": {
+    "title": "기록",
+    "walks-section-title": "이 달의 산책",
+    "walks-empty": "이 달엔 아직 산책 기록이 없어요",
+    "picker-title": "월 선택",
+    "picker-today": "이번 달"
+  }
+}

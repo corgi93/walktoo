@@ -1,0 +1,29 @@
+{
+  "title": "함께한 시간",
+  "weekdays": {
+    "0": "일",
+    "1": "월",
+    "2": "화",
+    "3": "수",
+    "4": "목",
+    "5": "금",
+    "6": "토"
+  },
+  "month-label": "{{year}}년 {{month}}월",
+  "today": "오늘",
+  "summary": {
+    "title": "이 달의 우리",
+    "walks": "산책 {{count}}번",
+    "stamps": "발자국 {{count}}개"
+  },
+  "strip": {
+    "walks": "산책 {{count}}",
+    "stamps": "발자국 {{count}}"
+  },
+  "cta": {
+    "create-walk": "오늘의 산책 기록하기"
+  },
+  "no-couple-title": "함께 기록할 사람이 없어요",
+  "no-couple-description": "먼저 연인과 연결해주세요",
+  "empty-month": "이 달은 아직 기록이 없어요"
+}

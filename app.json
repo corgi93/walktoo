@@ -4,12 +4,12 @@
     "slug": "walktoo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/appstore.png",
+    "icon": "./src/assets/images/appstore.png",
     "scheme": "walktoo",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./src/assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F6E9E1"
     },
@@ -25,6 +25,8 @@
         "NSMotionUsageDescription": "걸음수를 측정하기 위해 모션 데이터 접근이 필요합니다.",
         "NSLocationWhenInUseUsageDescription": "함께 걷는 경로를 기록하기 위해 위치 접근이 필요합니다.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 걷기 경로를 기록하기 위해 위치 접근이 필요합니다.",
+        "NSCameraUsageDescription": "오늘의 나를 가볍게 기록하기 위해 카메라 접근이 필요합니다.",
+        "NSMicrophoneUsageDescription": "5초 영상에 소리를 함께 담기 위해 마이크 접근이 필요합니다.",
         "UIBackgroundModes": [
           "fetch",
           "processing"
@@ -33,7 +35,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-foreground.png",
+        "foregroundImage": "./src/assets/images/adaptive-foreground.png",
         "backgroundColor": "#F6E9E1"
       },
       "edgeToEdgeEnabled": true,
@@ -55,7 +57,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./src/assets/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -65,7 +67,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/appstore.png",
+          "icon": "./src/assets/images/appstore.png",
           "color": "#E07A5F"
         }
       ],
@@ -75,6 +77,15 @@
           "photosPermission": "Allow walkToo to access your photos."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "오늘의 나를 가볍게 기록하기 위해 카메라 접근이 필요합니다.",
+          "microphonePermission": "5초 영상에 소리를 함께 담기 위해 마이크 접근이 필요합니다.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-video",
       [
         "expo-location",
         {

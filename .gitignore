@@ -28,6 +28,9 @@ yarn-error.*
 
 # macOS
 .DS_Store
+
+# Diary texture candidates — local preview, not committed
+assets/diary/textures/_candidates/
 *.pem
 
 # local env files

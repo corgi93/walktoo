@@ -29,8 +29,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   push_token            TEXT,
   -- premium
   has_premium           BOOLEAN NOT NULL DEFAULT false,
-  premium_trial_ends_at TIMESTAMPTZ,
   premium_purchased_at  TIMESTAMPTZ,
+  has_theme_pack        BOOLEAN NOT NULL DEFAULT false,
+  theme_pack_purchased_at TIMESTAMPTZ,
   revenuecat_user_id    TEXT,
   --
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -48,6 +49,8 @@ CREATE TABLE IF NOT EXISTS public.couples (
   -- premium (공유)
   has_premium          BOOLEAN NOT NULL DEFAULT false,
   premium_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  has_theme_pack          BOOLEAN NOT NULL DEFAULT false,
+  theme_pack_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   --
   created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -64,24 +67,73 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 1-3. walks (산책)
+-- 1-3. walks (산책/하루 기록)
+--   kind:
+--     'together' — 커플이 함께 보낸 날 (데이트/산책)
+--     'each'     — 각자의 하루 (회사·친구·휴식 등)
+--   기존 레코드는 전부 'together'로 backfill (과거 기록 = 데이트가 맞음)
 CREATE TABLE IF NOT EXISTS public.walks (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   couple_id     UUID NOT NULL REFERENCES public.couples(id) ON DELETE CASCADE,
   date          DATE NOT NULL,
   location_name TEXT NOT NULL,
+  location_lat  DOUBLE PRECISION,
+  location_lng  DOUBLE PRECISION,
+  location_address TEXT,
+  location_source TEXT CHECK (location_source IS NULL OR location_source IN ('naver', 'google')),
   steps         INTEGER NOT NULL DEFAULT 0,
   is_revealed   BOOLEAN NOT NULL DEFAULT false,
+  kind          TEXT NOT NULL DEFAULT 'together'
+                CHECK (kind IN ('together', 'each')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 기존 배포를 위한 idempotent migration
+ALTER TABLE public.walks
+  ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'together';
+
+ALTER TABLE public.walks
+  ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_address TEXT,
+  ADD COLUMN IF NOT EXISTS location_source TEXT;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'walks_location_source_check'
+  ) THEN
+    ALTER TABLE public.walks
+      ADD CONSTRAINT walks_location_source_check
+      CHECK (location_source IS NULL OR location_source IN ('naver', 'google'));
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'walks_kind_check'
+  ) THEN
+    ALTER TABLE public.walks
+      ADD CONSTRAINT walks_kind_check CHECK (kind IN ('together', 'each'));
+  END IF;
+END $$;
+
 -- 1-4. footprint_entries (발자취 엔트리)
+--   location_name: kind='each'일 때 각자 장소 (회사/카페/집 등)
+--                  kind='together'일 때는 walks.location_name이 authoritative,
+--                  이 컬럼은 비워둠(빈 문자열)
 CREATE TABLE IF NOT EXISTS public.footprint_entries (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   walk_id            UUID NOT NULL REFERENCES public.walks(id) ON DELETE CASCADE,
   user_id            UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   memo               TEXT NOT NULL DEFAULT '',
   photos             TEXT[] NOT NULL DEFAULT '{}',
+  location_name      TEXT NOT NULL DEFAULT '',
+  location_lat       DOUBLE PRECISION,
+  location_lng       DOUBLE PRECISION,
+  location_address   TEXT,
+  location_source    TEXT CHECK (location_source IS NULL OR location_source IN ('naver', 'google')),
   diary_question_id  INTEGER,
   diary_answer       TEXT NOT NULL DEFAULT '',
   couple_question_id INTEGER,
@@ -89,6 +141,27 @@ CREATE TABLE IF NOT EXISTS public.footprint_entries (
   written_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(walk_id, user_id)
 );
+
+-- 기존 배포를 위한 idempotent migration
+ALTER TABLE public.footprint_entries
+  ADD COLUMN IF NOT EXISTS location_name TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE public.footprint_entries
+  ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS location_address TEXT,
+  ADD COLUMN IF NOT EXISTS location_source TEXT;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'footprint_entries_location_source_check'
+  ) THEN
+    ALTER TABLE public.footprint_entries
+      ADD CONSTRAINT footprint_entries_location_source_check
+      CHECK (location_source IS NULL OR location_source IN ('naver', 'google'));
+  END IF;
+END $$;
 
 -- 1-5. notifications (알림)
 CREATE TABLE IF NOT EXISTS public.notifications (
@@ -154,6 +227,25 @@ CREATE TABLE IF NOT EXISTS public.couple_schedules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 1-11. couple_memos (커플 공유 메모장)
+CREATE TABLE IF NOT EXISTS public.couple_memos (
+  couple_id  UUID PRIMARY KEY REFERENCES public.couples(id) ON DELETE CASCADE,
+  content    TEXT NOT NULL DEFAULT '' CHECK (char_length(content) <= 5000),
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 1-13. couple_book_credits (회고북 크레딧 — 결제 구매 + 스탬프 교환 합산)
+--   credits_remaining: 아직 안 쓴 회고북 뽑기 권수
+--   stamps_redeemed_year: 해당 연도에 스탬프로 교환한 권수 (연 상한 체크용)
+CREATE TABLE IF NOT EXISTS public.couple_book_credits (
+  couple_id             UUID PRIMARY KEY REFERENCES public.couples(id) ON DELETE CASCADE,
+  credits_remaining     INTEGER NOT NULL DEFAULT 0,
+  stamps_redeemed_year  INTEGER NOT NULL DEFAULT 0,
+  last_redemption_year  INTEGER,
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- 1-11. reflection_answers (회고 답변)
 CREATE TABLE IF NOT EXISTS public.reflection_answers (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -198,6 +290,8 @@ ALTER TABLE public.memory_stamps       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.monthly_reflections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reflection_answers  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.couple_schedules    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.couple_memos        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.couple_book_credits     ENABLE ROW LEVEL SECURITY;
 
 -- 멱등 RLS 헬퍼: 있으면 DROP → 재생성
 -- (CREATE POLICY에는 IF NOT EXISTS가 없어서 DO 블록으로 처리)
@@ -401,6 +495,39 @@ DO $$ BEGIN
   CREATE POLICY "couple_schedules_delete" ON public.couple_schedules
     FOR DELETE USING (owner_id = auth.uid());
 
+  -- ── couple_memos ──
+  DROP POLICY IF EXISTS "couple_memos_select" ON public.couple_memos;
+  CREATE POLICY "couple_memos_select" ON public.couple_memos
+    FOR SELECT USING (
+      couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  DROP POLICY IF EXISTS "couple_memos_insert" ON public.couple_memos;
+  CREATE POLICY "couple_memos_insert" ON public.couple_memos
+    FOR INSERT WITH CHECK (
+      updated_by = auth.uid()
+      AND couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  DROP POLICY IF EXISTS "couple_memos_update" ON public.couple_memos;
+  CREATE POLICY "couple_memos_update" ON public.couple_memos
+    FOR UPDATE USING (
+      couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    )
+    WITH CHECK (
+      updated_by = auth.uid()
+      AND couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  -- ── couple_book_credits ──
+  DROP POLICY IF EXISTS "book_credits_select" ON public.couple_book_credits;
+  CREATE POLICY "book_credits_select" ON public.couple_book_credits
+    FOR SELECT USING (
+      couple_id = (SELECT couple_id FROM public.profiles WHERE id = auth.uid())
+    );
+
+  -- INSERT/UPDATE는 RPC (add/redeem/consume) 전용.
+
 END $$;
 
 -- couple_schedules updated_at 트리거
@@ -412,6 +539,16 @@ DROP TRIGGER IF EXISTS trg_couple_schedules_updated_at ON public.couple_schedule
 CREATE TRIGGER trg_couple_schedules_updated_at
   BEFORE UPDATE ON public.couple_schedules
   FOR EACH ROW EXECUTE FUNCTION public.set_couple_schedules_updated_at();
+
+-- couple_memos updated_at 트리거
+CREATE OR REPLACE FUNCTION public.set_couple_memos_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$;
+DROP TRIGGER IF EXISTS trg_couple_memos_updated_at ON public.couple_memos;
+CREATE TRIGGER trg_couple_memos_updated_at
+  BEFORE UPDATE ON public.couple_memos
+  FOR EACH ROW EXECUTE FUNCTION public.set_couple_memos_updated_at();
 
 
 -- ────────────────────────────────────────────────────────────
@@ -670,22 +807,6 @@ BEGIN
 END;
 $$;
 
--- 6-7. 프리미엄 트라이얼 시작
-CREATE OR REPLACE FUNCTION public.start_trial_if_needed()
-RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_existing TIMESTAMPTZ;
-BEGIN
-  SELECT premium_trial_ends_at INTO v_existing FROM public.profiles WHERE id = auth.uid();
-  IF v_existing IS NOT NULL THEN
-    RETURN jsonb_build_object('started', false, 'trial_ends_at', v_existing);
-  END IF;
-  UPDATE public.profiles SET premium_trial_ends_at = now() + interval '7 days'
-  WHERE id = auth.uid() RETURNING premium_trial_ends_at INTO v_existing;
-  RETURN jsonb_build_object('started', true, 'trial_ends_at', v_existing);
-END;
-$$;
-
 -- 6-8. 프리미엄 구매 마킹
 CREATE OR REPLACE FUNCTION public.mark_premium_purchased(p_revenuecat_user_id TEXT)
 RETURNS jsonb
@@ -705,20 +826,181 @@ BEGIN
 END;
 $$;
 
+-- 6-8b. 여행 무드 테마팩 구매 마킹 (기록 업그레이드와 별도 non-consumable)
+CREATE OR REPLACE FUNCTION public.mark_theme_pack_purchased(p_revenuecat_user_id TEXT)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_couple_id UUID;
+BEGIN
+  UPDATE public.profiles
+  SET has_theme_pack = true,
+      theme_pack_purchased_at = COALESCE(theme_pack_purchased_at, now()),
+      revenuecat_user_id = p_revenuecat_user_id
+  WHERE id = auth.uid() RETURNING couple_id INTO v_couple_id;
+  IF v_couple_id IS NOT NULL THEN
+    UPDATE public.couples SET has_theme_pack = true, theme_pack_purchaser_id = auth.uid()
+    WHERE id = v_couple_id;
+  END IF;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- ─── 회고북 크레딧 ─────────────────────────────────────
+
+-- 6-10. 회고북 크레딧 조회 (없으면 0으로 간주)
+CREATE OR REPLACE FUNCTION public.get_book_credits()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_credits INTEGER := 0;
+  v_redeemed INTEGER := 0;
+  v_year INTEGER;
+  v_last_year INTEGER;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('credits', 0, 'redeemed_this_year', 0);
+  END IF;
+  SELECT credits_remaining, stamps_redeemed_year, last_redemption_year
+  INTO v_credits, v_redeemed, v_last_year
+  FROM public.couple_book_credits WHERE couple_id = v_couple_id;
+  v_year := EXTRACT(YEAR FROM now())::INTEGER;
+  -- 해가 바뀌면 자동으로 0으로 리셋 (stale row)
+  IF v_last_year IS DISTINCT FROM v_year THEN
+    v_redeemed := 0;
+  END IF;
+  RETURN jsonb_build_object(
+    'credits', COALESCE(v_credits, 0),
+    'redeemed_this_year', COALESCE(v_redeemed, 0)
+  );
+END;
+$$;
+
+-- 6-11. 결제 성공 시 크레딧 추가 (클라이언트에서 RC 결제 완료 후 호출)
+--       count: 단권=1, 3권팩=3
+CREATE OR REPLACE FUNCTION public.add_book_credits(p_count INTEGER)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_year INTEGER;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  IF p_count < 1 OR p_count > 10 THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'invalid_count');
+  END IF;
+  v_year := EXTRACT(YEAR FROM now())::INTEGER;
+  INSERT INTO public.couple_book_credits (couple_id, credits_remaining, last_redemption_year)
+  VALUES (v_couple_id, p_count, v_year)
+  ON CONFLICT (couple_id) DO UPDATE SET
+    credits_remaining = public.couple_book_credits.credits_remaining + p_count,
+    updated_at = now();
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 6-12. 스탬프로 회고북 크레딧 교환 (1,000 스탬프 = 1권, 연 2권 한도)
+CREATE OR REPLACE FUNCTION public.redeem_stamps_for_book()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_total_stamps INTEGER;
+  v_redeemed INTEGER := 0;
+  v_year INTEGER;
+  v_last_year INTEGER;
+  v_annual_cap CONSTANT INTEGER := 2;
+  v_cost_per_book CONSTANT INTEGER := 1000;
+  v_already_consumed_stamps INTEGER;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  v_year := EXTRACT(YEAR FROM now())::INTEGER;
+  SELECT stamps_redeemed_year, last_redemption_year
+  INTO v_redeemed, v_last_year
+  FROM public.couple_book_credits WHERE couple_id = v_couple_id;
+  -- 연 변경 시 카운터 리셋
+  IF v_last_year IS DISTINCT FROM v_year THEN
+    v_redeemed := 0;
+  END IF;
+  IF v_redeemed >= v_annual_cap THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'annual_cap_reached');
+  END IF;
+  -- 가용 스탬프 확인 (이미 교환한 만큼은 차감된 것으로 간주)
+  SELECT COALESCE(SUM(count), 0) INTO v_total_stamps
+    FROM public.memory_stamps WHERE couple_id = v_couple_id;
+  -- 이미 교환에 쓴 스탬프: 같은 해 교환 횟수 × cost
+  -- (모든 연도 합산 아닌 누적 기준 — 단순화: 교환 시점 기준 가능여부만 체크)
+  v_already_consumed_stamps := 0; -- 실질적으로 스탬프는 감소시키지 않고, 교환 횟수만 cap
+  -- 대신: "현재 스탬프 >= (교환 예정 cost)" + 연 cap 체크
+  IF v_total_stamps < v_cost_per_book * (v_redeemed + 1) THEN
+    RETURN jsonb_build_object(
+      'success', false, 'reason', 'insufficient_stamps',
+      'required', v_cost_per_book * (v_redeemed + 1),
+      'current', v_total_stamps
+    );
+  END IF;
+  -- 크레딧 추가 + 카운터 증가
+  INSERT INTO public.couple_book_credits (
+    couple_id, credits_remaining, stamps_redeemed_year, last_redemption_year
+  )
+  VALUES (v_couple_id, 1, 1, v_year)
+  ON CONFLICT (couple_id) DO UPDATE SET
+    credits_remaining = public.couple_book_credits.credits_remaining + 1,
+    stamps_redeemed_year = (
+      CASE WHEN public.couple_book_credits.last_redemption_year IS DISTINCT FROM v_year
+           THEN 1
+           ELSE public.couple_book_credits.stamps_redeemed_year + 1 END
+    ),
+    last_redemption_year = v_year,
+    updated_at = now();
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 6-13. 회고북 뽑기 시 크레딧 소비
+CREATE OR REPLACE FUNCTION public.consume_book_credit()
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_couple_id UUID;
+  v_credits INTEGER := 0;
+BEGIN
+  SELECT couple_id INTO v_couple_id FROM public.profiles WHERE id = auth.uid();
+  IF v_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  SELECT credits_remaining INTO v_credits
+    FROM public.couple_book_credits WHERE couple_id = v_couple_id;
+  IF COALESCE(v_credits, 0) < 1 THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_credits');
+  END IF;
+  UPDATE public.couple_book_credits
+    SET credits_remaining = credits_remaining - 1, updated_at = now()
+    WHERE couple_id = v_couple_id;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
 -- 6-9. 프리미엄 자격 확인
 CREATE OR REPLACE FUNCTION public.is_entitled()
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
 DECLARE
-  v_trial_ends TIMESTAMPTZ; v_my_premium BOOLEAN; v_couple_premium BOOLEAN;
+  v_my_premium BOOLEAN; v_couple_premium BOOLEAN;
 BEGIN
-  SELECT premium_trial_ends_at, has_premium INTO v_trial_ends, v_my_premium
+  SELECT has_premium INTO v_my_premium
   FROM public.profiles WHERE id = auth.uid();
   IF v_my_premium THEN RETURN true; END IF;
   SELECT c.has_premium INTO v_couple_premium FROM public.couples c
   JOIN public.profiles p ON p.couple_id = c.id WHERE p.id = auth.uid() LIMIT 1;
   IF COALESCE(v_couple_premium, false) THEN RETURN true; END IF;
-  IF v_trial_ends IS NOT NULL AND v_trial_ends > now() THEN RETURN true; END IF;
   RETURN false;
 END;
 $$;
@@ -728,7 +1010,11 @@ $$;
 -- 7. GRANTS
 -- ────────────────────────────────────────────────────────────
 
-GRANT EXECUTE ON FUNCTION public.start_trial_if_needed()        TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT)   TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_theme_pack_purchased(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_book_credits()             TO authenticated;
+GRANT EXECUTE ON FUNCTION public.add_book_credits(INTEGER)      TO authenticated;
+GRANT EXECUTE ON FUNCTION public.redeem_stamps_for_book()       TO authenticated;
+GRANT EXECUTE ON FUNCTION public.consume_book_credit()          TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_entitled()                  TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_reflection_progress(UUID)  TO authenticated;

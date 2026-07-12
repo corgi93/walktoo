@@ -188,7 +188,7 @@ $$;
 
 ### `useStepSync` — 주기적 서버 업로드
 
-`app/_layout.tsx`에서 한 번만 호출되어 앱 전체에서 백그라운드로 동작합니다.
+`src/app/_layout.tsx`에서 한 번만 호출되어 앱 전체에서 백그라운드로 동작합니다.
 
 ```ts
 const SYNC_INTERVAL = 60_000;
@@ -330,12 +330,12 @@ queryKey: [...QUERY_KEYS.steps.partner, partnerId]
 
 ## 관련 파일
 
-- `server/daily-steps/daily-steps.service.ts` — 서비스 레이어 (RPC + fallback)
-- `hooks/useStepSync.ts` — 주기 업로드
-- `hooks/usePedometer.ts` — 센서 추상화
-- `hooks/services/steps/query.ts` — React Query 훅
-- `hooks/services/steps/mutation.ts` — upsert mutation
+- `src/server/daily-steps/daily-steps.service.ts` — 서비스 레이어 (RPC + fallback)
+- `src/hooks/useStepSync.ts` — 주기 업로드
+- `src/hooks/usePedometer.ts` — 센서 추상화
+- `src/hooks/services/steps/query.ts` — React Query 훅
+- `src/hooks/services/steps/mutation.ts` — upsert mutation
 - `supabase/003_daily_steps.sql` — 테이블/RLS
 - `supabase/006_fix_daily_steps_rls.sql` — RLS 수정
 - `supabase/007_get_partner_steps_rpc.sql` — RPC 함수
-- `app/(tabs)/index.tsx` — 홈 화면 (내/상대방/미션 표시)
+- `src/app/(tabs)/index.tsx` — 홈 화면 (내/상대방/미션 표시)
