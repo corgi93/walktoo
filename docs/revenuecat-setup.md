@@ -86,7 +86,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
    - 각 product를 해당 entitlement에 attach (기록 업그레이드 ↔ record_upgrade, 테마팩 ↔ theme_pack)
 5. **Offerings**:
    - 기본 offering이 `default` 이름으로 자동 생성됨
-   - **Packages**: `Lifetime` 패키지에 기록 업그레이드 product attach
+   - **Packages**: 기록 업그레이드 product attach
    - 테마팩은 `default` offering에 custom package(`theme_pack`)로 추가하거나 별도 offering에 둔다
      — 클라이언트(`getThemePackPackage`)는 전체 offering을 훑어 product ID로 찾으므로 어디에 둬도 동작한다
    - **Mark as current** 체크

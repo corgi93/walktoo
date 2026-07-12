@@ -20,10 +20,10 @@ import {
 } from '@/hooks/services/entitlements/mutation';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import {
-  findLifetimePackage,
+  findRecordUpgradePackage,
   getCurrentOffering,
   isRevenueCatReady,
-  purchaseLifetime,
+  purchaseRecordUpgrade,
   restorePurchases,
 } from '@/lib/revenuecat';
 import { theme } from '@/styles/theme';
@@ -38,7 +38,7 @@ export default function PaywallScreen() {
   const markPremium = useMarkPremiumPurchasedMutation();
   const markThemePack = useMarkThemePackPurchasedMutation();
 
-  const [lifetimePackage, setLifetimePackage] =
+  const [recordUpgradePackage, setRecordUpgradePackage] =
     useState<PurchasesPackage | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -48,7 +48,7 @@ export default function PaywallScreen() {
     (async () => {
       const offering = await getCurrentOffering();
       if (cancelled || !offering) return;
-      setLifetimePackage(findLifetimePackage(offering));
+      setRecordUpgradePackage(findRecordUpgradePackage(offering));
     })();
     return () => {
       cancelled = true;
@@ -56,7 +56,7 @@ export default function PaywallScreen() {
   }, []);
 
   const price =
-    lifetimePackage?.product.priceString ??
+    recordUpgradePackage?.product.priceString ??
     `₩${PREMIUM.PRICE_KRW.toLocaleString('ko-KR')}`;
 
   const handlePurchase = async () => {
@@ -65,13 +65,13 @@ export default function PaywallScreen() {
       toast.info(t('premium:result.already-owned'));
       return;
     }
-    if (!isRevenueCatReady() || !lifetimePackage) {
+    if (!isRevenueCatReady() || !recordUpgradePackage) {
       toast.error(t('premium:result.sdk-unavailable'));
       return;
     }
 
     setIsPurchasing(true);
-    const outcome = await purchaseLifetime(lifetimePackage);
+    const outcome = await purchaseRecordUpgrade(recordUpgradePackage);
     if (outcome.userCancelled) {
       setIsPurchasing(false);
       return;
@@ -161,7 +161,7 @@ export default function PaywallScreen() {
 
         <PixelCard style={styles.priceCard} bg={theme.colors.primarySurface}>
           <Text variant="caption" color="primary" align="center">
-            {t('premium:price.lifetime-label')}
+            {t('premium:price.upgrade-label')}
           </Text>
           <Text variant="displayMedium" color="primary" align="center" mt="sm">
             {price}

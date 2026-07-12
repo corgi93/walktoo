@@ -14,7 +14,7 @@
   "theme-pack": {
     "title": "여행 무드 테마팩",
     "description": "삿포로 필름 · 홍콩 야경 · 도쿄 레코드샵 테마를 모두 열어요",
-    "note": "한 번 결제로 커플 둘 다, 영구 소장",
+    "note": "한 번 결제로 커플 둘 다 사용할 수 있어요",
     "preview-hint": "잠긴 테마도 적용해보고, 마음에 들면 저장할 때 열 수 있어요",
     "purchased": "테마팩이 열렸어요 ✨ 이제 모든 테마를 쓸 수 있어요",
     "gate-title": "이 테마로 남길까요?",
@@ -23,8 +23,8 @@
     "gate-free-save": "무료 테마로 저장"
   },
   "price": {
-    "lifetime-label": "1회성 커플 업그레이드",
-    "lifetime-value": "₩{{price}}",
+    "upgrade-label": "1회성 커플 업그레이드",
+    "upgrade-value": "₩{{price}}",
     "one-time-note": "둘 중 한 명만 결제하면 함께 적용돼요"
   },
   "actions": {

@@ -111,14 +111,11 @@ export const getCurrentOffering = async (): Promise<PurchasesOffering | null> =>
 
 /**
  * 현재 offering에서 기록 업그레이드 1회성 패키지를 찾는다.
- * 우선순위:
- * 1. lifetime package
- * 2. PRODUCT_ID와 일치하는 패키지
+ * RevenueCat 기본 패키지 타입 또는 product ID 매칭을 모두 지원한다.
  */
-export const findLifetimePackage = (
+export const findRecordUpgradePackage = (
   offering: PurchasesOffering,
 ): PurchasesPackage | null => {
-  if (offering.lifetime) return offering.lifetime;
   const matched = offering.availablePackages.find(
     (p) => p.product.identifier === PREMIUM.PRODUCT_ID,
   );
@@ -190,7 +187,7 @@ const purchaseWithEntitlement = async (
   }
 };
 
-export const purchaseLifetime = (
+export const purchaseRecordUpgrade = (
   pkg: PurchasesPackage,
 ): Promise<PurchaseOutcome> =>
   purchaseWithEntitlement(pkg, PREMIUM.ENTITLEMENT_ID);
