@@ -211,7 +211,11 @@ export default function ProfileScreen() {
                 onPress={() => router.push('/couple-manage')}
               />
             ) : (
-              <MenuItem iconName="link" label={t('menu.couple-connect')} />
+              <MenuItem
+                iconName="link"
+                label={t('menu.couple-connect')}
+                onPress={() => router.push('/(tabs)')}
+              />
             )}
             <MenuItem
               iconName="file-text"

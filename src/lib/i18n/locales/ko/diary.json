@@ -1,4 +1,11 @@
 {
+  "delete": {
+    "confirm-title": "이 기록을 삭제할까요?",
+    "confirm-message": "사진과 메모가 함께 사라지고 되돌릴 수 없어요. 연인의 화면에서도 삭제돼요.",
+    "confirm-button": "삭제",
+    "success": "기록을 삭제했어요",
+    "failed": "삭제에 실패했어요. 잠시 후 다시 시도해주세요"
+  },
   "list": {
     "title": "산책 기록",
     "view-mode-timeline": "타임라인",
