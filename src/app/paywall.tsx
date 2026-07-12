@@ -181,32 +181,7 @@ export default function PaywallScreen() {
             title={t('premium:benefits.one-time-title')}
             icon="check-circle"
           />
-          <BenefitItem
-            title={t('premium:benefits.walk-book-title')}
-            icon="book-open"
-          />
         </View>
-
-        <Pressable
-          onPress={() => router.push('/walk-book')}
-          style={styles.walkBookCard}
-        >
-          <View style={styles.walkBookIcon}>
-            <Icon name="book-open" size={20} color={theme.colors.secondary} />
-          </View>
-          <View style={styles.walkBookBody}>
-            <Text variant="caption" color="textMuted">
-              {t('premium:walk-book.eyebrow')}
-            </Text>
-            <Text variant="headingSmall" color="text" mt="xxs">
-              {t('premium:walk-book.title')}
-            </Text>
-            <Text variant="caption" color="textSecondary" mt="xs">
-              {t('premium:walk-book.description')}
-            </Text>
-          </View>
-          <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
-        </Pressable>
 
         <Pressable
           onPress={handlePurchase}
@@ -290,35 +265,6 @@ const styles = StyleSheet.create({
   },
   benefits: {
     gap: SPACING.sm,
-  },
-  walkBookCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: theme.radius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceWarm,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-  },
-  walkBookIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: theme.radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.secondaryLight,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-  },
-  walkBookBody: {
-    flex: 1,
-    minWidth: 0,
   },
   benefitItem: {
     flexDirection: 'row',
