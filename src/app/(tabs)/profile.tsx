@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, IconName, PixelCard, Row, Text } from '@/components/base';
+import { openPrivacyPolicy, openTermsOfService } from '@/constants/legal';
 import {
   useDeleteAccountMutation,
   useLogoutMutation,
@@ -212,6 +213,16 @@ export default function ProfileScreen() {
             ) : (
               <MenuItem iconName="link" label={t('menu.couple-connect')} />
             )}
+            <MenuItem
+              iconName="file-text"
+              label={t('menu.terms')}
+              onPress={openTermsOfService}
+            />
+            <MenuItem
+              iconName="lock"
+              label={t('menu.privacy')}
+              onPress={openPrivacyPolicy}
+            />
             <MenuItem
               iconName="log-out"
               label={t('menu.logout')}
