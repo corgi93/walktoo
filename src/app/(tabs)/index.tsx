@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from 'react-i18next';
@@ -23,10 +23,12 @@ import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
 import { useCouplePolling } from '@/hooks/services/user/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { usePedometer } from '@/hooks/usePedometer';
+import { usePermission } from '@/hooks/usePermission';
 import { useRefresh } from '@/hooks/useRefresh';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { getLocalToday } from '@/utils/date';
+import { openAppSettings } from '@/utils/permissions';
 
 // ─── Component ──────────────────────────────────────────
 
@@ -49,6 +51,15 @@ export default function HomeScreen() {
   } = usePartnerDerivation();
 
   useCouplePolling(me?.coupleId, isCoupleConnected);
+
+  // 알림 권한 — 거부/차단 시 커플에게 공개·톡톡 알림이 조용히 안 오므로 배너로 안내
+  const { isDenied: notifDenied, isBlocked: notifBlocked } =
+    usePermission('notifications');
+  const [notifBannerDismissed, setNotifBannerDismissed] = useState(false);
+  const showNotifBanner =
+    isCoupleConnected &&
+    (notifDenied || notifBlocked) &&
+    !notifBannerDismissed;
 
   const { data: unreadCount = 0 } = useUnreadCountQuery();
   const { data: totalStamps = 0 } = useTotalStampsQuery(isCoupleConnected);
@@ -192,6 +203,35 @@ export default function HomeScreen() {
           </Box>
         )}
 
+        {showNotifBanner && (
+          <Box px="xxl" style={styles.notifBannerWrap}>
+            <Pressable onPress={openAppSettings}>
+              <PixelCard bg={theme.colors.primarySurface}>
+                <Row style={styles.notifBannerRow}>
+                  <Icon name="bell-off" size={18} color={theme.colors.primary} />
+                  <View style={styles.notifBannerText}>
+                    <Text variant="bodyMedium" color="primary">
+                      {t('home:notif-permission.title')}
+                    </Text>
+                    <Text variant="caption" color="textSecondary" mt="xxs">
+                      {t('home:notif-permission.subtitle')}
+                    </Text>
+                    <Text variant="caption" color="primary" mt="xs">
+                      {t('home:notif-permission.action')} ›
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setNotifBannerDismissed(true)}
+                    hitSlop={10}
+                  >
+                    <Icon name="x" size={16} color={theme.colors.textMuted} />
+                  </Pressable>
+                </Row>
+              </PixelCard>
+            </Pressable>
+          </Box>
+        )}
+
         {isCoupleConnected && isPartnerDeleted && (
           <Box px="xxl" style={styles.partnerDeletedWrap}>
             <PixelCard bg={theme.colors.surfaceWarm}>
@@ -260,6 +300,17 @@ const styles = StyleSheet.create({
   },
   noCoupleWrap: {
     marginTop: 16,
+  },
+  notifBannerWrap: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  notifBannerRow: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  notifBannerText: {
+    flex: 1,
   },
   partnerDeletedWrap: {
     marginTop: 12,

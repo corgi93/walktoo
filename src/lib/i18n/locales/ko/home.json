@@ -1,5 +1,10 @@
 {
   "app-name": "walkToo",
+  "notif-permission": {
+    "title": "알림이 꺼져 있어요",
+    "subtitle": "연인이 기록을 완성해도 알림을 받을 수 없어요",
+    "action": "설정에서 켜기"
+  },
   "dday": {
     "set-prompt": "처음 만난 날을 설정해주세요",
     "met-text": "만난 지",
