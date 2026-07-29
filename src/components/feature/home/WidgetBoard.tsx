@@ -5,7 +5,6 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, PixelProgressBar, Text } from '@/components/base';
-import type { IconName } from '@/components/base/Icon';
 import { usePopup } from '@/components/composite/popup/PopupProvider';
 import { STAMP, STEP_GOAL, stepsToCalories } from '@/constants/game-config';
 import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
@@ -18,7 +17,6 @@ import { formatDday, formatSteps } from '@/utils/date';
 import { isVideoUri } from '@/utils/media';
 
 import { HomeMapWidget } from './HomeMapWidget';
-import { MemoryDrawWidget } from './MemoryDrawWidget';
 import { BOY_FRAMES, GIRL_FRAMES, WalkingSprite } from './WalkIllustration';
 
 type CharacterType = 'boy' | 'girl';
@@ -40,7 +38,6 @@ interface WidgetBoardProps {
   partnerCharacter?: CharacterType;
   mySteps: number;
   partnerSteps: number;
-  totalStamps: number;
   hasTodayStamp: boolean;
   isClaimingStamp: boolean;
   onDdayPress: () => void;
@@ -59,7 +56,6 @@ export function WidgetBoard({
   partnerCharacter = 'girl',
   mySteps,
   partnerSteps,
-  totalStamps,
   hasTodayStamp,
   isClaimingStamp,
   onDdayPress,
@@ -154,20 +150,10 @@ export function WidgetBoard({
         onPress={onDdayPress}
       />
 
-      {/* Row 1 ─ 발걸음 + 오늘의 미션 (맨 위) */}
-      <StepsWidget
-        myName={myName}
-        partnerName={partnerName}
-        myCharacter={myCharacter}
-        partnerCharacter={partnerCharacter}
-        mySteps={mySteps}
-        partnerSteps={partnerSteps}
-        hasTodayStamp={hasTodayStamp}
-        isClaimingStamp={isClaimingStamp}
-        onClaimStamp={onClaimStamp}
-      />
+      {/* 핵심 기록 액션 — 첫 화면에서 앱의 목적을 바로 드러낸다. */}
+      <PrimaryRecordActions />
 
-      {/* Row 2 ─ 각자 사진 (오늘의 나 · 상대의 오늘) */}
+      {/* 오늘의 두 장면 — 각자의 오늘 루프 */}
       <View style={styles.row}>
         <TodayPolaroidWidget
           name={myName}
@@ -189,18 +175,83 @@ export function WidgetBoard({
       {/* 각자 모먼트 둘러보기 — 과거 each 기록이 있을 때만 노출 */}
       <EachMomentsBrowseLink walks={walks} />
 
-      {/* Row 3 ─ 우리 지도 */}
+      {/* 걸음 미션은 보조 습관으로 유지하되, 기록 CTA보다 뒤에 둔다. */}
+      <StepsWidget
+        myName={myName}
+        partnerName={partnerName}
+        myCharacter={myCharacter}
+        partnerCharacter={partnerCharacter}
+        mySteps={mySteps}
+        partnerSteps={partnerSteps}
+        hasTodayStamp={hasTodayStamp}
+        isClaimingStamp={isClaimingStamp}
+        onClaimStamp={onClaimStamp}
+      />
+
+      {/* 우리 지도 */}
       <HomeMapWidget
         walks={walks}
         onMapInteractionStart={onMapInteractionStart}
         onMapInteractionEnd={onMapInteractionEnd}
       />
+    </View>
+  );
+}
 
-      {/* 추억 뽑기 ─ 가챠 hero 카드 */}
-      <MemoryDrawWidget />
+// ─── 핵심 기록 액션 ─────────────────────────────────────
 
-      {/* Row 4 ─ 추억의 발자국 */}
-      <FootprintTimelineWidget totalStamps={totalStamps} />
+function PrimaryRecordActions() {
+  const router = useRouter();
+  const { t } = useTranslation('home');
+
+  return (
+    <View style={styles.actionRow}>
+      <Pressable
+        onPress={() => router.push('/quick-capture')}
+        style={({ pressed }) => [
+          styles.actionButton,
+          styles.actionButtonPrimary,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={t('cta.today-moment')}
+      >
+        <Icon name="camera" size={16} color={theme.colors.white} />
+        <Text
+          variant="caption"
+          color="white"
+          numberOfLines={2}
+          style={styles.actionButtonText}
+        >
+          {t('cta.today-moment')}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() =>
+          router.push({
+            pathname: '/footprint-create',
+            params: { kind: 'together' },
+          })
+        }
+        style={({ pressed }) => [
+          styles.actionButton,
+          styles.actionButtonSecondary,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={t('cta.together-walk')}
+      >
+        <Icon name="heart" size={16} color={theme.colors.primary} />
+        <Text
+          variant="caption"
+          color="primary"
+          numberOfLines={2}
+          style={styles.actionButtonText}
+        >
+          {t('cta.together-walk')}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -708,38 +759,6 @@ const stepsStyles = StyleSheet.create({
   },
 });
 
-// ─── 공용 아이콘 배지 (미니 위젯용) ──────────────────────
-
-function MiniIconBadge({ name }: { name: IconName }) {
-  return (
-    <View style={styles.iconBadge}>
-      <Icon name={name} size={18} color={theme.colors.primary} />
-    </View>
-  );
-}
-
-// ─── 추억의 발자국 타임라인 ──────────────────────────────
-
-function FootprintTimelineWidget({
-  totalStamps,
-}: {
-  totalStamps: number;
-}) {
-  const { t } = useTranslation('home');
-
-  return (
-    <View style={[styles.widget, styles.timeline, styles.fullWidthWidget]}>
-      <MiniIconBadge name="footprint" />
-      <Text variant="bodySmall" color="text" style={{ fontWeight: '600' }}>
-        {t('timeline.title')}
-      </Text>
-      <Text variant="caption" color="primary" style={{ fontSize: 10 }}>
-        {t('timeline.stamp-count', { count: totalStamps })}
-      </Text>
-    </View>
-  );
-}
-
 // ─── Styles ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -754,6 +773,43 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: SPACING.sm,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  actionButton: {
+    flex: 1,
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    borderRadius: theme.radius.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  actionButtonPrimary: {
+    backgroundColor: theme.colors.primary,
+  },
+  actionButtonSecondary: {
+    backgroundColor: theme.colors.primarySurface,
+  },
+  actionButtonText: {
+    flexShrink: 1,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  pressed: {
+    opacity: 0.86,
+    transform: [{ translateX: 1 }, { translateY: 1 }],
   },
 
   // 각자 모먼트 둘러보기 — 슬림 1-라인 CTA
@@ -803,9 +859,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 3,
-  },
-  fullWidthWidget: {
-    flex: 0,
   },
 
   // Polaroid Widget
@@ -885,22 +938,5 @@ const styles = StyleSheet.create({
   steps: {
     backgroundColor: theme.colors.surface,
     padding: SPACING.md,
-  },
-
-  // Mini widgets — 톤 통일 (primarySurface 파스텔 핑크, y2k 계열)
-  timeline: {
-    gap: 4,
-    backgroundColor: theme.colors.primarySurface,
-  },
-  iconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: theme.colors.primaryLight,
-    marginBottom: 2,
   },
 });

@@ -60,6 +60,10 @@ export function useThemePack() {
     pkg?.product.priceString ??
     `₩${THEME_PACK.PRICE_KRW.toLocaleString('ko-KR')}`;
 
+  // 실제 결제 가능 여부. RevenueCat 미준비(키/상품 미등록)면 pkg가 로드되지 않는다.
+  // 이 경우 구매 CTA를 활성 상태로 두지 않고, 저장은 무료 테마로 이어지게 한다.
+  const canPurchase = !!pkg && isRevenueCatReady();
+
   /** 구매 실행. 성공 시 true. 취소/실패 시 false. */
   const purchase = useCallback(async (): Promise<boolean> => {
     if (isPurchasing) return false;
@@ -100,6 +104,27 @@ export function useThemePack() {
         return;
       }
       const name = getDiaryTheme(themeId).name;
+
+      // 아직 구매 불가(RC 미준비) — 결제 dead-end로 저장을 잃지 않도록,
+      // 무료 테마로 저장하는 단일 경로만 안내한다. 추억 저장은 절대 막지 않는다.
+      if (!canPurchase) {
+        dialog.showDialog({
+          title: t('premium:theme-pack.soon-title'),
+          message: t('premium:theme-pack.soon-message', { name }),
+          buttons: [
+            {
+              label: t('premium:theme-pack.gate-free-save'),
+              variant: 'primary',
+              onPress: () => {
+                opts.onRevertToFree();
+                opts.onProceed();
+              },
+            },
+          ],
+        });
+        return;
+      }
+
       dialog.showDialog({
         title: t('premium:theme-pack.gate-title'),
         message: t('premium:theme-pack.gate-message', { name }),
@@ -123,12 +148,13 @@ export function useThemePack() {
         ],
       });
     },
-    [isThemePackEntitled, dialog, t, priceLabel, purchase],
+    [isThemePackEntitled, canPurchase, dialog, t, priceLabel, purchase],
   );
 
   return {
     isThemePackEntitled,
     priceLabel,
+    canPurchase,
     isPurchasing,
     purchase,
     guardSaveWithTheme,

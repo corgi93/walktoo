@@ -20,7 +20,10 @@
     "gate-title": "이 테마로 남길까요?",
     "gate-message": "'{{name}}'은(는) 여행 무드 테마팩 테마예요. 지금 열면 커플 둘 다 계속 쓸 수 있어요.",
     "gate-buy": "테마팩 열기 {{price}}",
-    "gate-free-save": "무료 테마로 저장"
+    "gate-free-save": "무료 테마로 저장",
+    "coming-soon": "곧 만나요",
+    "soon-title": "이 테마는 곧 열려요",
+    "soon-message": "'{{name}}'은(는) 여행 무드 테마팩 테마예요. 결제 준비가 끝나면 열 수 있어요. 지금은 무료 테마로 저장할게요."
   },
   "price": {
     "upgrade-label": "1회성 커플 업그레이드",
@@ -33,6 +36,7 @@
     "restore": "구매 복원",
     "purchasing": "결제 처리 중...",
     "restoring": "복원 중...",
+    "coming-soon": "결제 준비 중",
     "close": "닫기"
   },
   "result": {
@@ -40,7 +44,7 @@
     "restored": "구매를 복원했어요",
     "no-purchases": "복원할 구매 내역이 없어요",
     "failed": "결제에 실패했어요. 잠시 후 다시 시도해주세요.",
-    "sdk-unavailable": "결제 시스템을 준비 중이에요. 잠시 후 다시 시도해주세요.",
+    "sdk-unavailable": "결제 준비 중이에요. 곧 열릴 예정이에요.",
     "already-owned": "이미 업그레이드를 사용 중이에요"
   },
   "gate": {
@@ -68,6 +72,12 @@
     "scope-export": "PDF 또는 이미지 앨범으로 받기",
     "records-cta": "기록 고르기",
     "create-record": "기록 남기기"
+  },
+  "reveal-nudge": {
+    "title": "둘의 오늘이 공개됐어요 ✨",
+    "message": "특별한 날엔 사진 8장, 영상 5초까지 더 풍성하게 남길 수 있어요. 구독 없이 한 번만 결제하면 커플 둘 다 적용돼요.",
+    "cta": "업그레이드 보기",
+    "later": "나중에"
   },
   "menu": {
     "upgrade": "기록 업그레이드",

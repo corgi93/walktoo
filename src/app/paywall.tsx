@@ -40,6 +40,7 @@ export default function PaywallScreen() {
 
   const [recordUpgradePackage, setRecordUpgradePackage] =
     useState<PurchasesPackage | null>(null);
+  const [offeringChecked, setOfferingChecked] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -47,13 +48,20 @@ export default function PaywallScreen() {
     let cancelled = false;
     (async () => {
       const offering = await getCurrentOffering();
-      if (cancelled || !offering) return;
-      setRecordUpgradePackage(findRecordUpgradePackage(offering));
+      if (cancelled) return;
+      if (offering) {
+        setRecordUpgradePackage(findRecordUpgradePackage(offering));
+      }
+      // 오퍼링 조회가 끝났음을 표시 — null(RC 미준비)이어도 로딩을 종료한다.
+      setOfferingChecked(true);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // RC 상품이 실제로 로드됐을 때만 구매 가능. 미준비면 활성 버튼 대신 "준비 중".
+  const canPurchase = !!recordUpgradePackage;
 
   const price =
     recordUpgradePackage?.product.priceString ??
@@ -133,13 +141,15 @@ export default function PaywallScreen() {
           <Icon name="x" size={22} color={theme.colors.text} />
         </Pressable>
         <View style={{ flex: 1 }} />
-        <Pressable onPress={handleRestore} hitSlop={8} disabled={isRestoring}>
-          <Text variant="caption" color="textMuted">
-            {isRestoring
-              ? t('premium:actions.restoring')
-              : t('premium:actions.restore')}
-          </Text>
-        </Pressable>
+        {canPurchase && (
+          <Pressable onPress={handleRestore} hitSlop={8} disabled={isRestoring}>
+            <Text variant="caption" color="textMuted">
+              {isRestoring
+                ? t('premium:actions.restoring')
+                : t('premium:actions.restore')}
+            </Text>
+          </Pressable>
+        )}
       </Row>
 
       <ScrollView
@@ -184,26 +194,37 @@ export default function PaywallScreen() {
         </View>
 
         <Pressable
-          onPress={handlePurchase}
-          disabled={isPurchasing || isEntitled}
+          onPress={canPurchase && !isEntitled ? handlePurchase : undefined}
+          disabled={
+            isPurchasing || isEntitled || !offeringChecked || !canPurchase
+          }
           style={[
             styles.purchaseButton,
-            (isPurchasing || isEntitled) && styles.buttonDisabled,
+            (isPurchasing || isEntitled || !offeringChecked || !canPurchase) &&
+              styles.buttonDisabled,
           ]}
         >
-          {isPurchasing ? (
+          {isPurchasing || !offeringChecked ? (
             <ActivityIndicator color={theme.colors.white} />
+          ) : isEntitled ? (
+            <>
+              <Icon name="check" size={18} color={theme.colors.white} />
+              <Text variant="bodyMedium" color="white" ml="sm" weight="700">
+                {t('premium:menu.active')}
+              </Text>
+            </>
+          ) : canPurchase ? (
+            <>
+              <Icon name="heart" size={18} color={theme.colors.white} />
+              <Text variant="bodyMedium" color="white" ml="sm" weight="700">
+                {t('premium:actions.purchase')}
+              </Text>
+            </>
           ) : (
             <>
-              <Icon
-                name={isEntitled ? 'check' : 'heart'}
-                size={18}
-                color={theme.colors.white}
-              />
+              <Icon name="clock" size={18} color={theme.colors.white} />
               <Text variant="bodyMedium" color="white" ml="sm" weight="700">
-                {isEntitled
-                  ? t('premium:menu.active')
-                  : t('premium:actions.purchase')}
+                {t('premium:actions.coming-soon')}
               </Text>
             </>
           )}

@@ -67,9 +67,10 @@ export default function FootprintCreateScreen() {
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [diaryAnswer, setDiaryAnswer] = useState('');
   const [coupleAnswer, setCoupleAnswer] = useState('');
+  // 커플 질문은 기본 접힘 — 저장을 가볍게. 원할 때만 펼쳐 답한다.
+  const [showCoupleQuestion, setShowCoupleQuestion] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const kind = 'together' as const;
-  const isTogether = true;
 
   // 사진 한도 — 기본 4장 / 업그레이드 8장
   const photoLimit = isEntitled
@@ -121,10 +122,10 @@ export default function FootprintCreateScreen() {
   useFocusEffect(
     useCallback(() => {
       if (photoBoothResultUri) {
-        setPhotos((prev) => [...prev, photoBoothResultUri].slice(0, 5));
+        setPhotos((prev) => [...prev, photoBoothResultUri].slice(0, photoLimit));
         resetPhotoBooth();
       }
-    }, [photoBoothResultUri, resetPhotoBooth]),
+    }, [photoBoothResultUri, photoLimit, resetPhotoBooth]),
   );
 
   const handleOpenPhotoBooth = () => {
@@ -193,11 +194,7 @@ export default function FootprintCreateScreen() {
   };
 
   const handleSave = () => {
-    if (isTogether && !locationName.trim()) {
-      dialog.alert('', t('diary:create.location-required'));
-      return;
-    }
-
+    // 장소는 선택사항 — 사진/한 줄만 있어도 저장을 막지 않는다.
     const proceed = () => {
       createDiary.mutate(
         {
@@ -489,22 +486,44 @@ export default function FootprintCreateScreen() {
                 </ThemedDiaryCard>
               </Box>
 
-              <Box px="xxl" style={styles.fieldSection}>
-                <ThemedDiaryCard
-                  theme={dt}
-                  title={`${coupleQuestion.emoji} 커플 질문`}
-                  question={coupleQuestion.content}
-                  rotate={-0.35}
-                >
-                  <ThemedHandwriteInput
+              {showCoupleQuestion ? (
+                <Box px="xxl" style={styles.fieldSection}>
+                  <ThemedDiaryCard
                     theme={dt}
-                    value={coupleAnswer}
-                    onChangeText={setCoupleAnswer}
-                    placeholder={t('diary:detail.form.couple-placeholder')}
-                    minLines={3}
-                  />
-                </ThemedDiaryCard>
-              </Box>
+                    title={`${coupleQuestion.emoji} 커플 질문`}
+                    question={coupleQuestion.content}
+                    rotate={-0.35}
+                  >
+                    <ThemedHandwriteInput
+                      theme={dt}
+                      value={coupleAnswer}
+                      onChangeText={setCoupleAnswer}
+                      placeholder={t('diary:detail.form.couple-placeholder')}
+                      minLines={3}
+                    />
+                  </ThemedDiaryCard>
+                </Box>
+              ) : (
+                <Box px="xxl" style={styles.fieldSection}>
+                  <Pressable
+                    onPress={() => setShowCoupleQuestion(true)}
+                    style={[
+                      styles.addQuestionBtn,
+                      { backgroundColor: dt.paper, borderColor: dt.line },
+                    ]}
+                  >
+                    <Icon name="plus" size={14} color={dt.accent} />
+                    <Text
+                      style={[
+                        styles.addQuestionText,
+                        { color: dt.inkSoft, fontFamily: dt.bodyFont },
+                      ]}
+                    >
+                      {t('diary:create.add-couple-question')}
+                    </Text>
+                  </Pressable>
+                </Box>
+              )}
               </View>
             </ScrollView>
 
@@ -678,6 +697,21 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     paddingVertical: SPACING.xs,
     paddingHorizontal: SPACING.xs,
+  },
+  addQuestionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.md,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: theme.radius.sm,
+  },
+  addQuestionText: {
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   photoBoothLinkText: {
     fontSize: 12,

@@ -18,7 +18,7 @@ import { useUpdateFirstMetDateMutation } from '@/hooks/services/couple/mutation'
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { useUnreadCountQuery } from '@/hooks/services/notification/query';
 import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
-import { useTodayStampQuery, useTotalStampsQuery } from '@/hooks/services/stamps/query';
+import { useTodayStampQuery } from '@/hooks/services/stamps/query';
 import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
 import { useCouplePolling } from '@/hooks/services/user/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
@@ -62,7 +62,6 @@ export default function HomeScreen() {
     !notifBannerDismissed;
 
   const { data: unreadCount = 0 } = useUnreadCountQuery();
-  const { data: totalStamps = 0 } = useTotalStampsQuery(isCoupleConnected);
   const { data: hasTodayStamp = false } = useTodayStampQuery(
     isCoupleConnected ? couple?.id : undefined,
   );
@@ -138,7 +137,6 @@ export default function HomeScreen() {
     QUERY_KEYS.steps.partner,
     QUERY_KEYS.steps.today,
     QUERY_KEYS.stamps.today,
-    QUERY_KEYS.stamps.total,
     QUERY_KEYS.diary.list,
   ]);
 
@@ -180,8 +178,6 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <HomeTopBar
-        isCoupleConnected={isCoupleConnected}
-        totalStamps={totalStamps}
         unreadCount={unreadCount}
       />
 
@@ -261,7 +257,6 @@ export default function HomeScreen() {
             partnerCharacter={partnerCharacter}
             mySteps={mySteps}
             partnerSteps={partnerSteps}
-            totalStamps={totalStamps}
             hasTodayStamp={hasTodayStamp}
             isClaimingStamp={claimStamp.isPending}
             onDdayPress={() => setShowDatePicker(true)}

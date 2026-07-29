@@ -49,7 +49,7 @@ export function ThemePicker({
 }: ThemePickerProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation(['premium']);
-  const { isThemePackEntitled, priceLabel, isPurchasing, purchase } =
+  const { isThemePackEntitled, priceLabel, canPurchase, isPurchasing, purchase } =
     useThemePack();
 
   return (
@@ -116,9 +116,12 @@ export function ThemePicker({
                 </Text>
               </View>
               <Pressable
-                style={[styles.packBtn, isPurchasing && styles.packBtnDisabled]}
-                onPress={purchase}
-                disabled={isPurchasing}
+                style={[
+                  styles.packBtn,
+                  (isPurchasing || !canPurchase) && styles.packBtnDisabled,
+                ]}
+                onPress={canPurchase ? purchase : undefined}
+                disabled={isPurchasing || !canPurchase}
               >
                 {isPurchasing ? (
                   <ActivityIndicator
@@ -127,7 +130,9 @@ export function ThemePicker({
                   />
                 ) : (
                   <Text variant="caption" color="white" weight="700">
-                    {priceLabel}
+                    {canPurchase
+                      ? priceLabel
+                      : t('premium:theme-pack.coming-soon')}
                   </Text>
                 )}
               </Pressable>

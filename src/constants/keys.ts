@@ -29,9 +29,6 @@ export const QUERY_KEYS = {
     byMonth: (year: number, month: number) =>
       ['schedule', 'month', year, month] as const,
   },
-  coupleMemo: {
-    detail: ['coupleMemo', 'detail'] as const,
-  },
   notification: {
     list: ['notification'] as const,
     unreadCount: ['notification', 'unread'] as const,

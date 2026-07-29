@@ -26,13 +26,18 @@ import { useTranslation } from 'react-i18next';
 import { Icon, Text } from '@/components/base';
 import { PREMIUM } from '@/constants/premium';
 import { getDailyQuestions } from '@/constants/questions';
-import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
+import {
+  useAddEntryMutation,
+  useCreateDiaryMutation,
+} from '@/hooks/services/diary/mutation';
+import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
+import { useRevealUpgradeNudge } from '@/hooks/useRevealUpgradeNudge';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
-import { getLocalToday } from '@/utils/date';
+import { getLocalToday, parseLocalDate } from '@/utils/date';
 import {
   getLocalFileSize,
   MAX_SHORT_VIDEO_BYTES,
@@ -57,6 +62,9 @@ export default function QuickCaptureScreen() {
   const { couple, isCoupleConnected } = usePartnerDerivation();
   const { isEntitled } = useEntitlement();
   const createDiary = useCreateDiaryMutation();
+  const addEntry = useAddEntryMutation();
+  const maybeShowRevealNudge = useRevealUpgradeNudge();
+  const [isSaving, setIsSaving] = useState(false);
   const videoMaxDuration = isEntitled
     ? PREMIUM.VIDEO_DURATION_PREMIUM_SECONDS
     : PREMIUM.VIDEO_DURATION_FREE_SECONDS;
@@ -95,6 +103,16 @@ export default function QuickCaptureScreen() {
   const { diaryQuestion, coupleQuestion } = useMemo(
     () => getDailyQuestions(couple?.firstMetDate, date),
     [couple?.firstMetDate, date],
+  );
+
+  // 오늘 '각자' walk가 이미 있으면(파트너가 먼저 남김) 새로 생성하지 않고 조인한다.
+  const { year, month } = useMemo(() => {
+    const d = parseLocalDate(date);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  }, [date]);
+  const { data: monthWalks, refetch: refetchMonth } = useDiaryByMonthQuery(
+    year,
+    month,
   );
 
   // ─── Permissions ─────────────────────────────────────
@@ -279,44 +297,69 @@ export default function QuickCaptureScreen() {
   }, [capturedUri, capturedKind]);
 
   const handleSave = useCallback(async () => {
-    if (!capturedUri || createDiary.isPending) return;
+    if (!capturedUri || isSaving) return;
 
     if (!isCoupleConnected) {
       dialog.alert('', t('quick.no-couple'));
       return;
     }
 
-    // Video size guard — surface a friendly error before upload starts.
-    if (capturedKind === 'video') {
-      const size = await getLocalFileSize(capturedUri);
-      if (size && size > MAX_SHORT_VIDEO_BYTES) {
-        dialog.alert('', t('create.video-too-large'));
-        return;
+    // 이 지점 이후로는 await가 있으므로 가드를 먼저 세워 더블탭 이중 저장을 막는다.
+    setIsSaving(true);
+    try {
+      // Video size guard — surface a friendly error before upload starts.
+      if (capturedKind === 'video') {
+        const size = await getLocalFileSize(capturedUri);
+        if (size && size > MAX_SHORT_VIDEO_BYTES) {
+          dialog.alert('', t('create.video-too-large'));
+          return;
+        }
       }
-    }
 
-    createDiary.mutate(
-      {
-        date,
-        kind: 'each',
-        locationName: '',
-        memo: '',
-        photos: [capturedUri],
-        diaryQuestionId: diaryQuestion.id,
-        diaryAnswer: '',
-        coupleQuestionId: coupleQuestion.id,
-        coupleAnswer: '',
-      },
-      {
-        onSuccess: () => {
-          router.back();
-        },
-        onError: () => {
-          dialog.alert(t('quick.save-failed-title'), t('quick.save-failed'));
-        },
-      },
-    );
+      // 저장 직전 최신 목록으로 오늘 '각자' walk 존재 여부를 판정한다.
+      // (커플·날짜·kind당 walk 1개 모델 — 파트너가 먼저 남겼으면 조인해야 함)
+      const refreshed = await refetchMonth();
+      const walks = refreshed.data ?? monthWalks ?? [];
+      const existingEach = walks.find(
+        (w) => w.date === date && w.kind === 'each',
+      );
+
+      if (existingEach) {
+        // 두 번째 파트너 — 새 walk 생성이 아니라 기존 walk에 내 엔트리를 조인.
+        await addEntry.mutateAsync({
+          walkId: existingEach.id,
+          memo: '',
+          photos: [capturedUri],
+          locationName: '',
+          diaryQuestionId: diaryQuestion.id,
+          diaryAnswer: '',
+          coupleQuestionId: coupleQuestion.id,
+          coupleAnswer: '',
+        });
+        router.back();
+        // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 업그레이드 제안.
+        maybeShowRevealNudge();
+      } else {
+        await createDiary.mutateAsync({
+          date,
+          kind: 'each',
+          locationName: '',
+          memo: '',
+          photos: [capturedUri],
+          diaryQuestionId: diaryQuestion.id,
+          diaryAnswer: '',
+          coupleQuestionId: coupleQuestion.id,
+          coupleAnswer: '',
+        });
+        router.back();
+      }
+    } catch {
+      dialog.alert(t('quick.save-failed-title'), t('quick.save-failed'));
+    } finally {
+      setIsSaving(false);
+    }
   }, [
+    addEntry,
     capturedKind,
     capturedUri,
     coupleQuestion.id,
@@ -325,6 +368,10 @@ export default function QuickCaptureScreen() {
     diaryQuestion.id,
     dialog,
     isCoupleConnected,
+    isSaving,
+    maybeShowRevealNudge,
+    monthWalks,
+    refetchMonth,
     router,
     t,
   ]);
@@ -399,7 +446,7 @@ export default function QuickCaptureScreen() {
           <Pressable
             onPress={handleClose}
             style={[styles.topCloseBtn, { top: insets.top + SPACING.md }]}
-            disabled={createDiary.isPending}
+            disabled={isSaving}
           >
             <Icon name="x" size={26} color={theme.colors.white} />
           </Pressable>
@@ -408,7 +455,7 @@ export default function QuickCaptureScreen() {
         <View style={[styles.previewActions, { paddingBottom: insets.bottom + SPACING.xl }]}>
           <Pressable
             onPress={handleRetake}
-            disabled={createDiary.isPending}
+            disabled={isSaving}
             style={[styles.previewBtn, styles.previewBtnGhost]}
           >
             <Icon name="rotate-ccw" size={18} color={theme.colors.white} />
@@ -418,10 +465,10 @@ export default function QuickCaptureScreen() {
           </Pressable>
           <Pressable
             onPress={handleSave}
-            disabled={createDiary.isPending}
+            disabled={isSaving}
             style={[styles.previewBtn, styles.previewBtnPrimary]}
           >
-            {createDiary.isPending ? (
+            {isSaving ? (
               <ActivityIndicator color={theme.colors.white} />
             ) : (
               <>

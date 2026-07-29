@@ -45,6 +45,7 @@ import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
 import { useThemePack } from '@/hooks/useThemePack';
+import { useRevealUpgradeNudge } from '@/hooks/useRevealUpgradeNudge';
 import {
   DEFAULT_DIARY_THEME_ID,
   type DiaryTheme,
@@ -127,6 +128,7 @@ export default function DiaryDetailScreen() {
   );
 
   const addEntry = useAddEntryMutation();
+  const maybeShowRevealNudge = useRevealUpgradeNudge();
   const updateEntry = useUpdateEntryMutation();
   const deleteDiary = useDeleteDiaryMutation();
   const nudge = useNudgeMutation();
@@ -314,7 +316,11 @@ export default function DiaryDetailScreen() {
             coupleAnswer: coupleAnswer.trim(),
           },
           {
-            onSuccess: () => router.back(),
+            onSuccess: () => {
+              router.back();
+              // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 업그레이드 제안.
+              maybeShowRevealNudge();
+            },
             onError: (e) =>
               dialog.alert(
                 t('diary:detail.form.save-failed-title'),
