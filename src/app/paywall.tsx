@@ -40,6 +40,7 @@ export default function PaywallScreen() {
 
   const [recordUpgradePackage, setRecordUpgradePackage] =
     useState<PurchasesPackage | null>(null);
+  const [offeringChecked, setOfferingChecked] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -47,13 +48,20 @@ export default function PaywallScreen() {
     let cancelled = false;
     (async () => {
       const offering = await getCurrentOffering();
-      if (cancelled || !offering) return;
-      setRecordUpgradePackage(findRecordUpgradePackage(offering));
+      if (cancelled) return;
+      if (offering) {
+        setRecordUpgradePackage(findRecordUpgradePackage(offering));
+      }
+      // 오퍼링 조회가 끝났음을 표시 — null(RC 미준비)이어도 로딩을 종료한다.
+      setOfferingChecked(true);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // RC 상품이 실제로 로드됐을 때만 구매 가능. 미준비면 활성 버튼 대신 "준비 중".
+  const canPurchase = !!recordUpgradePackage;
 
   const price =
     recordUpgradePackage?.product.priceString ??
@@ -133,13 +141,15 @@ export default function PaywallScreen() {
           <Icon name="x" size={22} color={theme.colors.text} />
         </Pressable>
         <View style={{ flex: 1 }} />
-        <Pressable onPress={handleRestore} hitSlop={8} disabled={isRestoring}>
-          <Text variant="caption" color="textMuted">
-            {isRestoring
-              ? t('premium:actions.restoring')
-              : t('premium:actions.restore')}
-          </Text>
-        </Pressable>
+        {canPurchase && (
+          <Pressable onPress={handleRestore} hitSlop={8} disabled={isRestoring}>
+            <Text variant="caption" color="textMuted">
+              {isRestoring
+                ? t('premium:actions.restoring')
+                : t('premium:actions.restore')}
+            </Text>
+          </Pressable>
+        )}
       </Row>
 
       <ScrollView
@@ -181,54 +191,40 @@ export default function PaywallScreen() {
             title={t('premium:benefits.one-time-title')}
             icon="check-circle"
           />
-          <BenefitItem
-            title={t('premium:benefits.walk-book-title')}
-            icon="book-open"
-          />
         </View>
 
         <Pressable
-          onPress={() => router.push('/walk-book')}
-          style={styles.walkBookCard}
-        >
-          <View style={styles.walkBookIcon}>
-            <Icon name="book-open" size={20} color={theme.colors.secondary} />
-          </View>
-          <View style={styles.walkBookBody}>
-            <Text variant="caption" color="textMuted">
-              {t('premium:walk-book.eyebrow')}
-            </Text>
-            <Text variant="headingSmall" color="text" mt="xxs">
-              {t('premium:walk-book.title')}
-            </Text>
-            <Text variant="caption" color="textSecondary" mt="xs">
-              {t('premium:walk-book.description')}
-            </Text>
-          </View>
-          <Icon name="chevron-right" size={18} color={theme.colors.gray400} />
-        </Pressable>
-
-        <Pressable
-          onPress={handlePurchase}
-          disabled={isPurchasing || isEntitled}
+          onPress={canPurchase && !isEntitled ? handlePurchase : undefined}
+          disabled={
+            isPurchasing || isEntitled || !offeringChecked || !canPurchase
+          }
           style={[
             styles.purchaseButton,
-            (isPurchasing || isEntitled) && styles.buttonDisabled,
+            (isPurchasing || isEntitled || !offeringChecked || !canPurchase) &&
+              styles.buttonDisabled,
           ]}
         >
-          {isPurchasing ? (
+          {isPurchasing || !offeringChecked ? (
             <ActivityIndicator color={theme.colors.white} />
+          ) : isEntitled ? (
+            <>
+              <Icon name="check" size={18} color={theme.colors.white} />
+              <Text variant="bodyMedium" color="white" ml="sm" weight="700">
+                {t('premium:menu.active')}
+              </Text>
+            </>
+          ) : canPurchase ? (
+            <>
+              <Icon name="heart" size={18} color={theme.colors.white} />
+              <Text variant="bodyMedium" color="white" ml="sm" weight="700">
+                {t('premium:actions.purchase')}
+              </Text>
+            </>
           ) : (
             <>
-              <Icon
-                name={isEntitled ? 'check' : 'heart'}
-                size={18}
-                color={theme.colors.white}
-              />
+              <Icon name="clock" size={18} color={theme.colors.white} />
               <Text variant="bodyMedium" color="white" ml="sm" weight="700">
-                {isEntitled
-                  ? t('premium:menu.active')
-                  : t('premium:actions.purchase')}
+                {t('premium:actions.coming-soon')}
               </Text>
             </>
           )}
@@ -290,35 +286,6 @@ const styles = StyleSheet.create({
   },
   benefits: {
     gap: SPACING.sm,
-  },
-  walkBookCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: theme.radius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceWarm,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-  },
-  walkBookIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: theme.radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.secondaryLight,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-  },
-  walkBookBody: {
-    flex: 1,
-    minWidth: 0,
   },
   benefitItem: {
     flexDirection: 'row',

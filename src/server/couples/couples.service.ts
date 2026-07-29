@@ -22,6 +22,7 @@ const toUserResponse = (row: ProfileRow): UserResponse => ({
   totalWalks: row.total_walks,
   totalSteps: row.total_steps,
   characterType: row.character_type ?? 'boy',
+  deletedAt: row.deleted_at ?? undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -183,12 +184,14 @@ export const couplesService = {
         nickname: data.user1.nickname,
         profileImageUrl: data.user1.profile_image_url ?? undefined,
         characterType: data.user1.character_type ?? 'boy',
+        deletedAt: data.user1.deleted_at ?? undefined,
       },
       user2: {
         id: data.user2?.id ?? '',
         nickname: data.user2?.nickname ?? '',
         profileImageUrl: data.user2?.profile_image_url ?? undefined,
         characterType: data.user2?.character_type ?? 'boy',
+        deletedAt: data.user2?.deleted_at ?? undefined,
       },
       startDate: data.start_date,
       firstMetDate: data.first_met_date ?? undefined,
@@ -207,6 +210,19 @@ export const couplesService = {
 
   /** 커플 연결 해제 */
   disconnect: async (coupleId: string, user1Id: string, user2Id: string) => {
+    // 한쪽이 이미 탈퇴(계정 삭제)한 커플은 해제할 수 없다.
+    // 해제하면 남은 사람의 couple_id가 끊겨, 둘이 함께 남긴 기록을 영구히
+    // 볼 수 없게 되기 때문이다. UI 방어(couple-manage)에 더해 서버에서도 막는다.
+    const [{ data: p1 }, { data: p2 }] = await Promise.all([
+      couplesRepository.getProfile(user1Id),
+      couplesRepository.getProfile(user2Id),
+    ]);
+    if (p1?.deleted_at || p2?.deleted_at) {
+      throw new Error(
+        '탈퇴한 연인과의 커플은 해제할 수 없어요. 함께한 기록은 계속 보관돼요.',
+      );
+    }
+
     await couplesRepository.updateProfile(user1Id, { couple_id: null });
     await couplesRepository.updateProfile(user2Id, { couple_id: null });
     await couplesRepository.disconnect(coupleId);

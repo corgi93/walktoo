@@ -97,6 +97,25 @@ export const authService = {
     handleAuthError(error);
   },
 
+  /**
+   * 계정 삭제.
+   *
+   * 커플 앱 특성상 하드 삭제하면 커플/공유 기록이 FK CASCADE로 연쇄 삭제되므로,
+   * 서버 RPC(delete_my_account)가 소프트 삭제로 처리한다:
+   *   - 내 프로필 익명화(PII 제거, 닉네임/사진은 공유 기록으로 보존)
+   *   - 개인 전용 데이터(걸음수·알림)만 삭제, 둘이 쓴 기록은 남김
+   *   - 로그인 영구 차단 → 남은 상대는 함께한 추억을 계속 볼 수 있다
+   * RPC 성공 후 로컬 세션도 정리한다.
+   */
+  deleteAccount: async () => {
+    const { error } = await authRepository.deleteAccount();
+    if (error) {
+      throw new ServerError(error.message, 'DELETE_ACCOUNT_FAILED');
+    }
+    // 로그인 세션 정리 (밴 처리되었으므로 실패해도 무시)
+    await authRepository.signOut().catch(() => {});
+  },
+
   /** 현재 세션 확인 */
   getSession: async () => {
     const { data, error } = await authRepository.getSession();

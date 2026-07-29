@@ -176,3 +176,39 @@ export const useLogoutMutation = () => {
     onError: cleanup,
   });
 };
+
+// ─── useDeleteAccountMutation ───────────────────────────
+// 계정 삭제 (커플 데이터 보존형 소프트 삭제)
+
+export const useDeleteAccountMutation = () => {
+  const { clearUser } = useAuthStore();
+  const { clearCouple } = useCoupleStore();
+  const queryClient = useQueryClient();
+  const { showLoading, hideLoading } = useLoadingStore();
+
+  return useMutation({
+    mutationFn: () => {
+      showLoading();
+      return authService.deleteAccount();
+    },
+    onSuccess: async () => {
+      hideLoading();
+      clearUser();
+      clearCouple();
+      queryClient.clear();
+
+      try {
+        const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+        await GoogleSignin.signOut();
+      } catch {
+        // 네이티브 모듈 없는 환경(Expo Go 등)에서는 무시
+      }
+
+      router.replace('/login');
+    },
+    onError: () => {
+      // 삭제 실패 시 세션을 유지해 사용자가 다시 시도할 수 있게 한다.
+      hideLoading();
+    },
+  });
+};

@@ -33,6 +33,7 @@ import {
 } from '@/constants/questions';
 import {
   useAddEntryMutation,
+  useDeleteDiaryMutation,
   useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
 import { useNudgeMutation } from '@/hooks/services/notification/mutation';
@@ -44,6 +45,7 @@ import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
 import { useThemePack } from '@/hooks/useThemePack';
+import { useRevealUpgradeNudge } from '@/hooks/useRevealUpgradeNudge';
 import {
   DEFAULT_DIARY_THEME_ID,
   type DiaryTheme,
@@ -126,11 +128,31 @@ export default function DiaryDetailScreen() {
   );
 
   const addEntry = useAddEntryMutation();
+  const maybeShowRevealNudge = useRevealUpgradeNudge();
   const updateEntry = useUpdateEntryMutation();
+  const deleteDiary = useDeleteDiaryMutation();
   const nudge = useNudgeMutation();
   const toast = useToast();
   const { partnerId, couple: coupleData } = usePartnerDerivation();
   const isSaving = addEntry.isPending || updateEntry.isPending;
+
+  const handleDelete = () => {
+    if (deleteDiary.isPending) return;
+    dialog.confirm(
+      t('diary:delete.confirm-title'),
+      t('diary:delete.confirm-message'),
+      () => {
+        deleteDiary.mutate(walkId, {
+          onSuccess: () => {
+            toast.success(t('diary:delete.success'));
+            router.back();
+          },
+          onError: () => toast.error(t('diary:delete.failed')),
+        });
+      },
+      t('diary:delete.confirm-button'),
+    );
+  };
 
   const canNudge = hasMyEntry && !partnerEntry;
   const handleNudge = () => {
@@ -294,7 +316,11 @@ export default function DiaryDetailScreen() {
             coupleAnswer: coupleAnswer.trim(),
           },
           {
-            onSuccess: () => router.back(),
+            onSuccess: () => {
+              router.back();
+              // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 업그레이드 제안.
+              maybeShowRevealNudge();
+            },
             onError: (e) =>
               dialog.alert(
                 t('diary:detail.form.save-failed-title'),
@@ -344,6 +370,14 @@ export default function DiaryDetailScreen() {
           {t('diary:detail.title')}
         </Text>
         <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={handleDelete}
+          hitSlop={8}
+          disabled={deleteDiary.isPending}
+          style={styles.deleteBtn}
+        >
+          <Icon name="trash" size={18} color={dt.isDark ? dt.paper : dt.ink} />
+        </Pressable>
         <Pressable
           onPress={() => setPickerOpen(true)}
           hitSlop={8}
@@ -984,6 +1018,10 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingVertical: LAYOUT.headerPy,
+  },
+  deleteBtn: {
+    padding: SPACING.xs,
+    marginRight: SPACING.xs,
   },
   themeBtn: {
     flexDirection: 'row',

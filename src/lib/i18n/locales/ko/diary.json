@@ -1,4 +1,11 @@
 {
+  "delete": {
+    "confirm-title": "이 기록을 삭제할까요?",
+    "confirm-message": "사진과 메모가 함께 사라지고 되돌릴 수 없어요. 연인의 화면에서도 삭제돼요.",
+    "confirm-button": "삭제",
+    "success": "기록을 삭제했어요",
+    "failed": "삭제에 실패했어요. 잠시 후 다시 시도해주세요"
+  },
   "list": {
     "title": "산책 기록",
     "view-mode-timeline": "타임라인",
@@ -17,8 +24,9 @@
     "kind-each-hint": "셀카 · 일상 인증",
     "location-label": "오늘의 데이트 장소",
     "location-label-each": "오늘 어디서?",
-    "location-placeholder": "한강공원, 경복궁, 홍대...",
+    "location-placeholder": "장소 (선택) · 한강공원, 홍대...",
     "location-placeholder-each": "회사, 카페, 집...",
+    "add-couple-question": "커플 질문에도 답하기",
     "diary-section-title": "오늘의 다이어리",
     "diary-prompt-prefix": "Q.",
     "diary-placeholder": "오늘의 이야기를 적어봐 :)",

@@ -67,14 +67,14 @@ export default function TabLayout() {
         name="records"
         options={{
           title: t('tab.records'),
-          tabBarIcon: ({ color }) => <TabIcon name="calendar" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="book-open" color={color} />,
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
           title: t('tab.planner'),
-          tabBarIcon: ({ color }) => <TabIcon name="book-open" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen

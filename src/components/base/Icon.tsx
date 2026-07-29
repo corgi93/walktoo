@@ -28,6 +28,7 @@ const ICON_MAP = {
   key: { set: 'feather', name: 'key' },
   link: { set: 'feather', name: 'link-2' },
   'log-out': { set: 'feather', name: 'log-out' },
+  trash: { set: 'feather', name: 'trash-2' },
   camera: { set: 'feather', name: 'camera' },
   'camera-flip': { set: 'material', name: 'camera-flip-outline' },
   video: { set: 'feather', name: 'video' },

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Box, Icon, Row, Text } from '@/components/base';
+import { openPrivacyPolicy, openTermsOfService } from '@/constants/legal';
 import {
   useSocialLoginMutation,
   useWebOAuthMutation,
@@ -266,8 +267,23 @@ export default function LoginScreen() {
         </Pressable>
 
         <Text variant="caption" color="textMuted" align="center" mt="lg">
-          {t('login.terms')}
+          {t('login.terms-agree')}
         </Text>
+        <Row style={styles.legalRow}>
+          <Pressable onPress={openTermsOfService} hitSlop={8}>
+            <Text variant="caption" color="textSecondary" style={styles.legalLink}>
+              {t('login.terms-link')}
+            </Text>
+          </Pressable>
+          <Text variant="caption" color="textMuted" ml="xs" mr="xs">
+            {t('login.terms-separator')}
+          </Text>
+          <Pressable onPress={openPrivacyPolicy} hitSlop={8}>
+            <Text variant="caption" color="textSecondary" style={styles.legalLink}>
+              {t('login.privacy-link')}
+            </Text>
+          </Pressable>
+        </Row>
       </Box>
     </View>
   );
@@ -298,5 +314,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderWidth: 2,
     borderColor: theme.colors.border,
+  },
+  legalRow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  legalLink: {
+    textDecorationLine: 'underline',
   },
 });

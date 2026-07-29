@@ -1,5 +1,10 @@
 {
   "app-name": "walkToo",
+  "notif-permission": {
+    "title": "알림이 꺼져 있어요",
+    "subtitle": "연인이 기록을 완성해도 알림을 받을 수 없어요",
+    "action": "설정에서 켜기"
+  },
   "dday": {
     "set-prompt": "처음 만난 날을 설정해주세요",
     "met-text": "만난 지",
@@ -24,24 +29,6 @@
   "photobooth": {
     "title": "포토부스",
     "hint": "사진 꾸미기"
-  },
-  "memory-draw": {
-    "title": "추억 뽑기",
-    "subtitle": "오늘의 한 장면을 뽑아봐",
-    "cta": "TAP",
-    "count": "{{count}}개의 추억",
-    "screen-title": "추억 뽑기",
-    "screen-sub": "지나간 한 장면을 다시 만나봐",
-    "empty-title": "아직 뽑을 추억이 없어요",
-    "empty-hint": "산책 기록을 남기면 여기서 다시 만날 수 있어요",
-    "empty-cta": "오늘의 산책 기록하기",
-    "rolling": "✦ 뽑는 중..",
-    "again": "다시 뽑기 ♡",
-    "open": "이 산책 보기",
-    "no-photo": "사진 없이 글로 남긴 날",
-    "no-teaser": "그날의 이야기를 기다리는 중…",
-    "q-prefix": "Q.",
-    "card-stamp": "MEMORY #{{num}}"
   },
   "mission": {
     "title": "오늘의 미션",
@@ -71,7 +58,9 @@
     "title": "최근 알림"
   },
   "cta": {
-    "create-walk": "오늘의 산책 기록하기"
+    "create-walk": "오늘의 산책 기록하기",
+    "today-moment": "오늘 한 컷 남기기",
+    "together-walk": "함께 산책 기록하기"
   },
   "solo": {
     "no-partner": "아직 내 사람이 없어요",
@@ -80,7 +69,7 @@
   "tab": {
     "home": "홈",
     "records": "우리 기록",
-    "planner": "공유",
+    "planner": "캘린더",
     "profile": "마이"
   },
   "unified-mission": {
@@ -101,8 +90,12 @@
   },
   "records-tab": {
     "title": "기록",
+    "subtitle": "둘이 함께 남긴 산책만 모아봐요",
     "walks-section-title": "이 달의 산책",
     "walks-empty": "이 달엔 아직 산책 기록이 없어요",
+    "empty-title": "아직 둘의 산책 기록이 없어요",
+    "empty-description": "장소와 사진을 가볍게 남기면 우리 지도에 하나씩 쌓여요.",
+    "empty-cta": "함께 산책 기록하기",
     "picker-title": "월 선택",
     "picker-today": "이번 달"
   }

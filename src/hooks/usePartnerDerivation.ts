@@ -31,6 +31,8 @@ export function usePartnerDerivation() {
 
     const hasCoupleId = !!me?.coupleId;
     const isCoupleConnected = hasCoupleId && !!couple?.user2?.id;
+    // 상대가 계정을 삭제(탈퇴)한 경우 — 함께한 기록은 남지만 새 활동은 없다.
+    const isPartnerDeleted = !!partner?.deletedAt;
 
     return {
       me,
@@ -45,6 +47,7 @@ export function usePartnerDerivation() {
       partnerCharacter: normalizeCharacter(partner?.characterType),
       hasCoupleId,
       isCoupleConnected,
+      isPartnerDeleted,
     };
   }, [me, couple, t]);
 }

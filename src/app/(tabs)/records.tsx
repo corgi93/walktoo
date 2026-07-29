@@ -9,7 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { Box, Icon, Row, TabScreenHeader, Text } from '@/components/base';
+import { Box, Button, Icon, Row, TabScreenHeader, Text } from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import { FootprintTimeline } from '@/components/feature/diary';
 import { RecordsMapView } from '@/components/feature/records/RecordsMapView';
@@ -161,7 +161,7 @@ function RecordsContent({
   const renderHeaderBlock = (padded = true) => (
     <TabScreenHeader
       title={t('home:records-tab.title')}
-      subtitle="전체 우리 기록을 이어서 봐요"
+      subtitle={t('home:records-tab.subtitle')}
       actions={headerActions}
       padded={padded}
     />
@@ -221,18 +221,8 @@ function RecordsContent({
                   기록을 불러오는 중...
                 </Text>
               </Box>
-            ) : filteredWalks.length === 0 ? (
-              <Box px="xxl">
-                <Text variant="bodySmall" color="textMuted" align="center">
-                  아직 우리 기록이 없어요
-                </Text>
-              </Box>
             ) : (
-              <Box px="xxl">
-                <Text variant="bodySmall" color="textMuted" align="center">
-                  아직 우리 기록이 없어요
-                </Text>
-              </Box>
+              <EmptyRecordsState onCreate={handleAddRecord} />
             )}
           </View>
         </ScrollView>
@@ -268,6 +258,38 @@ function RecordsContent({
       )}
 
     </View>
+  );
+}
+
+function EmptyRecordsState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation('home');
+
+  return (
+    <Box px="xxl" style={styles.emptyState}>
+      <View style={styles.emptyIcon}>
+        <Icon name="heart" size={24} color={theme.colors.primary} />
+      </View>
+      <Text variant="headingSmall" align="center">
+        {t('records-tab.empty-title')}
+      </Text>
+      <Text
+        variant="bodySmall"
+        color="textSecondary"
+        align="center"
+        mt="sm"
+        style={styles.emptyDescription}
+      >
+        {t('records-tab.empty-description')}
+      </Text>
+      <Button onPress={onCreate} mt="lg">
+        <>
+          <Icon name="plus" size={16} color={theme.colors.white} />
+          <Text variant="bodyMedium" color="white" ml="sm" weight="700">
+            {t('records-tab.empty-cta')}
+          </Text>
+        </>
+      </Button>
+    </Box>
   );
 }
 
@@ -404,6 +426,30 @@ const styles = StyleSheet.create({
   },
   listMode: {
     marginTop: SPACING.md,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: SPACING.xxxl,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.lg,
+    borderRadius: theme.radius.lg,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.primarySurface,
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  emptyDescription: {
+    maxWidth: 260,
   },
   mapArea: {
     flex: 1,
