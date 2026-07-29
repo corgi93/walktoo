@@ -3,7 +3,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -19,6 +22,7 @@ import {
   WalkDiaryCard,
 } from '@/components/feature/diary';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { useNudgeMutation } from '@/hooks/services/notification/mutation';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
@@ -39,6 +43,7 @@ export default function DiaryScreen() {
   const { t } = useTranslation(['diary']);
   const { me, hasCoupleId, partnerId, myName, partnerName } = usePartnerDerivation();
   const nudge = useNudgeMutation();
+  const keyboardBottomInset = useKeyboardBottomInset(LAYOUT.sectionGap);
 
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const {
@@ -102,17 +107,34 @@ export default function DiaryScreen() {
     setViewMode((prev) => (prev === 'timeline' ? 'feed' : 'timeline'));
   };
 
-  const handleEndReached = () => {
+  const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  };
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const renderFeedItem = useCallback(
+    ({ item }: { item: WalkDiary }) => (
+      <Box px="xxl" style={styles.feedItem}>
+        <WalkDiaryCard
+          diary={item}
+          onPress={handleItemPress}
+          onNudge={handleNudge}
+          nudgeLoading={nudge.isPending}
+        />
+      </Box>
+    ),
+    [handleItemPress, handleNudge, nudge.isPending],
+  );
 
   // ─── No Couple State ────────────────────────────────────
 
   if (!hasCoupleId) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <KeyboardAvoidingView
+        style={[styles.container, { paddingTop: insets.top }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <Row px="xxl" style={styles.header}>
           <Pressable onPress={() => router.back()} hitSlop={8}>
             <Icon name="arrow-left" size={22} color={theme.colors.text} />
@@ -120,10 +142,21 @@ export default function DiaryScreen() {
           <Text variant="headingMedium">{t('diary:list.title')}</Text>
           <View style={{ width: 32 }} />
         </Row>
-        <View style={styles.noCoupleWrapper}>
-          <NoCoupleCard />
-        </View>
-      </View>
+        <ScrollView
+          contentContainerStyle={[
+            styles.noCoupleScroll,
+            { paddingBottom: insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.noCoupleWrapper}>
+            <NoCoupleCard />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -203,19 +236,14 @@ export default function DiaryScreen() {
       ) : (
         <FlatList
           data={diaries}
-          renderItem={({ item }) => (
-            <Box px="xxl" style={styles.feedItem}>
-              <WalkDiaryCard
-                diary={item}
-                onPress={handleItemPress}
-                onNudge={handleNudge}
-                nudgeLoading={nudge.isPending}
-              />
-            </Box>
-          )}
+          renderItem={renderFeedItem}
           keyExtractor={(item) => item.id}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === 'android'}
           refreshing={isRefetching}
           onRefresh={refetch}
           contentContainerStyle={styles.scroll}
@@ -272,6 +300,9 @@ const styles = StyleSheet.create({
   noCoupleWrapper: {
     flex: 1,
     justifyContent: 'center',
+  },
+  noCoupleScroll: {
+    flexGrow: 1,
   },
   scroll: {
     paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap,

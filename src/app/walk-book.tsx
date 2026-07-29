@@ -28,7 +28,7 @@ export default function WalkBookScreen() {
   const { data, isLoading } = useDiaryListQuery();
 
   const walks = useMemo(
-    () => data?.pages.flatMap((page) => page).slice(0, PREVIEW_LIMIT) ?? [],
+    () => data?.pages[0]?.slice(0, PREVIEW_LIMIT) ?? [],
     [data],
   );
 
@@ -156,7 +156,12 @@ function WalkPreview({ walk }: { walk: WalkDiary }) {
     <View style={styles.previewCard}>
       <View style={styles.previewPhoto}>
         {photo ? (
-          <Image source={{ uri: photo }} style={styles.previewImage} />
+          <Image
+            source={{ uri: photo }}
+            style={styles.previewImage}
+            resizeMethod="resize"
+            fadeDuration={0}
+          />
         ) : (
           <Icon name="camera" size={20} color={theme.colors.gray400} />
         )}

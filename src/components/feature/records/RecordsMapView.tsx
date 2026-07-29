@@ -27,6 +27,7 @@ interface PinnedWalk {
 }
 
 const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
+const RECORD_MAP_MARKER_LIMIT = 120;
 
 function getFirstImageUri(
   ...photoGroups: (readonly string[] | undefined)[]
@@ -53,22 +54,29 @@ export function RecordsMapView({
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const pinnedWalks = useMemo<PinnedWalk[]>(() => {
+  const { pinnedWalks, placeCount } = useMemo<{
+    pinnedWalks: PinnedWalk[];
+    placeCount: number;
+  }>(() => {
     const result: PinnedWalk[] = [];
+    let count = 0;
     for (const w of walks) {
       if (
         w.locationCoords &&
         Number.isFinite(w.locationCoords.lat) &&
         Number.isFinite(w.locationCoords.lng)
       ) {
-        result.push({
-          walk: w,
-          coords: w.locationCoords,
-          thumbnailUrl: getFirstImageUri(
-            w.myEntry?.photos,
-            w.partnerEntry?.photos,
-          ),
-        });
+        count += 1;
+        if (result.length < RECORD_MAP_MARKER_LIMIT) {
+          result.push({
+            walk: w,
+            coords: w.locationCoords,
+            thumbnailUrl: getFirstImageUri(
+              w.myEntry?.photos,
+              w.partnerEntry?.photos,
+            ),
+          });
+        }
         continue;
       }
       if (
@@ -76,14 +84,17 @@ export function RecordsMapView({
         Number.isFinite(w.myEntry.locationCoords.lat) &&
         Number.isFinite(w.myEntry.locationCoords.lng)
       ) {
-        result.push({
-          walk: w,
-          coords: w.myEntry.locationCoords,
-          thumbnailUrl: getFirstImageUri(
-            w.myEntry.photos,
-            w.partnerEntry?.photos,
-          ),
-        });
+        count += 1;
+        if (result.length < RECORD_MAP_MARKER_LIMIT) {
+          result.push({
+            walk: w,
+            coords: w.myEntry.locationCoords,
+            thumbnailUrl: getFirstImageUri(
+              w.myEntry.photos,
+              w.partnerEntry?.photos,
+            ),
+          });
+        }
         continue;
       }
       if (
@@ -91,17 +102,20 @@ export function RecordsMapView({
         Number.isFinite(w.partnerEntry.locationCoords.lat) &&
         Number.isFinite(w.partnerEntry.locationCoords.lng)
       ) {
-        result.push({
-          walk: w,
-          coords: w.partnerEntry.locationCoords,
-          thumbnailUrl: getFirstImageUri(
-            w.partnerEntry.photos,
-            w.myEntry?.photos,
-          ),
-        });
+        count += 1;
+        if (result.length < RECORD_MAP_MARKER_LIMIT) {
+          result.push({
+            walk: w,
+            coords: w.partnerEntry.locationCoords,
+            thumbnailUrl: getFirstImageUri(
+              w.partnerEntry.photos,
+              w.myEntry?.photos,
+            ),
+          });
+        }
       }
     }
-    return result;
+    return { pinnedWalks: result, placeCount: count };
   }, [walks]);
 
   const initialCenter = pinnedWalks[0]?.coords ?? SEOUL_CENTER;
@@ -121,6 +135,10 @@ export function RecordsMapView({
     () => pinnedWalks.find((p) => p.walk.id === selectedId)?.walk ?? null,
     [pinnedWalks, selectedId],
   );
+  const countLabel =
+    placeCount > pinnedWalks.length
+      ? `최근 ${pinnedWalks.length}곳`
+      : `${pinnedWalks.length}곳`;
 
   const handleMarkerPress = (walkId: string) => {
     setSelectedId(walkId);
@@ -165,7 +183,7 @@ export function RecordsMapView({
       <View style={styles.countBadge}>
         <Icon name="map-pin" size={11} color={theme.colors.primary} />
         <Text variant="caption" color="text" style={{ marginLeft: 4 }}>
-          {pinnedWalks.length}곳
+          {countLabel}
         </Text>
       </View>
 

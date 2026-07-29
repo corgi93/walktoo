@@ -300,7 +300,7 @@ function EachMomentsBrowseLink({
             각자의 모먼트 둘러보기
           </Text>
           <Text variant="caption" color="textMuted">
-            지난 {eachMomentCount}일의 한 컷을 한 번에
+            최근 {eachMomentCount}일의 한 컷을 한 번에
           </Text>
         </View>
       </View>
@@ -422,6 +422,8 @@ function TodayPolaroidWidget({
           <Image
             source={{ uri: photo }}
             style={[styles.polaroidImg, blurred && { opacity: 0.25 }]}
+            resizeMethod="resize"
+            fadeDuration={0}
           />
         ) : photo && isVideo ? (
           <View style={[styles.videoThumb, blurred && { opacity: 0.25 }]}>

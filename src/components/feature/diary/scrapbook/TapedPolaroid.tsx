@@ -101,6 +101,8 @@ export function TapedPolaroid({
               source={{ uri: photoUri }}
               style={styles.photoImage}
               resizeMode="cover"
+              resizeMethod="resize"
+              fadeDuration={0}
             />
           ) : (
             children

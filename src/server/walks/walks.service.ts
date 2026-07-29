@@ -106,8 +106,18 @@ const dayDiff = (dateA: string, dateB: string): number => {
 
 export const walksService = {
   /** 산책 목록 조회 */
-  getList: async (coupleId: string, currentUserId: string, page = 1) => {
-    const { data, error } = await walksRepository.findByCoupleId(coupleId, page);
+  getList: async (
+    coupleId: string,
+    currentUserId: string,
+    page = 1,
+    kind?: WalkDiary['kind'],
+  ) => {
+    const { data, error } = await walksRepository.findByCoupleId(
+      coupleId,
+      page,
+      20,
+      kind,
+    );
     if (error) throw error;
     return (data ?? []).map((row) => toWalkDiary(row, currentUserId));
   },
@@ -394,20 +404,25 @@ export const walksService = {
 
   /** 커플 산책 통계 (총 횟수, 총 걸음수, 연속 산책) */
   getStats: async (coupleId: string) => {
-    const [countResult, datesResult, stepsResult] = await Promise.all([
+    const [countResult, datesResult, stepsSumResult] = await Promise.all([
       walksRepository.countByCoupleId(coupleId),
       walksRepository.findRecentDates(coupleId),
-      walksRepository.findStepsByCoupleId(coupleId),
+      walksRepository.sumStepsByCoupleId(coupleId),
     ]);
 
     const totalWalks = countResult.count ?? 0;
     const currentStreak = calculateStreak(
       (datesResult.data ?? []).map((d) => d.date),
     );
-    const totalSteps = (stepsResult.data ?? []).reduce(
-      (sum, w) => sum + w.steps,
-      0,
-    );
+    let totalSteps = stepsSumResult.data ?? 0;
+
+    if (stepsSumResult.error) {
+      const stepsResult = await walksRepository.findStepsByCoupleId(coupleId);
+      totalSteps = (stepsResult.data ?? []).reduce(
+        (sum, w) => sum + w.steps,
+        0,
+      );
+    }
 
     return { totalWalks, currentStreak, totalSteps };
   },

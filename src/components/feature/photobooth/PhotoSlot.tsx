@@ -31,7 +31,13 @@ const PhotoSlot: React.FC<PhotoSlotProps> = ({ uri, overlayColor, width, height,
 
   return (
     <View style={{ width, height, borderRadius: theme.radius.sm, overflow: 'hidden' }}>
-      <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+      <Image
+        source={{ uri }}
+        style={styles.image}
+        resizeMode="cover"
+        resizeMethod="resize"
+        fadeDuration={0}
+      />
       {overlayColor && <View style={[styles.overlay, { backgroundColor: overlayColor }]} />}
     </View>
   );

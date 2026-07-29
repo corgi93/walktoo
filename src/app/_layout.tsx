@@ -20,7 +20,16 @@ import { theme } from "@/styles/theme";
 
 // ─── Config ─────────────────────────────────────────────
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const WarmTheme = {
   ...DefaultTheme,

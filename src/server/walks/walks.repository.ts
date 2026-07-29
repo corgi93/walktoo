@@ -21,15 +21,27 @@ export type WalkWithEntries = WalkRow & {
 
 export const walksRepository = {
   /** 커플의 산책 목록 조회 (페이지네이션, 산책 날짜 최신순) */
-  findByCoupleId: (coupleId: string, page: number, limit = 20) =>
-    supabase
+  findByCoupleId: (
+    coupleId: string,
+    page: number,
+    limit = 20,
+    kind?: WalkRow['kind'],
+  ) => {
+    let query = supabase
       .from('walks')
       .select('*, footprint_entries(*, profiles:user_id(nickname))')
-      .eq('couple_id', coupleId)
+      .eq('couple_id', coupleId);
+
+    if (kind) {
+      query = query.eq('kind', kind);
+    }
+
+    return query
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1)
-      .returns<WalkWithEntries[]>(),
+      .returns<WalkWithEntries[]>();
+  },
 
   /** 산책 상세 조회 */
   findById: (id: string) =>
@@ -143,6 +155,10 @@ export const walksRepository = {
       .order('date', { ascending: false })
       .limit(100)
       .returns<{ date: string }[]>(),
+
+  /** 커플의 총 걸음수 (DB aggregate, 누적 데이터용) */
+  sumStepsByCoupleId: (coupleId: string) =>
+    supabase.rpc('sum_walk_steps_by_couple', { p_couple_id: coupleId }),
 
   /** 커플의 총 걸음수 (최근 산책들에서 합산) */
   findStepsByCoupleId: (coupleId: string) =>

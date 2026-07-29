@@ -114,6 +114,8 @@ export function GridLayout({
                       source={{ uri: photo }}
                       style={styles.photoImage}
                       resizeMode="cover"
+                      resizeMethod="resize"
+                      fadeDuration={0}
                     />
                   ) : (
                     <PhotoPlaceholder theme={t} index={i} size={10} />

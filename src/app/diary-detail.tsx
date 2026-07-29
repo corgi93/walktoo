@@ -41,6 +41,7 @@ import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { useEntitlement } from '@/hooks/useEntitlement';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
@@ -339,6 +340,9 @@ export default function DiaryDetailScreen() {
   };
 
   const showForm = !hasMyEntry || isEditing;
+  const keyboardBottomInset = useKeyboardBottomInset(
+    showForm ? SPACING.xxxl : 0,
+  );
 
   return (
     <View
@@ -399,18 +403,24 @@ export default function DiaryDetailScreen() {
       </Row>
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoider}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           style={styles.scroller}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            {
+              paddingBottom:
+                LAYOUT.bottomSafe + LAYOUT.sectionGap + keyboardBottomInset,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         >
-          <View
-            style={{ paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap }}
-          >
+          <View>
           <Box px="xxl">
             {/* 디자인의 DiaryPage 형태 — rounded 카드 wrapper 없이 ThemeBg 위에 직접 콘텐츠 */}
             <View style={styles.diaryPage}>
@@ -1034,6 +1044,9 @@ const styles = StyleSheet.create({
   },
   themeBtnEmoji: {
     fontSize: 13,
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   dateBannerWrap: {
     marginVertical: SPACING.lg,

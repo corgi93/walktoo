@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,12 +16,14 @@ import { NoCoupleCard } from '@/components/feature/couple';
 import { FootprintTimeline } from '@/components/feature/diary';
 import { RecordsMapView } from '@/components/feature/records/RecordsMapView';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { LAYOUT, SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
 
 type ViewMode = 'list' | 'map';
+const RECORD_MAP_MARKER_LIMIT = 120;
 
 // ─── Screen ─────────────────────────────────────────────
 
@@ -72,21 +76,21 @@ function RecordsContent({
     hasNextPage,
     isLoading,
     isFetchingNextPage,
-  } = useDiaryListQuery();
+  } = useDiaryListQuery('together');
   const walks = useMemo(
     () => data?.pages.flatMap((page) => page) ?? [],
     [data],
   );
 
-  // 우리 기록 탭은 같이 산책(together)만 노출. 각자 기록은 홈 탭에서.
-  const filteredWalks = useMemo(
-    () => walks.filter((w) => w.kind === 'together'),
-    [walks],
-  );
+  const togetherWalks = walks;
   const mapPlaceCount = useMemo(
-    () => filteredWalks.filter(hasWalkCoords).length,
-    [filteredWalks],
+    () => togetherWalks.filter(hasWalkCoords).length,
+    [togetherWalks],
   );
+  const mapPlaceLabel =
+    mapPlaceCount > RECORD_MAP_MARKER_LIMIT
+      ? `최근 ${RECORD_MAP_MARKER_LIMIT}곳`
+      : `${mapPlaceCount}곳`;
 
   const handleAddRecord = () => {
     router.push({ pathname: '/footprint-create', params: { kind: 'together' } });
@@ -134,12 +138,6 @@ function RecordsContent({
     [],
   );
 
-  useEffect(() => {
-    if (viewMode !== 'map') return;
-    if (!hasNextPage || isFetchingNextPage) return;
-    fetchNextPage();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, viewMode, walks.length]);
-
   const headerActions = (
     <>
       <Pressable
@@ -172,14 +170,14 @@ function RecordsContent({
       <View style={styles.stat}>
         <Icon name="footprint" size={14} color={theme.colors.primary} />
         <Text variant="caption" color="textSecondary" ml="xxs">
-          우리 기록 {filteredWalks.length}
+          우리 기록 {togetherWalks.length}
         </Text>
       </View>
       <View style={styles.statDivider} />
       <View style={styles.stat}>
         <Icon name="map-pin" size={14} color={theme.colors.accent} />
         <Text variant="caption" color="textSecondary" ml="xxs">
-          지도 {mapPlaceCount}곳
+          지도 {mapPlaceLabel}
         </Text>
       </View>
     </Row>
@@ -193,7 +191,7 @@ function RecordsContent({
           {renderHeaderBlock()}
           <View style={styles.mapArea}>
             <RecordsMapView
-              walks={filteredWalks}
+              walks={togetherWalks}
               myName={myName}
               partnerName={partnerName}
               bottomInset={insets.bottom}
@@ -202,7 +200,7 @@ function RecordsContent({
             />
           </View>
         </>
-      ) : isLoading || filteredWalks.length === 0 ? (
+      ) : isLoading || togetherWalks.length === 0 ? (
         <ScrollView
           scrollEnabled={!isMapInteracting}
           nestedScrollEnabled={false}
@@ -228,7 +226,7 @@ function RecordsContent({
         </ScrollView>
       ) : (
         <FootprintTimeline
-          diaries={filteredWalks}
+          diaries={togetherWalks}
           myName={myName}
           partnerName={partnerName}
           onItemPress={handleItemPress}
@@ -374,24 +372,37 @@ function RecordsNoCoupleFallback({
   insets: { top: number; bottom: number; left: number; right: number };
 }) {
   const { t } = useTranslation(['home', 'calendar']);
+  const keyboardBottomInset = useKeyboardBottomInset(SPACING.xl);
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <TabScreenHeader title={t('home:records-tab.title')} />
-      <View style={styles.fallbackBody}>
-        <Box px="xxl" style={{ alignItems: 'center' }}>
-          <Icon name="calendar" size={48} color={theme.colors.gray300} />
-          <Text variant="headingSmall" mt="lg" align="center">
-            {t('calendar:no-couple-title')}
-          </Text>
-          <Text variant="bodySmall" color="textMuted" mt="sm" align="center">
-            {t('calendar:no-couple-description')}
-          </Text>
-        </Box>
-      </View>
-      <View style={{ paddingBottom: insets.bottom }}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.fallbackScroll,
+          { paddingBottom: insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.fallbackBody}>
+          <Box px="xxl" style={{ alignItems: 'center' }}>
+            <Icon name="calendar" size={48} color={theme.colors.gray300} />
+            <Text variant="headingSmall" mt="lg" align="center">
+              {t('calendar:no-couple-title')}
+            </Text>
+            <Text variant="bodySmall" color="textMuted" mt="sm" align="center">
+              {t('calendar:no-couple-description')}
+            </Text>
+          </Box>
+        </View>
         <NoCoupleCard />
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -470,8 +481,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.gray300,
   },
   fallbackBody: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: SPACING.xxxl,
+  },
+  fallbackScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
 });

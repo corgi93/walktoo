@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal as RNModal,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -12,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, Row, Text } from '@/components/base';
 import { MapPickerView } from '@/components/feature/diary/LocationPicker/MapPickerView';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { useLocationSearch } from '@/hooks/useLocationSearch';
 import {
   selectLocationProvider,
@@ -55,6 +58,7 @@ export function LocationPicker({
   const [query, setQuery] = useState(initialQuery);
   const [pendingPick, setPendingPick] = useState<PickedLocation | null>(null);
   const { results, isSearching, error, providerId } = useLocationSearch(query);
+  const keyboardBottomInset = useKeyboardBottomInset(SPACING.lg);
 
   const handleSelectFromList = (p: Place) => {
     const picked: PickedLocation = {
@@ -117,11 +121,12 @@ export function LocationPicker({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View
+      <KeyboardAvoidingView
         style={[
           styles.container,
           { paddingTop: insets.top, paddingBottom: insets.bottom },
         ]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* 헤더 */}
         <Row px="lg" style={styles.header}>
@@ -241,7 +246,10 @@ export function LocationPicker({
             renderItem={({ item }) => (
               <PlaceRow place={item} onPress={() => handleSelectFromList(item)} />
             )}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[
+              styles.list,
+              { paddingBottom: SPACING.lg + keyboardBottomInset },
+            ]}
           />
         )}
 
@@ -250,7 +258,10 @@ export function LocationPicker({
           <Pressable
             style={[
               styles.plainTextCta,
-              { paddingBottom: SPACING.md + insets.bottom },
+              {
+                paddingBottom:
+                  SPACING.md + insets.bottom + (keyboardBottomInset ? SPACING.lg : 0),
+              },
             ]}
             onPress={handlePlainText}
           >
@@ -262,7 +273,7 @@ export function LocationPicker({
         )}
           </>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </RNModal>
   );
 }

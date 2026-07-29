@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import {
   Image,
@@ -83,6 +83,82 @@ export function FootprintTimeline({
     return nextItems;
   }, [diaries]);
 
+  const renderItem = useCallback(
+    ({ item }: { item: TimelineItem }) => {
+      if (item.type === 'year') {
+        return (
+          <View
+            style={[
+              styles.yearHeader,
+              item.spaced && styles.yearHeaderSpaced,
+            ]}
+          >
+            <View style={styles.yearLine} />
+            <Text variant="label" color="textMuted" style={styles.yearLabel}>
+              {t('timeline.year-label', { year: item.year })}
+            </Text>
+            <View style={styles.yearLine} />
+          </View>
+        );
+      }
+
+      const diary = item.diary;
+      const d = parseLocalDate(item.diary.date);
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const weekday = formatDate(d, { weekday: 'short' });
+
+      return (
+        <Pressable
+          style={styles.item}
+          onPress={() => onItemPress?.(diary)}
+        >
+          <View style={styles.dateTag}>
+            <Text style={styles.dateMonth}>
+              {month}
+              {t('common:labels.month-suffix')}
+            </Text>
+            <Text style={styles.dateDay}>{day}</Text>
+            <Text style={styles.dateWeekday}>{weekday}</Text>
+          </View>
+
+          <View style={styles.timeline}>
+            <View
+              style={[
+                styles.dot,
+                diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
+              ]}
+            >
+              <Icon
+                name={diary.isRevealed ? 'footprint' : 'lock'}
+                size={12}
+                color={
+                  diary.isRevealed
+                    ? theme.colors.primary
+                    : theme.colors.gray500
+                }
+              />
+            </View>
+            {!item.isLast && <View style={styles.line} />}
+          </View>
+
+          {diary.isRevealed ? (
+            <RevealedCard diary={diary} />
+          ) : (
+            <LockedCard
+              diary={diary}
+              myName={myName}
+              partnerName={partnerName}
+              onNudge={onNudge}
+              nudgeLoading={nudgeLoading}
+            />
+          )}
+        </Pressable>
+      );
+    },
+    [myName, nudgeLoading, onItemPress, onNudge, partnerName, t],
+  );
+
   return (
     <FlashList
       data={items}
@@ -98,85 +174,14 @@ export function FootprintTimeline({
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={ListHeaderComponent}
       ListFooterComponent={ListFooterComponent}
-      renderItem={({ item }) => {
-        if (item.type === 'year') {
-          return (
-            <View
-              style={[
-                styles.yearHeader,
-                item.spaced && styles.yearHeaderSpaced,
-              ]}
-            >
-              <View style={styles.yearLine} />
-              <Text variant="label" color="textMuted" style={styles.yearLabel}>
-                {t('timeline.year-label', { year: item.year })}
-              </Text>
-              <View style={styles.yearLine} />
-            </View>
-          );
-        }
-
-        const diary = item.diary;
-        const d = parseLocalDate(item.diary.date);
-        const month = d.getMonth() + 1;
-        const day = d.getDate();
-        const weekday = formatDate(d, { weekday: 'short' });
-
-        return (
-          <Pressable
-            style={styles.item}
-            onPress={() => onItemPress?.(diary)}
-          >
-            <View style={styles.dateTag}>
-              <Text style={styles.dateMonth}>
-                {month}
-                {t('common:labels.month-suffix')}
-              </Text>
-              <Text style={styles.dateDay}>{day}</Text>
-              <Text style={styles.dateWeekday}>{weekday}</Text>
-            </View>
-
-            <View style={styles.timeline}>
-              <View
-                style={[
-                  styles.dot,
-                  diary.isRevealed ? styles.dotRevealed : styles.dotLocked,
-                ]}
-              >
-                <Icon
-                  name={diary.isRevealed ? 'footprint' : 'lock'}
-                  size={12}
-                  color={
-                    diary.isRevealed
-                      ? theme.colors.primary
-                      : theme.colors.gray500
-                  }
-                />
-              </View>
-              {!item.isLast && <View style={styles.line} />}
-            </View>
-
-            {diary.isRevealed ? (
-              <RevealedCard diary={diary} />
-            ) : (
-              <LockedCard
-                diary={diary}
-                myName={myName}
-                partnerName={partnerName}
-                onNudge={onNudge}
-                nudgeLoading={nudgeLoading}
-              />
-            )}
-          </Pressable>
-        );
-      }}
+      renderItem={renderItem}
     />
   );
 }
 
 // ─── Locked Card ────────────────────────────────────────
 
-function LockedCard({
+const LockedCard = memo(function LockedCard({
   diary,
   myName: myNameProp,
   partnerName: partnerNameProp,
@@ -291,11 +296,11 @@ function LockedCard({
       )}
     </View>
   );
-}
+});
 
 // ─── Revealed Card ──────────────────────────────────────
 
-function RevealedCard({
+const RevealedCard = memo(function RevealedCard({
   diary,
 }: {
   diary: WalkDiary;
@@ -317,11 +322,11 @@ function RevealedCard({
       </Row>
     </View>
   );
-}
+});
 
 // ─── Entry Column (각 사람의 기록) ──────────────────────
 
-function EntryColumn({
+const EntryColumn = memo(function EntryColumn({
   entry,
 }: {
   entry: NonNullable<WalkDiary['myEntry']>;
@@ -339,6 +344,8 @@ function EntryColumn({
             source={{ uri: entry.photos[0] }}
             style={styles.entryPhotoImage}
             resizeMode="cover"
+            resizeMethod="resize"
+            fadeDuration={0}
           />
         </View>
       )}
@@ -356,7 +363,7 @@ function EntryColumn({
       ) : null}
     </Column>
   );
-}
+});
 
 // ─── Styles ─────────────────────────────────────────────
 

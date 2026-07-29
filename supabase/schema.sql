@@ -270,6 +270,9 @@ CREATE TABLE IF NOT EXISTS public.reflection_answers (
 
 CREATE INDEX IF NOT EXISTS idx_walks_couple_id              ON public.walks(couple_id);
 CREATE INDEX IF NOT EXISTS idx_walks_date                   ON public.walks(date DESC);
+CREATE INDEX IF NOT EXISTS idx_walks_couple_date_created_at ON public.walks(couple_id, date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_walks_couple_kind_date_created_at ON public.walks(couple_id, kind, date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_walks_couple_revealed_date    ON public.walks(couple_id, is_revealed, date DESC);
 CREATE INDEX IF NOT EXISTS idx_footprint_entries_walk_id    ON public.footprint_entries(walk_id);
 CREATE INDEX IF NOT EXISTS idx_couples_invite_code          ON public.couples(invite_code);
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient      ON public.notifications(recipient_id, created_at DESC);
@@ -280,6 +283,25 @@ CREATE INDEX IF NOT EXISTS idx_monthly_reflections_couple   ON public.monthly_re
 CREATE INDEX IF NOT EXISTS idx_reflection_answers_reflection ON public.reflection_answers(reflection_id);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_couple_date  ON public.couple_schedules(couple_id, date);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_owner        ON public.couple_schedules(owner_id);
+
+
+-- ────────────────────────────────────────────────────────────
+-- 2-1. AGGREGATE RPC
+-- ────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.sum_walk_steps_by_couple(p_couple_id UUID)
+RETURNS BIGINT
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  SELECT COALESCE(SUM(steps), 0)::BIGINT
+  FROM public.walks
+  WHERE couple_id = p_couple_id;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.sum_walk_steps_by_couple(UUID) TO authenticated;
 
 
 -- ────────────────────────────────────────────────────────────

@@ -32,6 +32,7 @@ import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
@@ -46,6 +47,7 @@ export default function FootprintCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation(['diary', 'common', 'premium']);
+  const keyboardBottomInset = useKeyboardBottomInset(SPACING.xxxl);
 
   const { couple, isCoupleConnected, myName } = usePartnerDerivation();
   const { isEntitled } = useEntitlement();
@@ -321,16 +323,21 @@ export default function FootprintCreateScreen() {
           </Row>
 
           <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.keyboardAvoider}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <ScrollView
               style={styles.scroller}
-              contentContainerStyle={styles.scroll}
+              contentContainerStyle={[
+                styles.scroll,
+                { paddingBottom: LAYOUT.bottomSafe + keyboardBottomInset },
+              ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             >
-              <View style={{ paddingBottom: LAYOUT.bottomSafe }}>
+              <View>
               {/* ── 오늘 날짜 표시 (read-only, picker 없음) + 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>
                 <View
@@ -629,6 +636,9 @@ const styles = StyleSheet.create({
   hintRow: {
     alignItems: 'center',
     paddingTop: SPACING.xs,
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   scroll: {
     paddingTop: LAYOUT.sectionGap,

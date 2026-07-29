@@ -379,6 +379,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      sum_walk_steps_by_couple: {
+        Args: { p_couple_id: string };
+        Returns: number;
+      };
       get_partner_steps: {
         Args: { p_partner_id: string; p_date: string };
         Returns: number;
