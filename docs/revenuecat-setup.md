@@ -14,7 +14,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | **Offering ID** (RevenueCat) | `default` (현재 offering) |
 | **Type** | Non-consumable (구독 없는 1회성 업그레이드) |
 | **무료 체험** | 없음 |
-| **가격** | ₩3,300 / $2.49 |
+| **가격** | ₩4,400 / $3.49 |
 
 ### 여행 무드 테마팩
 
@@ -27,16 +27,17 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
 | **포함 테마** | 삿포로 필름 / 홍콩 야경 / 도쿄 레코드샵 (`vintage_film`, `dreamy_cloud`, `dark_academia`) |
 | **가격** | ₩3,300 / $2.49 |
 
-### 향후 결과물 상품 (결제 플로우 구현 전에는 활성화 금지)
+### 향후/보류 상품 (결제 플로우 구현 전에는 활성화 금지)
 
 | 상품 | Product ID | Type | 가격 |
 |---|---|---|---:|
+| 같이 업그레이드 | `com.walktoo.bundle_record_theme` | Non-consumable | ₩6,600 / $5.49 |
 | 추억 카드 이미지 | `com.walktoo.memory_card_image` | Consumable | ₩1,500 / $1.49 |
 | 산책북 기본 | `com.walktoo.walk_book_basic` | Consumable | ₩6,900 / $5.99 |
 | 산책북 긴 기간 | `com.walktoo.walk_book_extended` | Consumable | ₩8,900 / $7.99 |
 | 기념일 리포트 | `com.walktoo.anniversary_report` | Consumable | ₩5,900 / $4.99 |
 
-코드에서는 `src/constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` / `RESULT_PRODUCTS.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
+코드에서는 `src/constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` / `RESULT_PRODUCTS.*` / `PRODUCT_BUNDLES.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.
 
 ---
 
@@ -48,8 +49,8 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
    - Reference Name: `walkToo Record Upgrade`
    - Product ID: `com.walktoo.record_upgrade`
 3. 가격 설정:
-   - 한국 (KRW): **₩3,300**
-   - 글로벌 (USD): **$2.49**
+   - 한국 (KRW): **₩4,400**
+   - 글로벌 (USD): **$3.49**
    - 다른 국가는 Apple 자동 환산 사용
 4. 표시 정보 (다국어):
    - 한국어: "기록 업그레이드"
@@ -65,7 +66,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
    - 상품 ID: `com.walktoo.record_upgrade`
    - 이름: `기록 업그레이드`
    - 설명: `구독 없이 사진과 짧은 영상 기록을 더 풍성하게 남깁니다`
-3. 가격: **₩3,300** (다른 국가는 자동 환산)
+3. 가격: **₩4,400** (다른 국가는 자동 환산)
 4. 상태: **활성**
 5. 라이선스 테스터 추가 (sandbox 결제 테스트용)
 
@@ -79,7 +80,7 @@ walkToo의 구독 없는 1회성 업그레이드는 [RevenueCat](https://www.rev
    - **+ Product** → Apple → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
    - **+ Product** → Google → `com.walktoo.record_upgrade` 추가 → non-consumable 상품 연결
    - 같은 방식으로 `com.walktoo.theme_pack_travel`도 양쪽 모두 추가
-   - 결과물 상품은 생성/다운로드/재시도 플로우가 붙기 전에는 RevenueCat에 연결하지 않는다
+   - 묶음/결과물 상품은 구매·생성·복구 플로우가 붙기 전에는 RevenueCat에 연결하지 않는다
 4. **Entitlements**:
    - **+ Entitlement** → Identifier: `walktoo_record_upgrade` → Display name: `Record Upgrade`
    - **+ Entitlement** → Identifier: `walktoo_theme_pack_travel` → Display name: `Travel Mood Theme Pack`

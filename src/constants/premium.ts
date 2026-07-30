@@ -36,10 +36,10 @@ export const PREMIUM = {
 
   /**
    * 가격 fallback. 스토어 가격이 source of truth.
-   * 2,200원은 런칭 프로모션으로만 쓰고, 기본 기준가는 3,300원으로 둔다.
+   * 3,300원은 초기 테스트가로만 쓰고, 기본 기준가는 4,400원으로 둔다.
    */
-  PRICE_KRW: 3_300,
-  PRICE_USD: 2.49,
+  PRICE_KRW: 4_400,
+  PRICE_USD: 3.49,
 } as const;
 
 /**
@@ -94,8 +94,8 @@ export const RESULT_PRODUCTS = {
 export const PRODUCT_BUNDLES = {
   RECORD_AND_THEME_PACK: {
     PRODUCT_ID: 'com.walktoo.bundle_record_theme',
-    PRICE_KRW: 5_900,
-    PRICE_USD: 4.49,
+    PRICE_KRW: 6_600,
+    PRICE_USD: 5.49,
   },
 } as const;
 
