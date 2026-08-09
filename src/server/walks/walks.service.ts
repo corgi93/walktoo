@@ -1,4 +1,5 @@
 import type { WalkDiary, CreateWalkDiaryInput, FootprintEntry } from '@/types/diary';
+import { getLocalToday, parseLocalDate } from '@/utils/date';
 
 import { notificationsService } from '../notifications/notifications.service';
 import { storageService } from '../storage';
@@ -8,18 +9,6 @@ import { walksRepository, type WalkWithEntries } from './walks.repository';
 /** 원격(http) URL만 추려낸다 — 로컬 미업로드 항목 제외 */
 const remoteUrls = (urls: readonly string[] | null | undefined): string[] =>
   (urls ?? []).filter((u) => typeof u === 'string' && u.startsWith('http'));
-
-const isLocationSchemaCacheError = (error: unknown): boolean => {
-  const message =
-    typeof error === 'object' && error !== null && 'message' in error
-      ? String((error as { message?: unknown }).message ?? '')
-      : '';
-
-  return (
-    message.includes('schema cache') &&
-    /location_(lat|lng|address|source)/.test(message)
-  );
-};
 
 // ─── Row → Domain Type 변환 ────────────────────────────
 
@@ -76,7 +65,7 @@ const toWalkDiary = (
 const calculateStreak = (dates: string[]): number => {
   if (dates.length === 0) return 0;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
   const sorted = [...new Set(dates)].sort().reverse(); // 최신 순
 
   // 가장 최근 산책이 오늘 또는 어제가 아니면 streak 0
@@ -97,9 +86,25 @@ const calculateStreak = (dates: string[]): number => {
 };
 
 const dayDiff = (dateA: string, dateB: string): number => {
-  const a = new Date(dateA).getTime();
-  const b = new Date(dateB).getTime();
+  const a = parseLocalDate(dateA).getTime();
+  const b = parseLocalDate(dateB).getTime();
   return Math.round(Math.abs(b - a) / (1000 * 60 * 60 * 24));
+};
+
+const throwWalkEntryReason = (reason?: string): never => {
+  switch (reason) {
+    case 'already_entered':
+      throw new Error('같은 종류의 기록은 하루에 하나만 남길 수 있어요');
+    case 'no_couple':
+      throw new Error('커플 연결이 필요합니다');
+    case 'forbidden':
+    case 'not_found':
+      throw new Error('이 기록에 접근할 수 없어요');
+    case 'invalid_kind':
+      throw new Error('지원하지 않는 기록 종류예요');
+    default:
+      throw new Error('기록 저장에 실패했어요');
+  }
 };
 
 // ─── Walks Service (비즈니스 로직) ──────────────────────
@@ -151,103 +156,63 @@ export const walksService = {
     currentUserId: string,
     input: CreateWalkDiaryInput,
   ) => {
-    // 0. 같은 날짜의 같은 종류 기록은 하나만 유지한다.
-    //    데이트 기록과 각자 미디어 기록은 같은 날에도 별도로 남길 수 있다.
-    const { data: existing } = await walksRepository.findByDateAndKind(
-      coupleId,
-      input.date,
-      input.kind,
-    );
-    if (existing && existing.length > 0) {
-      throw new Error('같은 종류의 기록은 하루에 하나만 남길 수 있어요');
+    const { data: result, error } = await walksRepository.createWithEntry({
+      p_couple_id: coupleId,
+      p_date: input.date,
+      p_kind: input.kind,
+      p_walk_location_name: input.kind === 'together' ? input.locationName : '',
+      p_walk_location_lat:
+        input.kind === 'together' ? (input.locationCoords?.lat ?? null) : null,
+      p_walk_location_lng:
+        input.kind === 'together' ? (input.locationCoords?.lng ?? null) : null,
+      p_walk_location_address:
+        input.kind === 'together' ? (input.locationAddress ?? null) : null,
+      p_walk_location_source:
+        input.kind === 'together' ? (input.locationSource ?? null) : null,
+      p_memo: input.memo,
+      p_photos: input.photos,
+      p_entry_location_name: input.kind === 'each' ? input.locationName : '',
+      p_entry_location_lat:
+        input.kind === 'each' ? (input.locationCoords?.lat ?? null) : null,
+      p_entry_location_lng:
+        input.kind === 'each' ? (input.locationCoords?.lng ?? null) : null,
+      p_entry_location_address:
+        input.kind === 'each' ? (input.locationAddress ?? null) : null,
+      p_entry_location_source:
+        input.kind === 'each' ? (input.locationSource ?? null) : null,
+      p_diary_question_id: input.diaryQuestionId,
+      p_diary_answer: input.diaryAnswer,
+      p_couple_question_id: input.coupleQuestionId,
+      p_couple_answer: input.coupleAnswer,
+    });
+
+    if (error) throw error;
+    if (!result?.success || !result.walk_id) {
+      throwWalkEntryReason(result?.reason);
+    }
+    const walkId = result.walk_id!;
+
+    if (result.created_walk) {
+      // 상대방에게 알림 (비동기, 실패해도 무시)
+      walksService._notifyPartnerWalkCreated(
+        coupleId,
+        currentUserId,
+        walkId,
+        input.locationName,
+      ).catch(() => {});
     }
 
-    // 1. 산책 레코드 생성
-    //    - together: walk.location_name에 공용 장소 저장
-    //    - each:     walk.location_name은 빈값, entry.location_name에 각자 장소
-    const walkInput = {
-      couple_id: coupleId,
-      date: input.date,
-      location_name: input.kind === 'together' ? input.locationName : '',
-      location_lat: input.kind === 'together' ? input.locationCoords?.lat : undefined,
-      location_lng: input.kind === 'together' ? input.locationCoords?.lng : undefined,
-      location_address: input.kind === 'together' ? input.locationAddress : undefined,
-      location_source: input.kind === 'together' ? input.locationSource : undefined,
-      steps: 0, // legacy 컬럼 (더 이상 사용하지 않음)
-      kind: input.kind,
-    };
-
-    let { data: walk, error: walkError } = await walksRepository.create(walkInput);
-
-    if (walkError && isLocationSchemaCacheError(walkError)) {
-      const { data: fallbackWalk, error: fallbackError } =
-        await walksRepository.create({
-          couple_id: coupleId,
-          date: input.date,
-          location_name: input.kind === 'together' ? input.locationName : '',
-          steps: 0,
-          kind: input.kind,
-        });
-
-      walk = fallbackWalk;
-      walkError = fallbackError;
+    if (result.just_revealed) {
+      walksService._notifyWalkRevealed(walkId).catch(() => {});
     }
 
-    if (walkError) throw walkError;
-    if (!walk) throw new Error('산책 기록을 생성하지 못했어요');
-
-    // 2. 내 발자취 엔트리 생성
-    const entryInput = {
-      walk_id: walk.id,
-      user_id: currentUserId,
-      memo: input.memo,
-      photos: input.photos,
-      location_name: input.kind === 'each' ? input.locationName : '',
-      location_lat: input.kind === 'each' ? input.locationCoords?.lat : undefined,
-      location_lng: input.kind === 'each' ? input.locationCoords?.lng : undefined,
-      location_address: input.kind === 'each' ? input.locationAddress : undefined,
-      location_source: input.kind === 'each' ? input.locationSource : undefined,
-      diary_question_id: input.diaryQuestionId,
-      diary_answer: input.diaryAnswer,
-      couple_question_id: input.coupleQuestionId,
-      couple_answer: input.coupleAnswer,
-    };
-
-    let { error: entryError } = await walksRepository.createEntry(entryInput);
-
-    if (entryError && isLocationSchemaCacheError(entryError)) {
-      const { error: fallbackError } = await walksRepository.createEntry({
-        walk_id: walk.id,
-        user_id: currentUserId,
-        memo: input.memo,
-        photos: input.photos,
-        location_name: input.kind === 'each' ? input.locationName : '',
-        diary_question_id: input.diaryQuestionId,
-        diary_answer: input.diaryAnswer,
-        couple_question_id: input.coupleQuestionId,
-        couple_answer: input.coupleAnswer,
-      });
-
-      entryError = fallbackError;
-    }
-
-    if (entryError) throw entryError;
-
-    // 상대방에게 알림 (비동기, 실패해도 무시)
-    walksService._notifyPartnerWalkCreated(
-      coupleId,
-      currentUserId,
-      walk.id,
-      input.locationName,
-    ).catch(() => {});
-
-    return walk.id;
+    return walkId;
   },
 
   /** 발자취 엔트리 추가 (상대방 작성 시 → reveal 체크) */
   addEntry: async (
     walkId: string,
-    userId: string,
+    _userId: string,
     memo: string,
     photos: string[],
     questionData?: {
@@ -258,25 +223,25 @@ export const walksService = {
     },
     locationName?: string,
   ) => {
-    const { error: entryError } = await walksRepository.createEntry({
-      walk_id: walkId,
-      user_id: userId,
-      memo,
-      photos,
-      location_name: locationName ?? '',
-      diary_question_id: questionData?.diaryQuestionId,
-      diary_answer: questionData?.diaryAnswer ?? '',
-      couple_question_id: questionData?.coupleQuestionId,
-      couple_answer: questionData?.coupleAnswer ?? '',
+    const { data: result, error } = await walksRepository.addEntryToWalk({
+      p_walk_id: walkId,
+      p_memo: memo,
+      p_photos: photos,
+      p_entry_location_name: locationName ?? '',
+      p_entry_location_lat: null,
+      p_entry_location_lng: null,
+      p_entry_location_address: null,
+      p_entry_location_source: null,
+      p_diary_question_id: questionData?.diaryQuestionId ?? null,
+      p_diary_answer: questionData?.diaryAnswer ?? '',
+      p_couple_question_id: questionData?.coupleQuestionId ?? null,
+      p_couple_answer: questionData?.coupleAnswer ?? '',
     });
-    if (entryError) throw entryError;
-
-    // 둘 다 작성했으면 reveal
-    const { count } = await walksRepository.countEntries(walkId);
-    if (count && count >= 2) {
-      await walksRepository.update(walkId, { is_revealed: true });
-
-      // 양쪽에 reveal 알림 (비동기)
+    if (error) throw error;
+    if (!result?.success) {
+      throwWalkEntryReason(result?.reason);
+    }
+    if (result.just_revealed) {
       walksService._notifyWalkRevealed(walkId).catch(() => {});
     }
   },

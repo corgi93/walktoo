@@ -17,10 +17,10 @@
 
 | 항목 | 값 | 강제 위치 |
 | --- | --- | --- |
-| 영상 길이 | 무료 3초 / 업그레이드 5초 | 캡처 `maxDuration`, 선택 후 `duration` 재검증 |
+| 영상 길이 | 무료 3초 / 커플 패스 5초 | 캡처 `maxDuration`, 선택 후 `duration` 재검증 |
 | 영상 용량 | **12MB** (`MAX_SHORT_VIDEO_BYTES`) | 캡처·선택 시 파일 크기 검증 → 초과 시 거부 |
 | 엔트리당 영상 | **1개** (`MAX_VIDEOS_PER_ENTRY`) | diary-detail 선택 시 합산 캡 |
-| 사진 매수 | 무료 4장 / 업그레이드 8장 | `PREMIUM.PHOTO_LIMIT_*` |
+| 사진 매수 | 무료 4장 / 커플 패스 8장 | `PREMIUM.PHOTO_LIMIT_*` |
 | 사진 해상도 | 긴 변 1600px | 업로드 직전 리사이즈 |
 
 영상은 720p로 압축하면 5초가 보통 1~3MB라 12MB 상한은 넉넉하다. 압축이 꺼져 있어도

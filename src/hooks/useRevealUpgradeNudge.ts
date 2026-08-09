@@ -12,7 +12,7 @@ const REVEAL_NUDGE_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * useRevealUpgradeNudge
  *
- * reveal(둘 다 완성 → 공개) 직후, free 사용자에게 1회성 기록 업그레이드를
+ * reveal(둘 다 완성 → 공개) 직후, free 사용자에게 커플 패스를
  * 부드럽게 한 번 제안한다. 결제를 막지 않고 "특별한 날만 더 풍성하게"만 권한다.
  *
  * bm-policy §6: 사용자가 이미 기록 의도를 가진 순간에만 노출한다.

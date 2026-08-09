@@ -25,6 +25,10 @@ let isSuccessResponse: any = null;
 let statusCodes: any = null;
 let isGoogleNativeAvailable = false;
 
+const debugLog = (...args: unknown[]) => {
+  if (__DEV__) console.log(...args);
+};
+
 try {
   const mod = require('@react-native-google-signin/google-signin');
   GoogleSignin = mod.GoogleSignin;
@@ -95,14 +99,14 @@ export default function LoginScreen() {
   const handleGoogleNative = async () => {
     try {
       setLoadingProvider('google');
-      console.log('[Google Native] 로그인 시작');
+      debugLog('[Google Native] 로그인 시작');
 
       await GoogleSignin.hasPlayServices();
-      console.log('[Google Native] Play Services 확인 완료');
+      debugLog('[Google Native] Play Services 확인 완료');
 
       const response = await GoogleSignin.signIn();
-      console.log('[Google Native] signIn response type:', typeof response);
-      console.log('[Google Native] isSuccess:', isSuccessResponse(response));
+      debugLog('[Google Native] signIn response type:', typeof response);
+      debugLog('[Google Native] isSuccess:', isSuccessResponse(response));
 
       if (!isSuccessResponse(response)) {
         throw new Error('Google 인증에 실패했어요');
@@ -110,14 +114,14 @@ export default function LoginScreen() {
 
       const idToken = response.data.idToken;
       const user = response.data.user;
-      console.log('[Google Native] idToken 존재:', !!idToken);
-      console.log('[Google Native] user:', JSON.stringify(user, null, 2));
+      debugLog('[Google Native] idToken 존재:', !!idToken);
+      debugLog('[Google Native] user:', JSON.stringify(user, null, 2));
 
       if (!idToken) {
         throw new Error(t('login.error-token'));
       }
 
-      console.log('[Google Native] Supabase socialLogin 호출...');
+      debugLog('[Google Native] Supabase socialLogin 호출...');
       socialLogin.mutate({ provider: 'google', idToken });
     } catch (e: unknown) {
       console.error('[Google Native] 에러:', e);
@@ -143,7 +147,7 @@ export default function LoginScreen() {
         scheme: 'walktoo',
         path: 'auth/callback',
       });
-      console.log('[OAuth] redirectUri:', redirectUri);
+      debugLog('[OAuth] redirectUri:', redirectUri);
 
       // Supabase PKCE OAuth URL 생성
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -159,24 +163,24 @@ export default function LoginScreen() {
         throw error ?? new Error('OAuth URL 생성 실패');
       }
 
-      console.log('[OAuth] supabase auth URL:', data.url);
+      debugLog('[OAuth] supabase auth URL:', data.url);
 
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-      console.log('[OAuth] result type:', result.type);
+      debugLog('[OAuth] result type:', result.type);
 
       if (result.type !== 'success') return;
-      console.log('[OAuth] result url:', result.url);
+      debugLog('[OAuth] result url:', result.url);
 
       // PKCE 흐름: URL에서 code 추출
       const url = new URL(result.url);
       const code = url.searchParams.get('code');
-      console.log('[OAuth] has code:', !!code);
+      debugLog('[OAuth] has code:', !!code);
 
       if (code) {
         // PKCE code → session 교환
         const { data: sessionData, error: sessionError } =
           await supabase.auth.exchangeCodeForSession(code);
-        console.log('[OAuth] session exchange result:', !!sessionData.session, sessionError);
+        debugLog('[OAuth] session exchange result:', !!sessionData.session, sessionError);
 
         if (sessionError) throw sessionError;
 
@@ -192,8 +196,8 @@ export default function LoginScreen() {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        console.log('[OAuth] has accessToken:', !!accessToken);
-        console.log('[OAuth] has refreshToken:', !!refreshToken);
+        debugLog('[OAuth] has accessToken:', !!accessToken);
+        debugLog('[OAuth] has refreshToken:', !!refreshToken);
 
         if (!accessToken || !refreshToken) {
           throw new Error(t('login.error-token'));

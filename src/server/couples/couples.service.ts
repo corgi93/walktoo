@@ -1,5 +1,6 @@
 import type { CoupleProfile } from '@/types/couple';
 import type { UserResponse } from '@/types/user';
+import { getLocalToday } from '@/utils/date';
 
 import { notificationsService } from '../notifications/notifications.service';
 import type { ProfileRow } from '../types/database.types';
@@ -107,66 +108,40 @@ export const couplesService = {
 
   /** 초대코드로 커플 연결 */
   joinByCode: async (userId: string, inviteCode: string) => {
-    // 1. 이미 커플인지 확인
-    const { data: myProfile } = await couplesRepository.getProfile(userId);
-    if (myProfile?.couple_id) {
-      // 대기 중인 내 초대가 있으면 → 취소하고 상대방 코드로 연결
-      const { data: myCouple } = await couplesRepository.findById(
-        myProfile.couple_id,
-      );
-      if (myCouple && !myCouple.user2) {
-        // 내 대기 중인 초대 삭제
-        await couplesRepository.updateProfile(userId, { couple_id: null });
-        await couplesRepository.deleteCouple(myCouple.id);
-      } else {
-        // 이미 연결 완료된 커플
-        throw new Error('이미 연결된 커플이 있어요');
+    const { data: result, error } =
+      await couplesRepository.joinByCodeTransaction({
+        p_invite_code: inviteCode.trim().toUpperCase(),
+        p_start_date: getLocalToday(),
+      });
+    if (error) throw error;
+
+    if (!result?.success || !result.couple_id || !result.user1_id) {
+      switch (result?.reason) {
+        case 'already_paired':
+          throw new Error('이미 연결된 커플이 있어요');
+        case 'expired':
+          throw new Error('만료된 초대코드입니다. 새 코드를 요청해주세요');
+        case 'self_code':
+          throw new Error('본인의 초대코드입니다');
+        case 'invalid_code':
+          throw new Error('유효하지 않은 초대코드입니다');
+        default:
+          throw new Error('커플 연결에 실패했어요');
       }
     }
 
-    // 2. 코드로 커플 찾기
-    const { data: couple, error: findError } =
-      await couplesRepository.findByInviteCode(inviteCode);
-    if (findError) throw new Error('유효하지 않은 초대코드입니다');
-
-    // 3. 만료 확인 (24시간)
-    const createdAt = new Date(couple.created_at).getTime();
-    const now = Date.now();
-    const EXPIRE_MS = 24 * 60 * 60 * 1000; // 24시간
-    if (now - createdAt > EXPIRE_MS) {
-      throw new Error('만료된 초대코드입니다. 새 코드를 요청해주세요');
-    }
-
-    // 4. 본인 커플에 참여 방지
-    if (couple.user1_id === userId) {
-      throw new Error('본인의 초대코드입니다');
-    }
-
-    // 5. 커플 연결
-    const { data, error } = await couplesRepository.join(couple.id, {
-      user2_id: userId,
-      start_date: new Date().toISOString().split('T')[0],
-    });
-    if (error) throw error;
-
-    // 6. 양쪽 프로필에 couple_id 연결
-    await couplesRepository.updateProfile(userId, { couple_id: data.id });
-    await couplesRepository.updateProfile(couple.user1_id, {
-      couple_id: data.id,
-    });
-
-    // 7. user1에게 커플 연결 알림
+    // user1에게 커플 연결 알림
     const joinerProfile = await couplesRepository.getProfile(userId);
     if (joinerProfile.data) {
       notificationsService.notifyCoupleJoined(
-        couple.user1_id,
+        result.user1_id,
         userId,
-        data.id,
+        result.couple_id,
         joinerProfile.data.nickname,
       ).catch(() => {}); // 알림 실패해도 연결은 성공
     }
 
-    return data.id;
+    return result.couple_id;
   },
 
   /** 커플 프로필 조회 (통계 포함) */
@@ -209,22 +184,17 @@ export const couplesService = {
   },
 
   /** 커플 연결 해제 */
-  disconnect: async (coupleId: string, user1Id: string, user2Id: string) => {
-    // 한쪽이 이미 탈퇴(계정 삭제)한 커플은 해제할 수 없다.
-    // 해제하면 남은 사람의 couple_id가 끊겨, 둘이 함께 남긴 기록을 영구히
-    // 볼 수 없게 되기 때문이다. UI 방어(couple-manage)에 더해 서버에서도 막는다.
-    const [{ data: p1 }, { data: p2 }] = await Promise.all([
-      couplesRepository.getProfile(user1Id),
-      couplesRepository.getProfile(user2Id),
-    ]);
-    if (p1?.deleted_at || p2?.deleted_at) {
+  disconnect: async (coupleId: string, _user1Id: string, _user2Id: string) => {
+    const { data: result, error } =
+      await couplesRepository.disconnectTransaction({ p_couple_id: coupleId });
+    if (error) throw error;
+    if (result?.success) return;
+
+    if (result?.reason === 'partner_deleted') {
       throw new Error(
         '탈퇴한 연인과의 커플은 해제할 수 없어요. 함께한 기록은 계속 보관돼요.',
       );
     }
-
-    await couplesRepository.updateProfile(user1Id, { couple_id: null });
-    await couplesRepository.updateProfile(user2Id, { couple_id: null });
-    await couplesRepository.disconnect(coupleId);
+    throw new Error('커플 연결 해제에 실패했어요');
   },
 };

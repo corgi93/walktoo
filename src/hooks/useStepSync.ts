@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
-import { useGetMeQuery } from './services/user/query';
-import { useMyStepsTodayQuery } from './services/steps/query';
 import { useSyncStepsMutation } from './services/steps/mutation';
-import { usePedometer } from './usePedometer';
+import { useStepsStore } from '@/stores/stepsStore';
+import { useTodaySteps } from './useTodaySteps';
 
 const SYNC_INTERVAL = 60_000; // 60초마다 동기화
 
@@ -15,35 +14,35 @@ const SYNC_INTERVAL = 60_000; // 60초마다 동기화
  * - 앱이 백그라운드로 갈 때 즉시 업로드
  */
 export function useStepSync() {
-  const { data: me } = useGetMeQuery();
-  const { steps: sensorSteps } = usePedometer();
-  const { data: dbSteps } = useMyStepsTodayQuery(me?.id);
+  const { userId, steps, available } = useTodaySteps();
   const syncSteps = useSyncStepsMutation();
   const lastSyncedSteps = useRef(0);
-
-  // 센서 값이 있으면 센서 우선, 없으면 DB fallback
-  // 센서가 0이고 DB에 값이 있으면 → 앱 재설치 상황
-  const steps = sensorSteps > 0 ? sensorSteps : (dbSteps ?? 0);
+  const setMySteps = useStepsStore((state) => state.setMySteps);
+  const setSensorAvailable = useStepsStore((state) => state.setSensorAvailable);
 
   // 클로저가 최신 값을 참조하도록 ref에 동기화
-  const sensorStepsRef = useRef(sensorSteps);
-  const meIdRef = useRef(me?.id);
-  useEffect(() => { sensorStepsRef.current = sensorSteps; }, [sensorSteps]);
-  useEffect(() => { meIdRef.current = me?.id; }, [me?.id]);
+  const stepsRef = useRef(steps);
+  const userIdRef = useRef(userId);
+  useEffect(() => { stepsRef.current = steps; }, [steps]);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+  useEffect(() => { setMySteps(steps); }, [setMySteps, steps]);
+  useEffect(() => { setSensorAvailable(available); }, [available, setSensorAvailable]);
 
   // 60초 주기 동기화 — me.id 바뀔 때만 interval 재생성
-  // sensorSteps를 deps에 넣으면 걸음 업데이트마다 interval 재생성 + 즉시 sync 호출됨
+  // steps를 deps에 넣으면 걸음 업데이트마다 interval 재생성 + 즉시 sync 호출됨
   useEffect(() => {
-    if (!me?.id || sensorSteps <= 0) return;
+    if (!userId) return;
 
     const doSync = () => {
-      const steps = sensorStepsRef.current;
-      const userId = meIdRef.current;
+      const steps = stepsRef.current;
+      const userId = userIdRef.current;
       if (!userId || steps <= 0 || steps === lastSyncedSteps.current) return;
       syncSteps.mutate(
         { userId, steps },
         {
-          onSuccess: () => console.log(`[StepSync] synced ${steps} steps`),
+          onSuccess: () => {
+            if (__DEV__) console.log(`[StepSync] synced ${steps} steps`);
+          },
           onError: (err) => console.warn('[StepSync] sync failed:', err),
         },
       );
@@ -55,15 +54,15 @@ export function useStepSync() {
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me?.id]);
+  }, [userId]);
 
   // 앱 백그라운드 진입 시 즉시 동기화
   useEffect(() => {
-    if (!me?.id) return;
+    if (!userId) return;
 
     const handleAppState = (nextState: AppStateStatus) => {
-      const steps = sensorStepsRef.current;
-      const userId = meIdRef.current;
+      const steps = stepsRef.current;
+      const userId = userIdRef.current;
       if (nextState === 'background' && userId && steps > 0 && steps !== lastSyncedSteps.current) {
         syncSteps.mutate({ userId, steps });
         lastSyncedSteps.current = steps;
@@ -73,7 +72,7 @@ export function useStepSync() {
     const sub = AppState.addEventListener('change', handleAppState);
     return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me?.id]);
+  }, [userId]);
 
-  return { steps, synced: lastSyncedSteps.current === sensorSteps };
+  return { steps, synced: lastSyncedSteps.current === steps };
 }

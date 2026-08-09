@@ -337,7 +337,7 @@ export default function QuickCaptureScreen() {
           coupleAnswer: '',
         });
         router.back();
-        // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 업그레이드 제안.
+        // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 커플 패스 제안.
         maybeShowRevealNudge();
       } else {
         await createDiary.mutateAsync({

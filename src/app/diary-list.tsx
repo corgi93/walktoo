@@ -69,6 +69,7 @@ export default function DiaryScreen() {
           id: diary.id,
           date: diary.date,
           locationName: diary.locationName,
+          kind: diary.kind,
           isRevealed: String(diary.isRevealed),
           myEntry: diary.myEntry ? JSON.stringify(diary.myEntry) : '',
           partnerEntry: diary.partnerEntry
@@ -96,7 +97,7 @@ export default function DiaryScreen() {
 
   const handleAdd = () => {
     const today = getLocalToday();
-    if (diaries.some((d) => d.date === today)) {
+    if (diaries.some((d) => d.date === today && d.kind === 'together')) {
       toast.error(t('diary:create.today-already'));
       return;
     }

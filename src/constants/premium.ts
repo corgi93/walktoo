@@ -1,8 +1,8 @@
 /**
- * walkToo 기록 업그레이드 상수
+ * walkToo 커플 패스 상수
  *
- * - 구독 없는 1회성 결제 (non-consumable IAP)
- * - 커플 한 명만 결제하면 양쪽 적용
+ * - 자동 갱신 없는 12개월 커플 패스
+ * - 현재 연결된 커플 중 한 명만 결제하면 양쪽 적용
  * - 기본 기록은 무료로 유지하고, 미디어/꾸미기/결과물 경험만 확장
  *
  * RevenueCat 콘솔과 product ID/entitlement ID가 정확히 일치해야 함.
@@ -11,14 +11,23 @@
 
 export const PREMIUM = {
   /** RevenueCat dashboard에서 만든 entitlement identifier */
-  ENTITLEMENT_ID: 'walktoo_record_upgrade',
+  ENTITLEMENT_ID: 'walktoo_couple_pass',
 
   /** Apple/Google 콘솔의 product identifier (양쪽 동일하게 등록) */
-  PRODUCT_ID: 'com.walktoo.record_upgrade',
+  PRODUCT_ID: 'com.walktoo.couple_pass_annual',
+
+  /** Google Play prepaid base plan identifier */
+  GOOGLE_BASE_PLAN_ID: 'annual_prepaid',
+
+  /** RevenueCat 신규 Google Play 구독 product identifier 형식. */
+  ANDROID_PRODUCT_ID: 'com.walktoo.couple_pass_annual:annual_prepaid',
+
+  /** 자동 갱신 없이 구매일로부터 제공하는 패스 기간. */
+  ACCESS_MONTHS: 12,
 
   /**
    * 사진 업로드 한도 (커플당 한 산책에 첨부 가능한 매수).
-   * 기본 기록은 4장까지, 업그레이드 시 한 기록을 더 풍성하게 남길 수 있다.
+   * 기본 기록은 4장까지, 커플 패스 보유 시 한 기록을 더 풍성하게 남길 수 있다.
    */
   PHOTO_LIMIT_FREE: 4,
   PHOTO_LIMIT_PREMIUM: 8,
@@ -36,17 +45,17 @@ export const PREMIUM = {
 
   /**
    * 가격 fallback. 스토어 가격이 source of truth.
-   * 3,300원은 초기 테스트가로만 쓰고, 기본 기준가는 4,400원으로 둔다.
+   * 커플 1쌍이 12개월 동안 함께 쓰는 기준가.
    */
-  PRICE_KRW: 4_400,
-  PRICE_USD: 3.49,
+  PRICE_KRW: 8_800,
+  PRICE_USD: 6.99,
 } as const;
 
 /**
  * 여행 무드 테마팩 — 단건 1회성 결제 (non-consumable IAP)
  *
  * - 삿포로 필름 / 홍콩 야경 / 도쿄 레코드샵 테마 3종 사용 가능
- * - 기록 업그레이드와 별도 상품. 커플 한 명만 결제하면 양쪽 적용.
+ * - 커플 패스와 별도 상품. 커플 한 명만 결제하면 양쪽 적용.
  * - RevenueCat 콘솔의 product/entitlement ID와 정확히 일치해야 함.
  */
 export const THEME_PACK = {
@@ -91,11 +100,17 @@ export const RESULT_PRODUCTS = {
   },
 } as const;
 
+/**
+ * 보류 묶음 상품.
+ *
+ * 커플 패스는 12개월 만료, 테마팩은 영구 권리라 실제 결제 플로우를 붙일 때
+ * entitlement 분리 동기화가 필요하다. 구현 전에는 스토어/RevenueCat에 등록하지 않는다.
+ */
 export const PRODUCT_BUNDLES = {
-  RECORD_AND_THEME_PACK: {
-    PRODUCT_ID: 'com.walktoo.bundle_record_theme',
-    PRICE_KRW: 6_600,
-    PRICE_USD: 5.49,
+  COUPLE_PASS_AND_THEME_PACK: {
+    PRODUCT_ID: 'com.walktoo.bundle_couple_pass_theme',
+    PRICE_KRW: 11_000,
+    PRICE_USD: 8.99,
   },
 } as const;
 

@@ -30,9 +30,9 @@ import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
 import { useCouplePolling } from '@/hooks/services/user/query';
 import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
-import { usePedometer } from '@/hooks/usePedometer';
 import { usePermission } from '@/hooks/usePermission';
 import { useRefresh } from '@/hooks/useRefresh';
+import { useStepsStore } from '@/stores/stepsStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { getLocalToday } from '@/utils/date';
@@ -120,7 +120,7 @@ export default function HomeScreen() {
   );
 
   // 걸음수 ────────────────────────────────────────────────
-  const { steps: mySteps } = usePedometer();
+  const mySteps = useStepsStore((state) => state.mySteps);
   const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
   const partnerSteps = partnerStepsData ?? 0;
 

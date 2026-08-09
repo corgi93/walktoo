@@ -92,6 +92,19 @@ function RecordsContent({
       ? `최근 ${RECORD_MAP_MARKER_LIMIT}곳`
       : `${mapPlaceCount}곳`;
 
+  useEffect(() => {
+    if (viewMode !== 'map') return;
+    if (!hasNextPage || isFetchingNextPage) return;
+    if (togetherWalks.length >= RECORD_MAP_MARKER_LIMIT) return;
+    fetchNextPage();
+  }, [
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    togetherWalks.length,
+    viewMode,
+  ]);
+
   const handleAddRecord = () => {
     router.push({ pathname: '/footprint-create', params: { kind: 'together' } });
   };

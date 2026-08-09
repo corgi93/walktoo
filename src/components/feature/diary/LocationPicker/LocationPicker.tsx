@@ -226,6 +226,16 @@ export function LocationPicker({
             <Text variant="bodySmall" color="error" align="center">
               {error}
             </Text>
+            {query.trim().length > 0 && (
+              <Pressable
+                style={[styles.plainTextBtn, { marginTop: SPACING.md }]}
+                onPress={handlePlainText}
+              >
+                <Text variant="bodySmall" color="primary">
+                  「{query.trim()}」 그대로 사용
+                </Text>
+              </Pressable>
+            )}
           </View>
         ) : isSearching ? (
           <View style={styles.loadingBox}>

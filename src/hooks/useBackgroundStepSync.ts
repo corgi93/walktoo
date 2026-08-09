@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { NativeModules, Platform } from 'react-native';
 
+import { formatLocalDateKey } from '@/utils/date';
+
 // ─── 네이티브 모듈 존재 여부 (빌드에 포함됐는지) ────────────
 
 const hasNativeModule = !!NativeModules.ExpoTaskManager;
@@ -36,14 +38,14 @@ if (hasNativeModule) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return BackgroundFetch.BackgroundFetchResult.Failed;
 
-      const today = now.toISOString().split('T')[0];
+      const today = formatLocalDateKey(now);
       const kcal = Math.round(steps * 0.04 * 10) / 10;
 
       await supabase
         .from('daily_steps')
         .upsert({ user_id: user.id, date: today, steps, kcal }, { onConflict: 'user_id,date' });
 
-      console.log(`[BackgroundStepSync] ${steps}보 동기화 완료`);
+      if (__DEV__) console.log(`[BackgroundStepSync] ${steps}보 동기화 완료`);
       return BackgroundFetch.BackgroundFetchResult.NewData;
     } catch (error) {
       console.warn('[BackgroundStepSync] 실패:', error);
@@ -63,7 +65,9 @@ if (hasNativeModule) {
 export function useBackgroundStepSync() {
   useEffect(() => {
     if (!hasNativeModule) {
-      console.log('[BackgroundStepSync] 네이티브 모듈 없음 — 새 빌드가 필요합니다');
+      if (__DEV__) {
+        console.log('[BackgroundStepSync] 네이티브 모듈 없음 — 새 빌드가 필요합니다');
+      }
       return;
     }
     registerTask();
@@ -80,7 +84,7 @@ async function registerTask() {
       status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
       status === BackgroundFetch.BackgroundFetchStatus.Denied
     ) {
-      console.log('[BackgroundStepSync] 백그라운드 갱신이 제한됨');
+      if (__DEV__) console.log('[BackgroundStepSync] 백그라운드 갱신이 제한됨');
       return;
     }
 
@@ -91,7 +95,7 @@ async function registerTask() {
         stopOnTerminate: false,
         startOnBoot: true,
       });
-      console.log('[BackgroundStepSync] 태스크 등록 완료');
+      if (__DEV__) console.log('[BackgroundStepSync] 태스크 등록 완료');
     }
   } catch (error) {
     console.warn('[BackgroundStepSync] 등록 실패:', error);

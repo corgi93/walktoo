@@ -6,6 +6,10 @@ type CoupleUpdate = Database['public']['Tables']['couples']['Update'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type JoinCoupleByCodeArgs =
+  Database['public']['Functions']['join_couple_by_code']['Args'];
+type DisconnectCoupleArgs =
+  Database['public']['Functions']['disconnect_couple']['Args'];
 
 // ─── Join 결과 타입 ─────────────────────────────────────
 
@@ -13,6 +17,23 @@ export type CoupleWithProfiles = CoupleRow & {
   user1: ProfileRow;
   user2: ProfileRow | null;
 };
+
+export interface JoinCoupleByCodeResult {
+  success: boolean;
+  reason?:
+    | 'no_profile'
+    | 'already_paired'
+    | 'invalid_code'
+    | 'expired'
+    | 'self_code';
+  couple_id?: string;
+  user1_id?: string;
+}
+
+export interface DisconnectCoupleResult {
+  success: boolean;
+  reason?: 'not_found' | 'forbidden' | 'partner_deleted';
+}
 
 // ─── Couples Repository (couples 테이블 직접 쿼리) ─────
 
@@ -51,6 +72,12 @@ export const couplesRepository = {
       .select()
       .single<CoupleRow>(),
 
+  /** 초대코드 연결 전체를 DB transaction으로 처리 */
+  joinByCodeTransaction: (args: JoinCoupleByCodeArgs) =>
+    supabase
+      .rpc('join_couple_by_code', args)
+      .returns<JoinCoupleByCodeResult>(),
+
   /** 커플 업데이트 */
   updateCouple: (coupleId: string, data: CoupleUpdate) =>
     supabase
@@ -64,6 +91,12 @@ export const couplesRepository = {
       .from('couples')
       .update({ user2_id: null } as never)
       .eq('id', coupleId),
+
+  /** 커플 해제 전체를 DB transaction으로 처리 */
+  disconnectTransaction: (args: DisconnectCoupleArgs) =>
+    supabase
+      .rpc('disconnect_couple', args)
+      .returns<DisconnectCoupleResult>(),
 
   /** 대기 중인 커플 삭제 (초대 취소) */
   deleteCouple: (coupleId: string) =>

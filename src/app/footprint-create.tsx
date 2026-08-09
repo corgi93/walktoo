@@ -74,7 +74,7 @@ export default function FootprintCreateScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const kind = 'together' as const;
 
-  // 사진 한도 — 기본 4장 / 업그레이드 8장
+  // 사진 한도 — 기본 4장 / 커플 패스 8장
   const photoLimit = isEntitled
     ? PREMIUM.PHOTO_LIMIT_PREMIUM
     : PREMIUM.PHOTO_LIMIT_FREE;
@@ -152,11 +152,11 @@ export default function FootprintCreateScreen() {
       if (!isEntitled) {
         dialog.showDialog({
           title: '오늘 기록을 더 풍성하게',
-          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 업그레이드하면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
+          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 커플 패스가 있으면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
           buttons: [
             { label: '나중에', variant: 'cancel' },
             {
-              label: '업그레이드 보기',
+              label: '커플 패스 보기',
               variant: 'primary',
               onPress: () => router.push('/paywall'),
             },

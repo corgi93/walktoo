@@ -20,7 +20,7 @@ try {
   });
 } catch {
   // Expo Go에서 네이티브 모듈 없으면 무시
-  console.log('[Notification] Handler 설정 스킵 (Expo Go)');
+  if (__DEV__) console.log('[Notification] Handler 설정 스킵 (Expo Go)');
 }
 
 // ─── Hook ────────────────────────────────────────────────
