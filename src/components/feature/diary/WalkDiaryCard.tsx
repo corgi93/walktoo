@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -19,7 +19,7 @@ interface WalkDiaryCardProps {
 
 // ─── Component ──────────────────────────────────────────
 
-export function WalkDiaryCard({
+export const WalkDiaryCard = memo(function WalkDiaryCard({
   diary,
   onPress,
   onNudge,
@@ -44,11 +44,11 @@ export function WalkDiaryCard({
   }
 
   return <RevealedFeedCard diary={diary} formattedDate={formattedDate} onPress={onPress} />;
-}
+});
 
 // ─── Locked Feed Card ───────────────────────────────────
 
-function LockedFeedCard({
+const LockedFeedCard = memo(function LockedFeedCard({
   diary,
   formattedDate,
   onPress,
@@ -152,11 +152,11 @@ function LockedFeedCard({
       </View>
     </Pressable>
   );
-}
+});
 
 // ─── Revealed Feed Card ─────────────────────────────────
 
-function RevealedFeedCard({
+const RevealedFeedCard = memo(function RevealedFeedCard({
   diary,
   formattedDate,
   onPress,
@@ -199,6 +199,8 @@ function RevealedFeedCard({
                   source={{ uri: diary.myEntry.photos[0] }}
                   style={styles.entryPhotoImage}
                   resizeMode="cover"
+                  resizeMethod="resize"
+                  fadeDuration={0}
                 />
               </View>
             )}
@@ -225,6 +227,8 @@ function RevealedFeedCard({
                   source={{ uri: diary.partnerEntry.photos[0] }}
                   style={styles.entryPhotoImage}
                   resizeMode="cover"
+                  resizeMethod="resize"
+                  fadeDuration={0}
                 />
               </View>
             )}
@@ -244,7 +248,7 @@ function RevealedFeedCard({
 
     </Pressable>
   );
-}
+});
 
 // ─── Styles ─────────────────────────────────────────────
 

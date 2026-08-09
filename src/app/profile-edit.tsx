@@ -3,10 +3,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  FlatList,
   Image,
   ImageSourcePropType,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -17,11 +19,11 @@ import { useTranslation } from 'react-i18next';
 import { Box, Icon, Row, Text } from '@/components/base';
 import { useUpdateProfileMutation } from '@/hooks/services/user/mutation';
 import { useGetMeQuery } from '@/hooks/services/user/query';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const BOY_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/boy_walk_1.png'),
   require('@/assets/sprites/boy_walk_2.png'),
@@ -29,7 +31,6 @@ const BOY_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/boy_walk_4.png'),
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const GIRL_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/girl_walk_1.png'),
   require('@/assets/sprites/girl_walk_2.png'),
@@ -54,6 +55,7 @@ export default function ProfileEditScreen() {
   const { data: me } = useGetMeQuery();
   const updateProfile = useUpdateProfileMutation();
   const dialog = useDialogStore();
+  const keyboardBottomInset = useKeyboardBottomInset(LAYOUT.sectionGap);
 
   const [nickname, setNickname] = useState(me?.nickname ?? '');
   const [characterType, setCharacterType] = useState<'boy' | 'girl'>(
@@ -107,7 +109,10 @@ export default function ProfileEditScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {/* Header */}
       <Row px="xxl" style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
@@ -121,104 +126,115 @@ export default function ProfileEditScreen() {
         </Pressable>
       </Row>
 
-      <Box px="xxl" style={{ marginTop: 32 }}>
-        {/* 닉네임 */}
-        <Text variant="bodySmall" color="textSecondary" mb="xs">
-          {t('profile:edit.nickname-label')}
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={nickname}
-          onChangeText={setNickname}
-          placeholder={t('profile:edit.nickname-placeholder')}
-          placeholderTextColor={theme.colors.textMuted}
-          maxLength={10}
-        />
-
-        {/* 생년월일 */}
-        <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          {t('profile:edit.birthday-label')}
-        </Text>
-        <Pressable
-          style={styles.input}
-          onPress={() => setDateStep(dateStep ? null : 'year')}
-        >
-          <Text
-            variant="bodyLarge"
-            color={year && month && day ? 'text' : 'textMuted'}
-          >
-            {birthdayText}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        showsVerticalScrollIndicator={false}
+      >
+        <Box px="xxl" style={{ marginTop: 32 }}>
+          {/* 닉네임 */}
+          <Text variant="bodySmall" color="textSecondary" mb="xs">
+            {t('profile:edit.nickname-label')}
           </Text>
-        </Pressable>
+          <TextInput
+            style={styles.input}
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder={t('profile:edit.nickname-placeholder')}
+            placeholderTextColor={theme.colors.textMuted}
+            maxLength={10}
+          />
 
-        {dateStep === 'year' && (
-          <DateGrid
-            items={YEARS}
-            columns={4}
-            selected={year}
-            onSelect={(v) => { setYear(v); setDateStep('month'); }}
-            format={(v) => `${v}${t('common:labels.year-suffix')}`}
-          />
-        )}
-        {dateStep === 'month' && (
-          <DateGrid
-            items={MONTHS}
-            columns={4}
-            selected={month}
-            onSelect={(v) => { setMonth(v); setDay(null); setDateStep('day'); }}
-            format={(v) => `${v}${t('common:labels.month-suffix')}`}
-          />
-        )}
-        {dateStep === 'day' && (
-          <DateGrid
-            items={days}
-            columns={7}
-            selected={day}
-            onSelect={(v) => { setDay(v); setDateStep(null); }}
-            format={(v) => `${v}`}
-          />
-        )}
-
-        {/* 캐릭터 */}
-        <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          {t('profile:edit.character-label')}
-        </Text>
-        <Row style={styles.characterRow}>
+          {/* 생년월일 */}
+          <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
+            {t('profile:edit.birthday-label')}
+          </Text>
           <Pressable
-            style={[
-              styles.characterOption,
-              characterType === 'boy' && styles.characterSelected,
-            ]}
-            onPress={() => setCharacterType('boy')}
+            style={styles.input}
+            onPress={() => setDateStep(dateStep ? null : 'year')}
           >
-            <CharacterPreview frames={BOY_FRAMES} size={56} />
             <Text
-              variant="caption"
-              color={characterType === 'boy' ? 'primary' : 'textSecondary'}
-              mt="xxs"
+              variant="bodyLarge"
+              color={year && month && day ? 'text' : 'textMuted'}
             >
-              {t('profile:edit.character-boy')}
+              {birthdayText}
             </Text>
           </Pressable>
-          <Pressable
-            style={[
-              styles.characterOption,
-              characterType === 'girl' && styles.characterSelected,
-            ]}
-            onPress={() => setCharacterType('girl')}
-          >
-            <CharacterPreview frames={GIRL_FRAMES} size={56} />
-            <Text
-              variant="caption"
-              color={characterType === 'girl' ? 'primary' : 'textSecondary'}
-              mt="xxs"
+
+          {dateStep === 'year' && (
+            <DateGrid
+              items={YEARS}
+              columns={4}
+              selected={year}
+              onSelect={(v) => { setYear(v); setDateStep('month'); }}
+              format={(v) => `${v}${t('common:labels.year-suffix')}`}
+            />
+          )}
+          {dateStep === 'month' && (
+            <DateGrid
+              items={MONTHS}
+              columns={4}
+              selected={month}
+              onSelect={(v) => { setMonth(v); setDay(null); setDateStep('day'); }}
+              format={(v) => `${v}${t('common:labels.month-suffix')}`}
+            />
+          )}
+          {dateStep === 'day' && (
+            <DateGrid
+              items={days}
+              columns={7}
+              selected={day}
+              onSelect={(v) => { setDay(v); setDateStep(null); }}
+              format={(v) => `${v}`}
+            />
+          )}
+
+          {/* 캐릭터 */}
+          <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
+            {t('profile:edit.character-label')}
+          </Text>
+          <Row style={styles.characterRow}>
+            <Pressable
+              style={[
+                styles.characterOption,
+                characterType === 'boy' && styles.characterSelected,
+              ]}
+              onPress={() => setCharacterType('boy')}
             >
-              {t('profile:edit.character-girl')}
-            </Text>
-          </Pressable>
-        </Row>
-      </Box>
-    </View>
+              <CharacterPreview frames={BOY_FRAMES} size={56} />
+              <Text
+                variant="caption"
+                color={characterType === 'boy' ? 'primary' : 'textSecondary'}
+                mt="xxs"
+              >
+                {t('profile:edit.character-boy')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.characterOption,
+                characterType === 'girl' && styles.characterSelected,
+              ]}
+              onPress={() => setCharacterType('girl')}
+            >
+              <CharacterPreview frames={GIRL_FRAMES} size={56} />
+              <Text
+                variant="caption"
+                color={characterType === 'girl' ? 'primary' : 'textSecondary'}
+                mt="xxs"
+              >
+                {t('profile:edit.character-girl')}
+              </Text>
+            </Pressable>
+          </Row>
+        </Box>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -242,7 +258,7 @@ function CharacterPreview({ frames, size = 56 }: { frames: ImageSourcePropType[]
         Animated.timing(bounce, { toValue: 0, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ]),
     ).start();
-  }, []);
+  }, [bounce]);
 
   const translateY = bounce.interpolate({ inputRange: [0, 1], outputRange: [0, -3] });
 
@@ -270,23 +286,29 @@ function DateGrid({
 }) {
   return (
     <View style={styles.gridContainer}>
-      <FlatList
-        data={items}
-        numColumns={columns}
-        keyExtractor={(item) => String(item)}
-        style={{ maxHeight: 240 }}
+      <ScrollView
+        style={styles.gridScroller}
+        contentContainerStyle={styles.gridWrap}
+        nestedScrollEnabled
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
+        keyboardShouldPersistTaps="handled"
+      >
+        {items.map((item) => (
           <Pressable
-            style={[styles.gridItem, selected === item && styles.gridItemSelected]}
+            style={[
+              styles.gridItem,
+              { width: `${100 / columns}%` },
+              selected === item && styles.gridItemSelected,
+            ]}
+            key={item}
             onPress={() => onSelect(item)}
           >
             <Text variant="bodySmall" color={selected === item ? 'white' : 'text'}>
               {format(item)}
             </Text>
           </Pressable>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -302,6 +324,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: LAYOUT.headerPy,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   input: {
     backgroundColor: theme.colors.surface,
@@ -321,8 +346,14 @@ const styles = StyleSheet.create({
     ...theme.pixel.borderThin,
     padding: 8,
   },
+  gridScroller: {
+    maxHeight: 240,
+  },
+  gridWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   gridItem: {
-    flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
     borderRadius: theme.radius.sm,

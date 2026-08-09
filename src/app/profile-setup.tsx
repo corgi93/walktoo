@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  FlatList,
   Image,
   ImageSourcePropType,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -15,8 +17,10 @@ import { useTranslation } from 'react-i18next';
 
 import { Box, Row, Text } from '@/components/base';
 import { useCompleteProfileMutation } from '@/hooks/services/user/mutation';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { useAuthStore } from '@/stores/authStore';
 import { theme } from '@/styles/theme';
+import { LAYOUT } from '@/styles/type';
 
 // ─── Constants ───────────────────────────────────────────
 
@@ -29,7 +33,6 @@ const getDaysInMonth = (year: number, month: number) =>
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const BOY_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/boy_walk_1.png'),
   require('@/assets/sprites/boy_walk_2.png'),
@@ -37,7 +40,6 @@ const BOY_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/boy_walk_4.png'),
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const GIRL_FRAMES: ImageSourcePropType[] = [
   require('@/assets/sprites/girl_walk_1.png'),
   require('@/assets/sprites/girl_walk_2.png'),
@@ -52,6 +54,7 @@ export default function ProfileSetupScreen() {
   const { t } = useTranslation(['auth', 'common']);
   const user = useAuthStore((s) => s.user);
   const completeProfile = useCompleteProfileMutation();
+  const keyboardBottomInset = useKeyboardBottomInset(LAYOUT.sectionGap);
 
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [year, setYear] = useState<number | null>(null);
@@ -89,172 +92,210 @@ export default function ProfileSetupScreen() {
 
   if (page === 'character') {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
-        <Box px="xxl">
-          <Text variant="headingLarge">{t('auth:profile-setup.character-title')}</Text>
-          <Text variant="bodySmall" color="textSecondary" mt="xs">
-            {t('auth:profile-setup.character-subtitle')}
-          </Text>
-        </Box>
-
-        <Row style={styles.characterRow}>
-          <Pressable
-            style={[
-              styles.characterOption,
-              characterType === 'boy' && styles.characterSelected,
-            ]}
-            onPress={() => setCharacterType('boy')}
-          >
-            <CharacterPreview frames={BOY_FRAMES} />
-            <Text
-              variant="bodySmall"
-              color={characterType === 'boy' ? 'primary' : 'textSecondary'}
-              mt="sm"
-            >
-              {t('auth:profile-setup.character-boy')}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: insets.top + 32,
+              paddingBottom:
+                insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset,
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          showsVerticalScrollIndicator={false}
+        >
+          <Box px="xxl">
+            <Text variant="headingLarge">
+              {t('auth:profile-setup.character-title')}
             </Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.characterOption,
-              characterType === 'girl' && styles.characterSelected,
-            ]}
-            onPress={() => setCharacterType('girl')}
-          >
-            <CharacterPreview frames={GIRL_FRAMES} />
-            <Text
-              variant="bodySmall"
-              color={characterType === 'girl' ? 'primary' : 'textSecondary'}
-              mt="sm"
-            >
-              {t('auth:profile-setup.character-girl')}
+            <Text variant="bodySmall" color="textSecondary" mt="xs">
+              {t('auth:profile-setup.character-subtitle')}
             </Text>
-          </Pressable>
-        </Row>
+          </Box>
 
-        <View style={styles.bottomContainer}>
-          <Row style={{ gap: 12 }}>
+          <Row style={styles.characterRow}>
             <Pressable
-              style={styles.backButton}
-              onPress={() => setPage('info')}
+              style={[
+                styles.characterOption,
+                characterType === 'boy' && styles.characterSelected,
+              ]}
+              onPress={() => setCharacterType('boy')}
             >
-              <Text variant="bodyLarge" color="textSecondary">
-                {t('auth:profile-setup.back')}
+              <CharacterPreview frames={BOY_FRAMES} />
+              <Text
+                variant="bodySmall"
+                color={characterType === 'boy' ? 'primary' : 'textSecondary'}
+                mt="sm"
+              >
+                {t('auth:profile-setup.character-boy')}
               </Text>
             </Pressable>
+
             <Pressable
-              style={[styles.button, { flex: 1 }]}
-              onPress={handleSubmit}
-              disabled={completeProfile.isPending}
+              style={[
+                styles.characterOption,
+                characterType === 'girl' && styles.characterSelected,
+              ]}
+              onPress={() => setCharacterType('girl')}
             >
-              <Text variant="bodyLarge" color="white">
-                {t('auth:profile-setup.start')}
+              <CharacterPreview frames={GIRL_FRAMES} />
+              <Text
+                variant="bodySmall"
+                color={characterType === 'girl' ? 'primary' : 'textSecondary'}
+                mt="sm"
+              >
+                {t('auth:profile-setup.character-girl')}
               </Text>
             </Pressable>
           </Row>
-        </View>
-      </View>
+
+          <View style={styles.bottomContainer}>
+            <Row style={{ gap: 12 }}>
+              <Pressable
+                style={styles.backButton}
+                onPress={() => setPage('info')}
+              >
+                <Text variant="bodyLarge" color="textSecondary">
+                  {t('auth:profile-setup.back')}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, { flex: 1 }]}
+                onPress={handleSubmit}
+                disabled={completeProfile.isPending}
+              >
+                <Text variant="bodyLarge" color="white">
+                  {t('auth:profile-setup.start')}
+                </Text>
+              </Pressable>
+            </Row>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
-      {/* Header */}
-      <Box px="xxl">
-        <Text variant="headingLarge">{t('auth:profile-setup.info-title')}</Text>
-        <Text variant="bodySmall" color="textSecondary" mt="xs">
-          {t('auth:profile-setup.info-subtitle')}
-        </Text>
-      </Box>
-
-      {/* Form */}
-      <Box px="xxl" style={{ marginTop: 40 }}>
-        {/* 닉네임 */}
-        <Text variant="bodySmall" color="textSecondary" mb="xs">
-          {t('auth:profile-setup.nickname-label')}
-        </Text>
-        <TextInput
-          style={styles.input}
-          value={nickname}
-          onChangeText={setNickname}
-          placeholder={t('auth:profile-setup.nickname-placeholder')}
-          placeholderTextColor={theme.colors.textMuted}
-          maxLength={10}
-          autoFocus
-        />
-
-        {/* 생년월일 */}
-        <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
-          {t('auth:profile-setup.birthday-label')}
-        </Text>
-        <Pressable
-          style={styles.input}
-          onPress={() => setDateStep(dateStep ? null : 'year')}
-        >
-          <Text
-            variant="bodyLarge"
-            color={year && month && day ? 'text' : 'textMuted'}
-          >
-            {birthdayText}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: insets.top + 32,
+            paddingBottom:
+              insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Box px="xxl">
+          <Text variant="headingLarge">{t('auth:profile-setup.info-title')}</Text>
+          <Text variant="bodySmall" color="textSecondary" mt="xs">
+            {t('auth:profile-setup.info-subtitle')}
           </Text>
-        </Pressable>
+        </Box>
 
-        {/* 날짜 선택기 */}
-        {dateStep === 'year' && (
-          <DateGrid
-            items={YEARS}
-            columns={4}
-            selected={year}
-            onSelect={(v) => {
-              setYear(v);
-              setDateStep('month');
-            }}
-            format={(v) => `${v}${t('common:labels.year-suffix')}`}
+        {/* Form */}
+        <Box px="xxl" style={{ marginTop: 40 }}>
+          {/* 닉네임 */}
+          <Text variant="bodySmall" color="textSecondary" mb="xs">
+            {t('auth:profile-setup.nickname-label')}
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder={t('auth:profile-setup.nickname-placeholder')}
+            placeholderTextColor={theme.colors.textMuted}
+            maxLength={10}
+            autoFocus
           />
-        )}
-        {dateStep === 'month' && (
-          <DateGrid
-            items={MONTHS}
-            columns={4}
-            selected={month}
-            onSelect={(v) => {
-              setMonth(v);
-              setDay(null);
-              setDateStep('day');
-            }}
-            format={(v) => `${v}${t('common:labels.month-suffix')}`}
-          />
-        )}
-        {dateStep === 'day' && (
-          <DateGrid
-            items={days}
-            columns={7}
-            selected={day}
-            onSelect={(v) => {
-              setDay(v);
-              setDateStep(null);
-            }}
-            format={(v) => `${v}`}
-          />
-        )}
-      </Box>
 
-      {/* Next */}
-      {!dateStep && (
-        <View style={styles.bottomContainer}>
+          {/* 생년월일 */}
+          <Text variant="bodySmall" color="textSecondary" mt="xl" mb="xs">
+            {t('auth:profile-setup.birthday-label')}
+          </Text>
           <Pressable
-            style={[styles.button, !isInfoValid && styles.buttonDisabled]}
-            onPress={handleNext}
-            disabled={!isInfoValid}
+            style={styles.input}
+            onPress={() => setDateStep(dateStep ? null : 'year')}
           >
-            <Text variant="bodyLarge" color="white">
-              {t('auth:profile-setup.next')}
+            <Text
+              variant="bodyLarge"
+              color={year && month && day ? 'text' : 'textMuted'}
+            >
+              {birthdayText}
             </Text>
           </Pressable>
-        </View>
-      )}
-    </View>
+
+          {/* 날짜 선택기 */}
+          {dateStep === 'year' && (
+            <DateGrid
+              items={YEARS}
+              columns={4}
+              selected={year}
+              onSelect={(v) => {
+                setYear(v);
+                setDateStep('month');
+              }}
+              format={(v) => `${v}${t('common:labels.year-suffix')}`}
+            />
+          )}
+          {dateStep === 'month' && (
+            <DateGrid
+              items={MONTHS}
+              columns={4}
+              selected={month}
+              onSelect={(v) => {
+                setMonth(v);
+                setDay(null);
+                setDateStep('day');
+              }}
+              format={(v) => `${v}${t('common:labels.month-suffix')}`}
+            />
+          )}
+          {dateStep === 'day' && (
+            <DateGrid
+              items={days}
+              columns={7}
+              selected={day}
+              onSelect={(v) => {
+                setDay(v);
+                setDateStep(null);
+              }}
+              format={(v) => `${v}`}
+            />
+          )}
+        </Box>
+
+        {/* Next */}
+        {!dateStep && (
+          <View style={styles.bottomContainer}>
+            <Pressable
+              style={[styles.button, !isInfoValid && styles.buttonDisabled]}
+              onPress={handleNext}
+              disabled={!isInfoValid}
+            >
+              <Text variant="bodyLarge" color="white">
+                {t('auth:profile-setup.next')}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -288,7 +329,7 @@ function CharacterPreview({ frames }: { frames: ImageSourcePropType[] }) {
         }),
       ]),
     ).start();
-  }, []);
+  }, [bounce]);
 
   const translateY = bounce.interpolate({
     inputRange: [0, 1],
@@ -323,18 +364,21 @@ function DateGrid({
 }) {
   return (
     <View style={styles.gridContainer}>
-      <FlatList
-        data={items}
-        numColumns={columns}
-        keyExtractor={(item) => String(item)}
-        style={{ maxHeight: 240 }}
+      <ScrollView
+        style={styles.gridScroller}
+        contentContainerStyle={styles.gridWrap}
+        nestedScrollEnabled
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
+        keyboardShouldPersistTaps="handled"
+      >
+        {items.map((item) => (
           <Pressable
             style={[
               styles.gridItem,
+              { width: `${100 / columns}%` },
               selected === item && styles.gridItemSelected,
             ]}
+            key={item}
             onPress={() => onSelect(item)}
           >
             <Text
@@ -344,8 +388,8 @@ function DateGrid({
               {format(item)}
             </Text>
           </Pressable>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -356,6 +400,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   input: {
     backgroundColor: theme.colors.surface,
@@ -375,12 +422,17 @@ const styles = StyleSheet.create({
     ...theme.pixel.borderThin,
     padding: 8,
   },
+  gridScroller: {
+    maxHeight: 240,
+  },
+  gridWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   gridItem: {
-    flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
     borderRadius: theme.radius.sm,
-    minWidth: `${100 / 7}%`,
   },
   gridItemSelected: {
     backgroundColor: theme.colors.primary,

@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   -- premium
   has_premium           BOOLEAN NOT NULL DEFAULT false,
   premium_purchased_at  TIMESTAMPTZ,
+  premium_expires_at    TIMESTAMPTZ,
   has_theme_pack        BOOLEAN NOT NULL DEFAULT false,
   theme_pack_purchased_at TIMESTAMPTZ,
   revenuecat_user_id    TEXT,
@@ -40,8 +41,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 기존 배포용 idempotent 컬럼 추가 (계정 삭제 소프트 마커)
+-- 기존 배포용 idempotent 컬럼 추가
 ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS has_premium BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS premium_purchased_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS has_theme_pack BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS theme_pack_purchased_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS revenuecat_user_id TEXT,
   ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- 1-2. couples (커플)
@@ -55,6 +62,7 @@ CREATE TABLE IF NOT EXISTS public.couples (
   -- premium (공유)
   has_premium          BOOLEAN NOT NULL DEFAULT false,
   premium_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  premium_expires_at   TIMESTAMPTZ,
   has_theme_pack          BOOLEAN NOT NULL DEFAULT false,
   theme_pack_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   --
@@ -72,6 +80,13 @@ DO $$ BEGIN
       FOREIGN KEY (couple_id) REFERENCES public.couples(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+ALTER TABLE public.couples
+  ADD COLUMN IF NOT EXISTS has_premium BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS premium_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS premium_expires_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS has_theme_pack BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS theme_pack_purchaser_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 -- 1-3. walks (산책/하루 기록)
 --   kind:
@@ -270,6 +285,10 @@ CREATE TABLE IF NOT EXISTS public.reflection_answers (
 
 CREATE INDEX IF NOT EXISTS idx_walks_couple_id              ON public.walks(couple_id);
 CREATE INDEX IF NOT EXISTS idx_walks_date                   ON public.walks(date DESC);
+CREATE INDEX IF NOT EXISTS idx_walks_couple_date_created_at ON public.walks(couple_id, date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_walks_couple_kind_date_created_at ON public.walks(couple_id, kind, date DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_walks_couple_revealed_date    ON public.walks(couple_id, is_revealed, date DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_walks_unique_couple_date_kind ON public.walks(couple_id, date, kind);
 CREATE INDEX IF NOT EXISTS idx_footprint_entries_walk_id    ON public.footprint_entries(walk_id);
 CREATE INDEX IF NOT EXISTS idx_couples_invite_code          ON public.couples(invite_code);
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient      ON public.notifications(recipient_id, created_at DESC);
@@ -280,6 +299,25 @@ CREATE INDEX IF NOT EXISTS idx_monthly_reflections_couple   ON public.monthly_re
 CREATE INDEX IF NOT EXISTS idx_reflection_answers_reflection ON public.reflection_answers(reflection_id);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_couple_date  ON public.couple_schedules(couple_id, date);
 CREATE INDEX IF NOT EXISTS idx_couple_schedules_owner        ON public.couple_schedules(owner_id);
+
+
+-- ────────────────────────────────────────────────────────────
+-- 2-1. AGGREGATE RPC
+-- ────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.sum_walk_steps_by_couple(p_couple_id UUID)
+RETURNS BIGINT
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  SELECT COALESCE(SUM(steps), 0)::BIGINT
+  FROM public.walks
+  WHERE couple_id = p_couple_id;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.sum_walk_steps_by_couple(UUID) TO authenticated;
 
 
 -- ────────────────────────────────────────────────────────────
@@ -649,6 +687,375 @@ BEGIN
 END;
 $$;
 
+-- 6-1b. 산책 생성/조회 + 엔트리 저장 + 공개 판정 (transaction)
+CREATE OR REPLACE FUNCTION public.create_walk_with_entry(
+  p_couple_id UUID,
+  p_date DATE,
+  p_kind TEXT,
+  p_walk_location_name TEXT,
+  p_walk_location_lat DOUBLE PRECISION DEFAULT NULL,
+  p_walk_location_lng DOUBLE PRECISION DEFAULT NULL,
+  p_walk_location_address TEXT DEFAULT NULL,
+  p_walk_location_source TEXT DEFAULT NULL,
+  p_memo TEXT DEFAULT '',
+  p_photos TEXT[] DEFAULT '{}',
+  p_entry_location_name TEXT DEFAULT '',
+  p_entry_location_lat DOUBLE PRECISION DEFAULT NULL,
+  p_entry_location_lng DOUBLE PRECISION DEFAULT NULL,
+  p_entry_location_address TEXT DEFAULT NULL,
+  p_entry_location_source TEXT DEFAULT NULL,
+  p_diary_question_id INTEGER DEFAULT NULL,
+  p_diary_answer TEXT DEFAULT '',
+  p_couple_question_id INTEGER DEFAULT NULL,
+  p_couple_answer TEXT DEFAULT ''
+)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_profile_couple_id UUID;
+  v_walk_id UUID;
+  v_entry_id UUID;
+  v_entry_count INTEGER;
+  v_created_walk BOOLEAN := FALSE;
+  v_was_revealed BOOLEAN := FALSE;
+  v_just_revealed BOOLEAN := FALSE;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'forbidden');
+  END IF;
+
+  SELECT couple_id INTO v_profile_couple_id
+  FROM public.profiles
+  WHERE id = v_uid;
+
+  IF v_profile_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_couple');
+  END IF;
+  IF v_profile_couple_id <> p_couple_id THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'forbidden');
+  END IF;
+  IF p_kind NOT IN ('together', 'each') THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'invalid_kind');
+  END IF;
+
+  INSERT INTO public.walks (
+    couple_id, date, location_name, location_lat, location_lng,
+    location_address, location_source, steps, kind
+  )
+  VALUES (
+    p_couple_id,
+    p_date,
+    CASE WHEN p_kind = 'together' THEN COALESCE(p_walk_location_name, '') ELSE '' END,
+    CASE WHEN p_kind = 'together' THEN p_walk_location_lat ELSE NULL END,
+    CASE WHEN p_kind = 'together' THEN p_walk_location_lng ELSE NULL END,
+    CASE WHEN p_kind = 'together' THEN p_walk_location_address ELSE NULL END,
+    CASE WHEN p_kind = 'together' THEN p_walk_location_source ELSE NULL END,
+    0,
+    p_kind
+  )
+  ON CONFLICT (couple_id, date, kind) DO NOTHING
+  RETURNING id INTO v_walk_id;
+
+  IF v_walk_id IS NULL THEN
+    SELECT id, is_revealed
+    INTO v_walk_id, v_was_revealed
+    FROM public.walks
+    WHERE couple_id = p_couple_id
+      AND date = p_date
+      AND kind = p_kind
+    FOR UPDATE;
+  ELSE
+    v_created_walk := TRUE;
+  END IF;
+
+  IF v_walk_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'not_found');
+  END IF;
+
+  INSERT INTO public.footprint_entries (
+    walk_id, user_id, memo, photos, location_name, location_lat, location_lng,
+    location_address, location_source, diary_question_id, diary_answer,
+    couple_question_id, couple_answer
+  )
+  VALUES (
+    v_walk_id,
+    v_uid,
+    COALESCE(p_memo, ''),
+    COALESCE(p_photos, '{}'),
+    CASE WHEN p_kind = 'each' THEN COALESCE(p_entry_location_name, '') ELSE '' END,
+    CASE WHEN p_kind = 'each' THEN p_entry_location_lat ELSE NULL END,
+    CASE WHEN p_kind = 'each' THEN p_entry_location_lng ELSE NULL END,
+    CASE WHEN p_kind = 'each' THEN p_entry_location_address ELSE NULL END,
+    CASE WHEN p_kind = 'each' THEN p_entry_location_source ELSE NULL END,
+    p_diary_question_id,
+    COALESCE(p_diary_answer, ''),
+    p_couple_question_id,
+    COALESCE(p_couple_answer, '')
+  )
+  ON CONFLICT (walk_id, user_id) DO NOTHING
+  RETURNING id INTO v_entry_id;
+
+  IF v_entry_id IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'already_entered',
+      'walk_id', v_walk_id
+    );
+  END IF;
+
+  SELECT COUNT(*) INTO v_entry_count
+  FROM public.footprint_entries
+  WHERE walk_id = v_walk_id;
+
+  IF v_entry_count >= 2 AND NOT COALESCE(v_was_revealed, FALSE) THEN
+    UPDATE public.walks
+    SET is_revealed = TRUE
+    WHERE id = v_walk_id;
+    v_just_revealed := TRUE;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'walk_id', v_walk_id,
+    'entry_id', v_entry_id,
+    'created_walk', v_created_walk,
+    'just_revealed', v_just_revealed
+  );
+END;
+$$;
+
+-- 6-1c. 기존 산책에 엔트리 저장 + 공개 판정 (transaction)
+CREATE OR REPLACE FUNCTION public.add_entry_to_walk(
+  p_walk_id UUID,
+  p_memo TEXT DEFAULT '',
+  p_photos TEXT[] DEFAULT '{}',
+  p_entry_location_name TEXT DEFAULT '',
+  p_entry_location_lat DOUBLE PRECISION DEFAULT NULL,
+  p_entry_location_lng DOUBLE PRECISION DEFAULT NULL,
+  p_entry_location_address TEXT DEFAULT NULL,
+  p_entry_location_source TEXT DEFAULT NULL,
+  p_diary_question_id INTEGER DEFAULT NULL,
+  p_diary_answer TEXT DEFAULT '',
+  p_couple_question_id INTEGER DEFAULT NULL,
+  p_couple_answer TEXT DEFAULT ''
+)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_profile_couple_id UUID;
+  v_walk_couple_id UUID;
+  v_kind TEXT;
+  v_entry_id UUID;
+  v_entry_count INTEGER;
+  v_was_revealed BOOLEAN := FALSE;
+  v_just_revealed BOOLEAN := FALSE;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'forbidden');
+  END IF;
+
+  SELECT couple_id INTO v_profile_couple_id
+  FROM public.profiles
+  WHERE id = v_uid;
+
+  SELECT couple_id, kind, is_revealed
+  INTO v_walk_couple_id, v_kind, v_was_revealed
+  FROM public.walks
+  WHERE id = p_walk_id
+  FOR UPDATE;
+
+  IF v_walk_couple_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'not_found');
+  END IF;
+  IF v_profile_couple_id IS NULL OR v_profile_couple_id <> v_walk_couple_id THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'forbidden');
+  END IF;
+
+  INSERT INTO public.footprint_entries (
+    walk_id, user_id, memo, photos, location_name, location_lat, location_lng,
+    location_address, location_source, diary_question_id, diary_answer,
+    couple_question_id, couple_answer
+  )
+  VALUES (
+    p_walk_id,
+    v_uid,
+    COALESCE(p_memo, ''),
+    COALESCE(p_photos, '{}'),
+    CASE WHEN v_kind = 'each' THEN COALESCE(p_entry_location_name, '') ELSE '' END,
+    CASE WHEN v_kind = 'each' THEN p_entry_location_lat ELSE NULL END,
+    CASE WHEN v_kind = 'each' THEN p_entry_location_lng ELSE NULL END,
+    CASE WHEN v_kind = 'each' THEN p_entry_location_address ELSE NULL END,
+    CASE WHEN v_kind = 'each' THEN p_entry_location_source ELSE NULL END,
+    p_diary_question_id,
+    COALESCE(p_diary_answer, ''),
+    p_couple_question_id,
+    COALESCE(p_couple_answer, '')
+  )
+  ON CONFLICT (walk_id, user_id) DO NOTHING
+  RETURNING id INTO v_entry_id;
+
+  IF v_entry_id IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'already_entered',
+      'walk_id', p_walk_id
+    );
+  END IF;
+
+  SELECT COUNT(*) INTO v_entry_count
+  FROM public.footprint_entries
+  WHERE walk_id = p_walk_id;
+
+  IF v_entry_count >= 2 AND NOT COALESCE(v_was_revealed, FALSE) THEN
+    UPDATE public.walks
+    SET is_revealed = TRUE
+    WHERE id = p_walk_id;
+    v_just_revealed := TRUE;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'walk_id', p_walk_id,
+    'entry_id', v_entry_id,
+    'created_walk', false,
+    'just_revealed', v_just_revealed
+  );
+END;
+$$;
+
+-- 6-1d. 초대코드 커플 연결 (transaction)
+CREATE OR REPLACE FUNCTION public.join_couple_by_code(
+  p_invite_code TEXT,
+  p_start_date DATE
+)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_my_couple_id UUID;
+  v_my_pending RECORD;
+  v_target RECORD;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_profile');
+  END IF;
+
+  SELECT couple_id INTO v_my_couple_id
+  FROM public.profiles
+  WHERE id = v_uid
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'no_profile');
+  END IF;
+
+  IF v_my_couple_id IS NOT NULL THEN
+    SELECT id, user1_id, user2_id
+    INTO v_my_pending
+    FROM public.couples
+    WHERE id = v_my_couple_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('success', false, 'reason', 'already_paired');
+    END IF;
+
+    IF v_my_pending.id IS NOT NULL
+       AND v_my_pending.user1_id = v_uid
+       AND v_my_pending.user2_id IS NULL THEN
+      UPDATE public.profiles SET couple_id = NULL WHERE id = v_uid;
+      DELETE FROM public.couples WHERE id = v_my_pending.id;
+    ELSE
+      RETURN jsonb_build_object('success', false, 'reason', 'already_paired');
+    END IF;
+  END IF;
+
+  SELECT *
+  INTO v_target
+  FROM public.couples
+  WHERE invite_code = upper(trim(p_invite_code))
+    AND user2_id IS NULL
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'invalid_code');
+  END IF;
+  IF v_target.created_at < now() - interval '24 hours' THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'expired');
+  END IF;
+  IF v_target.user1_id = v_uid THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'self_code');
+  END IF;
+
+  UPDATE public.couples
+  SET user2_id = v_uid,
+      start_date = p_start_date
+  WHERE id = v_target.id;
+
+  UPDATE public.profiles
+  SET couple_id = v_target.id
+  WHERE id IN (v_uid, v_target.user1_id);
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'couple_id', v_target.id,
+    'user1_id', v_target.user1_id
+  );
+END;
+$$;
+
+-- 6-1e. 커플 연결 해제 (transaction)
+CREATE OR REPLACE FUNCTION public.disconnect_couple(p_couple_id UUID)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_couple RECORD;
+  v_user1_deleted TIMESTAMPTZ;
+  v_user2_deleted TIMESTAMPTZ;
+BEGIN
+  SELECT *
+  INTO v_couple
+  FROM public.couples
+  WHERE id = p_couple_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'not_found');
+  END IF;
+  IF v_uid IS NULL OR (v_couple.user1_id <> v_uid AND v_couple.user2_id <> v_uid) THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'forbidden');
+  END IF;
+
+  SELECT deleted_at INTO v_user1_deleted
+  FROM public.profiles
+  WHERE id = v_couple.user1_id;
+
+  IF v_couple.user2_id IS NOT NULL THEN
+    SELECT deleted_at INTO v_user2_deleted
+    FROM public.profiles
+    WHERE id = v_couple.user2_id;
+  END IF;
+
+  IF v_user1_deleted IS NOT NULL OR v_user2_deleted IS NOT NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'partner_deleted');
+  END IF;
+
+  UPDATE public.profiles
+  SET couple_id = NULL
+  WHERE id IN (v_couple.user1_id, v_couple.user2_id);
+
+  UPDATE public.couples
+  SET user2_id = NULL,
+      invite_code = 'DISCONNECTED-' || p_couple_id::text
+  WHERE id = p_couple_id;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
 -- 6-2. 스탬프 획득
 CREATE OR REPLACE FUNCTION public.claim_memory_stamp(
   p_date DATE, p_count INTEGER DEFAULT 30
@@ -813,26 +1220,48 @@ BEGIN
 END;
 $$;
 
--- 6-8. 프리미엄 구매 마킹
-CREATE OR REPLACE FUNCTION public.mark_premium_purchased(p_revenuecat_user_id TEXT)
+-- 6-8. 커플 패스 구매 마킹
+DROP FUNCTION IF EXISTS public.mark_premium_purchased(TEXT);
+CREATE OR REPLACE FUNCTION public.mark_premium_purchased(
+  p_revenuecat_user_id TEXT,
+  p_expires_at TIMESTAMPTZ DEFAULT NULL
+)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_couple_id UUID;
+DECLARE
+  v_couple_id UUID;
+  v_expires_at TIMESTAMPTZ;
 BEGIN
   UPDATE public.profiles
   SET has_premium = true,
       premium_purchased_at = COALESCE(premium_purchased_at, now()),
+      premium_expires_at = CASE
+        WHEN p_expires_at IS NOT NULL THEN p_expires_at
+        WHEN premium_expires_at IS NULL THEN now() + interval '1 year'
+        ELSE premium_expires_at
+      END,
       revenuecat_user_id = p_revenuecat_user_id
-  WHERE id = auth.uid() RETURNING couple_id INTO v_couple_id;
+  WHERE id = auth.uid()
+  RETURNING couple_id, premium_expires_at INTO v_couple_id, v_expires_at;
+
   IF v_couple_id IS NOT NULL THEN
-    UPDATE public.couples SET has_premium = true, premium_purchaser_id = auth.uid()
+    UPDATE public.couples
+    SET has_premium = true,
+        premium_purchaser_id = auth.uid(),
+        premium_expires_at = v_expires_at
     WHERE id = v_couple_id;
   END IF;
-  RETURN jsonb_build_object('success', true);
+
+  RETURN jsonb_build_object(
+    'success',
+    v_expires_at IS NOT NULL AND v_expires_at > now(),
+    'expires_at',
+    v_expires_at
+  );
 END;
 $$;
 
--- 6-8b. 여행 무드 테마팩 구매 마킹 (기록 업그레이드와 별도 non-consumable)
+-- 6-8b. 여행 무드 테마팩 구매 마킹 (커플 패스와 별도 non-consumable)
 CREATE OR REPLACE FUNCTION public.mark_theme_pack_purchased(p_revenuecat_user_id TEXT)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -847,6 +1276,78 @@ BEGIN
     UPDATE public.couples SET has_theme_pack = true, theme_pack_purchaser_id = auth.uid()
     WHERE id = v_couple_id;
   END IF;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 6-8c. 커플 패스 회수 (RevenueCat refund/revoke webhook용)
+CREATE OR REPLACE FUNCTION public.mark_premium_revoked(p_revenuecat_user_id TEXT)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID;
+  v_couple_id UUID;
+BEGIN
+  SELECT id, couple_id
+  INTO v_uid, v_couple_id
+  FROM public.profiles
+  WHERE revenuecat_user_id = p_revenuecat_user_id
+  LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'not_found');
+  END IF;
+
+  UPDATE public.profiles
+  SET has_premium = false,
+      premium_purchased_at = NULL,
+      premium_expires_at = NULL
+  WHERE id = v_uid;
+
+  IF v_couple_id IS NOT NULL THEN
+    UPDATE public.couples
+    SET has_premium = false,
+        premium_purchaser_id = NULL,
+        premium_expires_at = NULL
+    WHERE id = v_couple_id
+      AND premium_purchaser_id = v_uid;
+  END IF;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 6-8d. 여행 무드 테마팩 회수 (RevenueCat refund/revoke webhook용)
+CREATE OR REPLACE FUNCTION public.mark_theme_pack_revoked(p_revenuecat_user_id TEXT)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid UUID;
+  v_couple_id UUID;
+BEGIN
+  SELECT id, couple_id
+  INTO v_uid, v_couple_id
+  FROM public.profiles
+  WHERE revenuecat_user_id = p_revenuecat_user_id
+  LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'not_found');
+  END IF;
+
+  UPDATE public.profiles
+  SET has_theme_pack = false,
+      theme_pack_purchased_at = NULL
+  WHERE id = v_uid;
+
+  IF v_couple_id IS NOT NULL THEN
+    UPDATE public.couples
+    SET has_theme_pack = false,
+        theme_pack_purchaser_id = NULL
+    WHERE id = v_couple_id
+      AND theme_pack_purchaser_id = v_uid;
+  END IF;
+
   RETURN jsonb_build_object('success', true);
 END;
 $$;
@@ -994,19 +1495,32 @@ BEGIN
 END;
 $$;
 
--- 6-9. 프리미엄 자격 확인
+-- 6-9. 커플 패스 자격 확인
 CREATE OR REPLACE FUNCTION public.is_entitled()
 RETURNS BOOLEAN
 LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public AS $$
 DECLARE
-  v_my_premium BOOLEAN; v_couple_premium BOOLEAN;
+  v_my_premium BOOLEAN;
+  v_my_premium_expires_at TIMESTAMPTZ;
+  v_couple_premium BOOLEAN;
+  v_couple_premium_expires_at TIMESTAMPTZ;
 BEGIN
-  SELECT has_premium INTO v_my_premium
+  SELECT has_premium, premium_expires_at
+  INTO v_my_premium, v_my_premium_expires_at
   FROM public.profiles WHERE id = auth.uid();
-  IF v_my_premium THEN RETURN true; END IF;
-  SELECT c.has_premium INTO v_couple_premium FROM public.couples c
+  IF COALESCE(v_my_premium, false)
+     AND v_my_premium_expires_at IS NOT NULL
+     AND v_my_premium_expires_at > now() THEN
+    RETURN true;
+  END IF;
+  SELECT c.has_premium, c.premium_expires_at
+  INTO v_couple_premium, v_couple_premium_expires_at FROM public.couples c
   JOIN public.profiles p ON p.couple_id = c.id WHERE p.id = auth.uid() LIMIT 1;
-  IF COALESCE(v_couple_premium, false) THEN RETURN true; END IF;
+  IF COALESCE(v_couple_premium, false)
+     AND v_couple_premium_expires_at IS NOT NULL
+     AND v_couple_premium_expires_at > now() THEN
+    RETURN true;
+  END IF;
   RETURN false;
 END;
 $$;
@@ -1057,8 +1571,14 @@ $$;
 -- 7. GRANTS
 -- ────────────────────────────────────────────────────────────
 
-GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT)   TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_premium_purchased(TEXT, TIMESTAMPTZ) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_theme_pack_purchased(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_premium_revoked(TEXT)      TO service_role;
+GRANT EXECUTE ON FUNCTION public.mark_theme_pack_revoked(TEXT)   TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_walk_with_entry(UUID, DATE, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, TEXT, TEXT, TEXT[], TEXT, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, TEXT, INTEGER, TEXT, INTEGER, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.add_entry_to_walk(UUID, TEXT, TEXT[], TEXT, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, TEXT, INTEGER, TEXT, INTEGER, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.join_couple_by_code(TEXT, DATE) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.disconnect_couple(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_book_credits()             TO authenticated;
 GRANT EXECUTE ON FUNCTION public.add_book_credits(INTEGER)      TO authenticated;
 GRANT EXECUTE ON FUNCTION public.redeem_stamps_for_book()       TO authenticated;

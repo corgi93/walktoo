@@ -132,6 +132,8 @@ export default function MediaViewerScreen() {
             source={{ uri }}
             style={photoSize}
             resizeMode="contain"
+            resizeMethod="resize"
+            fadeDuration={0}
           />
         </ScrollView>
       )}

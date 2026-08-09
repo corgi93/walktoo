@@ -4,7 +4,7 @@ import { QUERY_KEYS } from '@/constants/keys';
 import { walksService } from '@/server';
 import { getMonthRange } from '@/utils/date';
 import { useFieldCrypto } from '@/hooks/useCrypto';
-import type { WalkDiary } from '@/types/diary';
+import type { WalkDiary, WalkKind } from '@/types/diary';
 
 import { useGetMeQuery } from '../user/query';
 
@@ -29,14 +29,16 @@ function decryptEntries(walk: WalkDiary, decrypt: (v: string) => string): WalkDi
 
 // ─── useDiaryListQuery ──────────────────────────────────
 
-export const useDiaryListQuery = () => {
+export const useDiaryListQuery = (kind?: WalkKind) => {
   const { data: me } = useGetMeQuery();
   const { decrypt } = useFieldCrypto();
 
   return useInfiniteQuery({
-    queryKey: QUERY_KEYS.diary.list,
+    queryKey: kind
+      ? [...QUERY_KEYS.diary.list, 'kind', kind]
+      : QUERY_KEYS.diary.list,
     queryFn: ({ pageParam = 1 }) =>
-      walksService.getList(me!.coupleId!, me!.id, pageParam),
+      walksService.getList(me!.coupleId!, me!.id, pageParam, kind),
     enabled: !!me?.coupleId,
     initialPageParam: 1,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {

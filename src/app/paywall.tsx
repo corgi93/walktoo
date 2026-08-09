@@ -20,10 +20,10 @@ import {
 } from '@/hooks/services/entitlements/mutation';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import {
-  findRecordUpgradePackage,
+  findCouplePassPackage,
   getCurrentOffering,
   isRevenueCatReady,
-  purchaseRecordUpgrade,
+  purchaseCouplePass,
   restorePurchases,
 } from '@/lib/revenuecat';
 import { theme } from '@/styles/theme';
@@ -38,7 +38,7 @@ export default function PaywallScreen() {
   const markPremium = useMarkPremiumPurchasedMutation();
   const markThemePack = useMarkThemePackPurchasedMutation();
 
-  const [recordUpgradePackage, setRecordUpgradePackage] =
+  const [couplePassPackage, setCouplePassPackage] =
     useState<PurchasesPackage | null>(null);
   const [offeringChecked, setOfferingChecked] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -50,7 +50,7 @@ export default function PaywallScreen() {
       const offering = await getCurrentOffering();
       if (cancelled) return;
       if (offering) {
-        setRecordUpgradePackage(findRecordUpgradePackage(offering));
+        setCouplePassPackage(findCouplePassPackage(offering));
       }
       // 오퍼링 조회가 끝났음을 표시 — null(RC 미준비)이어도 로딩을 종료한다.
       setOfferingChecked(true);
@@ -61,10 +61,10 @@ export default function PaywallScreen() {
   }, []);
 
   // RC 상품이 실제로 로드됐을 때만 구매 가능. 미준비면 활성 버튼 대신 "준비 중".
-  const canPurchase = !!recordUpgradePackage;
+  const canPurchase = !!couplePassPackage;
 
   const price =
-    recordUpgradePackage?.product.priceString ??
+    couplePassPackage?.product.priceString ??
     `₩${PREMIUM.PRICE_KRW.toLocaleString('ko-KR')}`;
 
   const handlePurchase = async () => {
@@ -73,13 +73,13 @@ export default function PaywallScreen() {
       toast.info(t('premium:result.already-owned'));
       return;
     }
-    if (!isRevenueCatReady() || !recordUpgradePackage) {
+    if (!isRevenueCatReady() || !couplePassPackage) {
       toast.error(t('premium:result.sdk-unavailable'));
       return;
     }
 
     setIsPurchasing(true);
-    const outcome = await purchaseRecordUpgrade(recordUpgradePackage);
+    const outcome = await purchaseCouplePass(couplePassPackage);
     if (outcome.userCancelled) {
       setIsPurchasing(false);
       return;
@@ -90,7 +90,10 @@ export default function PaywallScreen() {
       return;
     }
 
-    const sync = await markPremium.mutateAsync(outcome.appUserId);
+    const sync = await markPremium.mutateAsync({
+      revenuecatUserId: outcome.appUserId,
+      expiresAt: outcome.entitlementExpiresAt ?? null,
+    });
     setIsPurchasing(false);
     if (sync.success) {
       toast.success(t('premium:result.success'));
@@ -115,10 +118,13 @@ export default function PaywallScreen() {
       return;
     }
 
-    // 기록 업그레이드와 테마팩 — 복원된 entitlement만 각각 동기화
+    // 커플 패스와 테마팩 — 복원된 entitlement만 각각 동기화
     let synced = false;
     if (outcome.hasEntitlement) {
-      const sync = await markPremium.mutateAsync(outcome.appUserId);
+      const sync = await markPremium.mutateAsync({
+        revenuecatUserId: outcome.appUserId,
+        expiresAt: outcome.entitlementExpiresAt ?? null,
+      });
       synced = synced || sync.success;
     }
     if (outcome.hasThemePack) {

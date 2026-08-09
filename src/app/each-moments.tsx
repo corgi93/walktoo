@@ -1,12 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   View,
+  type ViewToken,
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,13 +52,13 @@ export default function EachMomentsScreen() {
 
   const { myName, partnerName, partnerId, couple } = usePartnerDerivation();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useDiaryListQuery();
+    useDiaryListQuery('each');
+  const [activeIndex, setActiveIndex] = useState(0);
 
   // 각자(kind='each') + 미디어 1개 이상 있는 walks만 모아 날짜별 그룹화.
   const dayGroups = useMemo<DayGroup[]>(() => {
     const walks = data?.pages.flat() ?? [];
     return walks
-      .filter((w) => w.kind === 'each')
       .filter(
         (w) =>
           (w.myEntry?.photos?.length ?? 0) > 0 ||
@@ -77,6 +79,10 @@ export default function EachMomentsScreen() {
     return idx >= 0 ? idx : 0;
   }, [initialDate, dayGroups]);
 
+  useEffect(() => {
+    setActiveIndex(initialIndex);
+  }, [initialIndex]);
+
   const close = useCallback(() => router.back(), [router]);
 
   const handleEndReached = useCallback(() => {
@@ -84,6 +90,44 @@ export default function EachMomentsScreen() {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 }).current;
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const firstVisible = viewableItems.find(
+        (item) => typeof item.index === 'number',
+      );
+      if (typeof firstVisible?.index === 'number') {
+        setActiveIndex(firstVisible.index);
+      }
+    },
+  ).current;
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: DayGroup; index: number }) => (
+      <DayPage
+        group={item}
+        myName={myName}
+        partnerName={partnerName}
+        pageWidth={width}
+        pageHeight={height}
+        insets={insets}
+        partnerId={partnerId}
+        coupleId={couple?.id}
+        isActive={index === activeIndex}
+      />
+    ),
+    [
+      activeIndex,
+      couple?.id,
+      height,
+      insets,
+      myName,
+      partnerId,
+      partnerName,
+      width,
+    ],
+  );
 
   if (dayGroups.length === 0) {
     return (
@@ -113,27 +157,22 @@ export default function EachMomentsScreen() {
       <FlatList
         data={dayGroups}
         keyExtractor={(item) => `${item.date}-${item.walkId}`}
-        renderItem={({ item }) => (
-          <DayPage
-            group={item}
-            myName={myName}
-            partnerName={partnerName}
-            pageWidth={width}
-            pageHeight={height}
-            insets={insets}
-            partnerId={partnerId}
-            coupleId={couple?.id}
-          />
-        )}
+        renderItem={renderItem}
         pagingEnabled
         snapToAlignment="start"
         showsVerticalScrollIndicator={false}
         initialScrollIndex={initialIndex}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        removeClippedSubviews={Platform.OS === 'android'}
         getItemLayout={(_, idx) => ({
           length: height,
           offset: height * idx,
           index: idx,
         })}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         decelerationRate="fast"
@@ -152,7 +191,7 @@ export default function EachMomentsScreen() {
 
 // ─── DayPage ────────────────────────────────────────────
 
-function DayPage({
+const DayPage = memo(function DayPage({
   group,
   myName,
   partnerName,
@@ -161,6 +200,7 @@ function DayPage({
   insets,
   partnerId,
   coupleId,
+  isActive,
 }: {
   group: DayGroup;
   myName: string;
@@ -170,6 +210,7 @@ function DayPage({
   insets: { top: number; bottom: number };
   partnerId?: string;
   coupleId?: string;
+  isActive: boolean;
 }) {
   const router = useRouter();
   const nudge = useNudgeMutation();
@@ -239,12 +280,14 @@ function DayPage({
               authorName={myName}
               uri={myUri!}
               onPress={handleTapMine}
+              isActive={isActive}
             />
             <DualCard
               entry={group.partnerEntry!}
               authorName={partnerName}
               uri={partnerUri!}
               onPress={handleTapPartner}
+              isActive={isActive}
             />
           </View>
         ) : (
@@ -259,6 +302,7 @@ function DayPage({
             onNudge={handleNudge}
             nudgePending={nudge.isPending}
             nudged={nudgedRef.current}
+            isActive={isActive}
           />
         )}
       </View>
@@ -274,28 +318,38 @@ function DayPage({
       </View>
     </View>
   );
-}
+});
 
 // ─── DualCard ───────────────────────────────────────────
 
-function DualCard({
+const DualCard = memo(function DualCard({
   entry,
   authorName,
   uri,
   onPress,
+  isActive,
 }: {
   entry: NonNullable<WalkDiary['myEntry']>;
   authorName: string;
   uri: string;
   onPress: () => void;
+  isActive: boolean;
 }) {
   const isVideo = isVideoUri(uri);
   const player = useVideoPlayer(isVideo ? uri : '', (p) => {
     if (!isVideo) return;
     p.muted = true;
     p.loop = true;
-    p.play();
   });
+
+  useEffect(() => {
+    if (!isVideo) return;
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isActive, isVideo, player]);
 
   return (
     <Pressable
@@ -315,7 +369,12 @@ function DualCard({
           allowsFullscreen={false}
         />
       ) : (
-        <Image source={{ uri }} style={styles.cardMedia} />
+        <Image
+          source={{ uri }}
+          style={styles.cardMedia}
+          resizeMethod="resize"
+          fadeDuration={0}
+        />
       )}
 
       {isVideo && (
@@ -337,11 +396,11 @@ function DualCard({
       </View>
     </Pressable>
   );
-}
+});
 
 // ─── SoloCard ───────────────────────────────────────────
 
-function SoloCard({
+const SoloCard = memo(function SoloCard({
   entry,
   authorName,
   uri,
@@ -352,6 +411,7 @@ function SoloCard({
   onNudge,
   nudgePending,
   nudged,
+  isActive,
 }: {
   entry: NonNullable<WalkDiary['myEntry']>;
   authorName: string;
@@ -363,14 +423,23 @@ function SoloCard({
   onNudge: () => void;
   nudgePending: boolean;
   nudged: boolean;
+  isActive: boolean;
 }) {
   const isVideo = isVideoUri(uri);
   const player = useVideoPlayer(isVideo ? uri : '', (p) => {
     if (!isVideo) return;
     p.muted = true;
     p.loop = true;
-    p.play();
   });
+
+  useEffect(() => {
+    if (!isVideo) return;
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isActive, isVideo, player]);
 
   return (
     <View style={styles.soloWrap}>
@@ -391,7 +460,12 @@ function SoloCard({
             allowsFullscreen={false}
           />
         ) : (
-          <Image source={{ uri }} style={styles.cardMedia} />
+          <Image
+            source={{ uri }}
+            style={styles.cardMedia}
+            resizeMethod="resize"
+            fadeDuration={0}
+          />
         )}
 
         {isVideo && (
@@ -442,7 +516,7 @@ function SoloCard({
       </View>
     </View>
   );
-}
+});
 
 // ─── Styles ─────────────────────────────────────────────
 

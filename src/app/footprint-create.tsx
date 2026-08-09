@@ -32,6 +32,7 @@ import { getDailyQuestions } from '@/constants/questions';
 import { useCreateDiaryMutation } from '@/hooks/services/diary/mutation';
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
 import { usePhotoBoothStore } from '@/stores/photoBoothStore';
@@ -46,6 +47,7 @@ export default function FootprintCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t } = useTranslation(['diary', 'common', 'premium']);
+  const keyboardBottomInset = useKeyboardBottomInset(SPACING.xxxl);
 
   const { couple, isCoupleConnected, myName } = usePartnerDerivation();
   const { isEntitled } = useEntitlement();
@@ -72,7 +74,7 @@ export default function FootprintCreateScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const kind = 'together' as const;
 
-  // 사진 한도 — 기본 4장 / 업그레이드 8장
+  // 사진 한도 — 기본 4장 / 커플 패스 8장
   const photoLimit = isEntitled
     ? PREMIUM.PHOTO_LIMIT_PREMIUM
     : PREMIUM.PHOTO_LIMIT_FREE;
@@ -150,11 +152,11 @@ export default function FootprintCreateScreen() {
       if (!isEntitled) {
         dialog.showDialog({
           title: '오늘 기록을 더 풍성하게',
-          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 업그레이드하면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
+          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 커플 패스가 있으면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
           buttons: [
             { label: '나중에', variant: 'cancel' },
             {
-              label: '업그레이드 보기',
+              label: '커플 패스 보기',
               variant: 'primary',
               onPress: () => router.push('/paywall'),
             },
@@ -321,16 +323,21 @@ export default function FootprintCreateScreen() {
           </Row>
 
           <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.keyboardAvoider}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
             <ScrollView
               style={styles.scroller}
-              contentContainerStyle={styles.scroll}
+              contentContainerStyle={[
+                styles.scroll,
+                { paddingBottom: LAYOUT.bottomSafe + keyboardBottomInset },
+              ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             >
-              <View style={{ paddingBottom: LAYOUT.bottomSafe }}>
+              <View>
               {/* ── 오늘 날짜 표시 (read-only, picker 없음) + 장소 ── */}
               <Box px="xxl" style={styles.fieldSection}>
                 <View
@@ -629,6 +636,9 @@ const styles = StyleSheet.create({
   hintRow: {
     alignItems: 'center',
     paddingTop: SPACING.xs,
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   scroll: {
     paddingTop: LAYOUT.sectionGap,

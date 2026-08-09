@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -11,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Box, Button, Icon, Row, Text } from '@/components/base';
 import { SimpleDatePicker } from '@/components/base/SimpleDatePicker';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, SPACING } from '@/styles/type';
 import type { CoupleSchedule, ScheduleCategory } from '@/types/schedule';
@@ -58,6 +60,7 @@ export function ScheduleForm({
 }: ScheduleFormProps) {
   const { t } = useTranslation('schedule');
   const isEdit = !!initial;
+  const keyboardBottomInset = useKeyboardBottomInset(SPACING.lg);
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [category, setCategory] = useState<ScheduleCategory>(
@@ -93,145 +96,156 @@ export function ScheduleForm({
   return (
     <Pressable style={styles.overlay} onPress={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.kbd}
       >
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-          {/* 헤더 */}
-          <Row style={styles.header}>
-            <Text variant="headingSmall">
-              {isEdit ? t('form.edit-title') : t('form.create-title')}
-            </Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Icon name="x" size={20} color={theme.colors.gray500} />
-            </Pressable>
-          </Row>
-
-          {!canEdit && (
-            <Box style={styles.readonlyBanner}>
-              <Text variant="caption" color="textSecondary">
-                {t('form.readonly-notice')}
+          <ScrollView
+            contentContainerStyle={[
+              styles.modalScroll,
+              { paddingBottom: keyboardBottomInset ? SPACING.lg : 20 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* 헤더 */}
+            <Row style={styles.header}>
+              <Text variant="headingSmall">
+                {isEdit ? t('form.edit-title') : t('form.create-title')}
               </Text>
-            </Box>
-          )}
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Icon name="x" size={20} color={theme.colors.gray500} />
+              </Pressable>
+            </Row>
 
-          {/* 제목 */}
-          <View style={styles.field}>
-            <Text variant="label" color="textSecondary" mb="xs">
-              {t('form.label.title')}
-            </Text>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder={t('form.placeholder.title')}
-              placeholderTextColor={theme.colors.gray400}
-              maxLength={60}
-              editable={!disabled}
-              style={styles.input}
-            />
-          </View>
+            {!canEdit && (
+              <Box style={styles.readonlyBanner}>
+                <Text variant="caption" color="textSecondary">
+                  {t('form.readonly-notice')}
+                </Text>
+              </Box>
+            )}
 
-          {/* 카테고리 */}
-          <View style={styles.field}>
-            <Text variant="label" color="textSecondary" mb="xs">
-              {t('form.label.category')}
-            </Text>
-            <ScheduleCategoryPicker value={category} onChange={setCategory} />
-          </View>
-
-          {/* 날짜 */}
-          <View style={styles.field}>
-            <Text variant="label" color="textSecondary" mb="xs">
-              {t('form.label.date')}
-            </Text>
-            <Pressable
-              onPress={() => !disabled && setShowDatePicker(true)}
-              style={[styles.dateButton, disabled && styles.dateButtonDisabled]}
-            >
-              <Icon
-                name="calendar"
-                size={16}
-                color={
-                  date ? theme.colors.primary : theme.colors.gray400
-                }
-              />
-              <Text
-                variant="bodySmall"
-                ml="sm"
-                style={{
-                  color: date ? theme.colors.text : theme.colors.gray400,
-                  flex: 1,
-                }}
-              >
-                {prettyDate}
+            {/* 제목 */}
+            <View style={styles.field}>
+              <Text variant="label" color="textSecondary" mb="xs">
+                {t('form.label.title')}
               </Text>
-              <Icon
-                name="chevron-right"
-                size={14}
-                color={theme.colors.gray400}
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder={t('form.placeholder.title')}
+                placeholderTextColor={theme.colors.gray400}
+                maxLength={60}
+                editable={!disabled}
+                style={styles.input}
               />
-            </Pressable>
-          </View>
+            </View>
 
-          {/* 메모 */}
-          <View style={styles.field}>
-            <Text variant="label" color="textSecondary" mb="xs">
-              {t('form.label.note')}
-            </Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder={t('form.placeholder.note')}
-              placeholderTextColor={theme.colors.gray400}
-              multiline
-              maxLength={300}
-              editable={!disabled}
-              style={[styles.input, styles.noteInput]}
-            />
-          </View>
+            {/* 카테고리 */}
+            <View style={styles.field}>
+              <Text variant="label" color="textSecondary" mb="xs">
+                {t('form.label.category')}
+              </Text>
+              <ScheduleCategoryPicker value={category} onChange={setCategory} />
+            </View>
 
-          {/* 액션 */}
-          <Row style={styles.actions}>
-            {isEdit && canEdit && onDelete && (
+            {/* 날짜 */}
+            <View style={styles.field}>
+              <Text variant="label" color="textSecondary" mb="xs">
+                {t('form.label.date')}
+              </Text>
               <Pressable
-                onPress={onDelete}
-                hitSlop={8}
-                disabled={submitting}
-                style={styles.deleteButton}
+                onPress={() => !disabled && setShowDatePicker(true)}
+                style={[styles.dateButton, disabled && styles.dateButtonDisabled]}
               >
-                <Icon name="x" size={14} color={theme.colors.error} />
+                <Icon
+                  name="calendar"
+                  size={16}
+                  color={
+                    date ? theme.colors.primary : theme.colors.gray400
+                  }
+                />
                 <Text
                   variant="bodySmall"
-                  ml="xxs"
-                  style={{ color: theme.colors.error }}
+                  ml="sm"
+                  style={{
+                    color: date ? theme.colors.text : theme.colors.gray400,
+                    flex: 1,
+                  }}
                 >
-                  {t('form.delete')}
+                  {prettyDate}
+                </Text>
+                <Icon
+                  name="chevron-right"
+                  size={14}
+                  color={theme.colors.gray400}
+                />
+              </Pressable>
+            </View>
+
+            {/* 메모 */}
+            <View style={styles.field}>
+              <Text variant="label" color="textSecondary" mb="xs">
+                {t('form.label.note')}
+              </Text>
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder={t('form.placeholder.note')}
+                placeholderTextColor={theme.colors.gray400}
+                multiline
+                maxLength={300}
+                editable={!disabled}
+                style={[styles.input, styles.noteInput]}
+              />
+            </View>
+
+            {/* 액션 */}
+            <Row style={styles.actions}>
+              {isEdit && canEdit && onDelete && (
+                <Pressable
+                  onPress={onDelete}
+                  hitSlop={8}
+                  disabled={submitting}
+                  style={styles.deleteButton}
+                >
+                  <Icon name="x" size={14} color={theme.colors.error} />
+                  <Text
+                    variant="bodySmall"
+                    ml="xxs"
+                    style={{ color: theme.colors.error }}
+                  >
+                    {t('form.delete')}
+                  </Text>
+                </Pressable>
+              )}
+              <View style={{ flex: 1 }} />
+              <Pressable
+                onPress={onClose}
+                hitSlop={8}
+                style={styles.cancelButton}
+              >
+                <Text variant="bodySmall" color="textSecondary">
+                  {t('form.cancel')}
                 </Text>
               </Pressable>
-            )}
-            <View style={{ flex: 1 }} />
-            <Pressable
-              onPress={onClose}
-              hitSlop={8}
-              style={styles.cancelButton}
-            >
-              <Text variant="bodySmall" color="textSecondary">
-                {t('form.cancel')}
-              </Text>
-            </Pressable>
-            {canEdit && (
-              <Button
-                onPress={handleSubmit}
-                disabled={!canSubmit}
-                loading={submitting}
-                size="small"
-                variant="primary"
-                fullWidth={false}
-              >
-                {t('form.save')}
-              </Button>
-            )}
-          </Row>
+              {canEdit && (
+                <Button
+                  onPress={handleSubmit}
+                  disabled={!canSubmit}
+                  loading={submitting}
+                  size="small"
+                  variant="primary"
+                  fullWidth={false}
+                >
+                  {t('form.save')}
+                </Button>
+              )}
+            </Row>
+          </ScrollView>
         </Pressable>
       </KeyboardAvoidingView>
 
@@ -267,14 +281,18 @@ const styles = StyleSheet.create({
   kbd: {
     width: '90%',
     maxWidth: 440,
+    maxHeight: '90%',
   },
   modal: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
-    padding: 20,
     width: '100%',
+    maxHeight: '100%',
     ...theme.pixel.borderThin,
     ...theme.shadows.card,
+  },
+  modalScroll: {
+    padding: 20,
   },
   header: {
     justifyContent: 'space-between',

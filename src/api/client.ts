@@ -72,7 +72,7 @@ export async function client<ResponseDataType, RequestBodyType = unknown>(
       })
     ).data;
   } catch (error) {
-    if (isAxiosError(error)) {
+    if (__DEV__ && isAxiosError(error)) {
       console.log('API call failed:', {
         url: error.config?.url,
         method: error.config?.method,
@@ -80,7 +80,7 @@ export async function client<ResponseDataType, RequestBodyType = unknown>(
         errorMessage: error.message,
         responseData: error.response?.data,
       });
-    } else {
+    } else if (__DEV__) {
       console.log('Non Axios error:', {
         error,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',

@@ -22,6 +22,7 @@ import {
 } from '@/hooks/services/schedules/mutation';
 import { useSchedulesByMonthQuery } from '@/hooks/services/schedules/query';
 import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { FONT_FAMILY, LAYOUT, SPACING } from '@/styles/type';
@@ -49,6 +50,7 @@ export default function PlannerScreen() {
   const router = useRouter();
   const toast = useToast();
   const { me, isCoupleConnected, myName, partnerName } = usePartnerDerivation();
+  const keyboardBottomInset = useKeyboardBottomInset(SPACING.xl);
   const [visibleMonth, setVisibleMonth] = useState(getCurrentYearMonth);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<CoupleSchedule | null>(
@@ -181,22 +183,36 @@ export default function PlannerScreen() {
 
   if (!isCoupleConnected) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <KeyboardAvoidingView
+        style={[styles.container, { paddingTop: insets.top }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <TabScreenHeader
           title="캘린더"
           titleVariant="displaySmall"
         />
-        <View style={styles.noCoupleWrap}>
-          <NoCoupleCard />
-        </View>
-      </View>
+        <ScrollView
+          contentContainerStyle={[
+            styles.noCoupleScroll,
+            { paddingBottom: insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.noCoupleWrap}>
+            <NoCoupleCard />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TabScreenHeader
         title="캘린더"
@@ -205,8 +221,14 @@ export default function PlannerScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: LAYOUT.bottomSafe + keyboardBottomInset },
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         <ScheduleCalendar
           year={visibleMonth.year}
@@ -660,10 +682,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.screenPx,
     paddingTop: SPACING.lg,
   },
+  noCoupleScroll: {
+    flexGrow: 1,
+  },
   scroll: {
     paddingHorizontal: 10,
     paddingTop: SPACING.xs,
-    paddingBottom: LAYOUT.bottomSafe,
     gap: SPACING.md,
   },
   calendarCard: {

@@ -29,6 +29,7 @@ export interface Database {
           character_type: string;
           has_premium: boolean;
           premium_purchased_at: string | null;
+          premium_expires_at: string | null;
           has_theme_pack: boolean;
           theme_pack_purchased_at: string | null;
           revenuecat_user_id: string | null;
@@ -50,6 +51,7 @@ export interface Database {
           character_type?: string;
           has_premium?: boolean;
           premium_purchased_at?: string | null;
+          premium_expires_at?: string | null;
           has_theme_pack?: boolean;
           theme_pack_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
@@ -68,6 +70,7 @@ export interface Database {
           character_type?: string;
           has_premium?: boolean;
           premium_purchased_at?: string | null;
+          premium_expires_at?: string | null;
           has_theme_pack?: boolean;
           theme_pack_purchased_at?: string | null;
           revenuecat_user_id?: string | null;
@@ -85,6 +88,7 @@ export interface Database {
           first_met_date: string | null;
           has_premium: boolean;
           premium_purchaser_id: string | null;
+          premium_expires_at: string | null;
           has_theme_pack: boolean;
           theme_pack_purchaser_id: string | null;
           created_at: string;
@@ -96,6 +100,7 @@ export interface Database {
           first_met_date?: string | null;
           has_premium?: boolean;
           premium_purchaser_id?: string | null;
+          premium_expires_at?: string | null;
           has_theme_pack?: boolean;
           theme_pack_purchaser_id?: string | null;
         };
@@ -105,6 +110,7 @@ export interface Database {
           first_met_date?: string | null;
           has_premium?: boolean;
           premium_purchaser_id?: string | null;
+          premium_expires_at?: string | null;
           has_theme_pack?: boolean;
           theme_pack_purchaser_id?: string | null;
         };
@@ -379,9 +385,94 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      sum_walk_steps_by_couple: {
+        Args: { p_couple_id: string };
+        Returns: number;
+      };
       get_partner_steps: {
         Args: { p_partner_id: string; p_date: string };
         Returns: number;
+      };
+      create_walk_with_entry: {
+        Args: {
+          p_couple_id: string;
+          p_date: string;
+          p_kind: 'together' | 'each';
+          p_walk_location_name: string;
+          p_walk_location_lat?: number | null;
+          p_walk_location_lng?: number | null;
+          p_walk_location_address?: string | null;
+          p_walk_location_source?: 'naver' | 'google' | null;
+          p_memo?: string;
+          p_photos?: string[];
+          p_entry_location_name?: string;
+          p_entry_location_lat?: number | null;
+          p_entry_location_lng?: number | null;
+          p_entry_location_address?: string | null;
+          p_entry_location_source?: 'naver' | 'google' | null;
+          p_diary_question_id?: number | null;
+          p_diary_answer?: string;
+          p_couple_question_id?: number | null;
+          p_couple_answer?: string;
+        };
+        Returns: {
+          success: boolean;
+          reason?:
+            | 'no_couple'
+            | 'forbidden'
+            | 'invalid_kind'
+            | 'not_found'
+            | 'already_entered';
+          walk_id?: string;
+          entry_id?: string;
+          created_walk?: boolean;
+          just_revealed?: boolean;
+        };
+      };
+      add_entry_to_walk: {
+        Args: {
+          p_walk_id: string;
+          p_memo?: string;
+          p_photos?: string[];
+          p_entry_location_name?: string;
+          p_entry_location_lat?: number | null;
+          p_entry_location_lng?: number | null;
+          p_entry_location_address?: string | null;
+          p_entry_location_source?: 'naver' | 'google' | null;
+          p_diary_question_id?: number | null;
+          p_diary_answer?: string;
+          p_couple_question_id?: number | null;
+          p_couple_answer?: string;
+        };
+        Returns: {
+          success: boolean;
+          reason?: 'forbidden' | 'not_found' | 'already_entered';
+          walk_id?: string;
+          entry_id?: string;
+          created_walk?: boolean;
+          just_revealed?: boolean;
+        };
+      };
+      join_couple_by_code: {
+        Args: { p_invite_code: string; p_start_date: string };
+        Returns: {
+          success: boolean;
+          reason?:
+            | 'no_profile'
+            | 'already_paired'
+            | 'invalid_code'
+            | 'expired'
+            | 'self_code';
+          couple_id?: string;
+          user1_id?: string;
+        };
+      };
+      disconnect_couple: {
+        Args: { p_couple_id: string };
+        Returns: {
+          success: boolean;
+          reason?: 'not_found' | 'forbidden' | 'partner_deleted';
+        };
       };
       send_nudge: {
         Args: {
@@ -444,15 +535,30 @@ export interface Database {
         };
       };
       mark_premium_purchased: {
-        Args: { p_revenuecat_user_id: string };
+        Args: { p_revenuecat_user_id: string; p_expires_at?: string | null };
         Returns: {
           success: boolean;
+          expires_at?: string | null;
         };
       };
       mark_theme_pack_purchased: {
         Args: { p_revenuecat_user_id: string };
         Returns: {
           success: boolean;
+        };
+      };
+      mark_premium_revoked: {
+        Args: { p_revenuecat_user_id: string };
+        Returns: {
+          success: boolean;
+          reason?: 'not_found';
+        };
+      };
+      mark_theme_pack_revoked: {
+        Args: { p_revenuecat_user_id: string };
+        Returns: {
+          success: boolean;
+          reason?: 'not_found';
         };
       };
       get_book_credits: {

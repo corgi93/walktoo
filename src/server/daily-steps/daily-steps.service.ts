@@ -1,4 +1,5 @@
 import { supabase } from '../client';
+import { getLocalToday } from '@/utils/date';
 
 // ─── 타입 ────────────────────────────────────────────────
 
@@ -9,17 +10,6 @@ interface DailyStepRow {
   kcal: number;
   updated_at: string;
 }
-
-// ─── 헬퍼: 로컬 타임존 기준 오늘 날짜 ──────────────────
-// toISOString()은 UTC 기준이라 한국(UTC+9)에서 자정~9시 사이에
-// 어제 날짜를 반환하는 버그가 있었음
-const getLocalToday = (): string => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
 
 // ─── 오늘의 걸음수 Upsert ───────────────────────────────
 
@@ -70,7 +60,7 @@ export async function getPartnerSteps(partnerId: string): Promise<number> {
     .rpc('get_partner_steps', { p_partner_id: partnerId, p_date: today });
 
   if (!rpcError && rpcData !== null && rpcData !== undefined) {
-    console.log('[getPartnerSteps] rpc OK:', rpcData);
+    if (__DEV__) console.log('[getPartnerSteps] rpc OK:', rpcData);
     return typeof rpcData === 'number' ? rpcData : 0;
   }
 
@@ -91,7 +81,9 @@ export async function getPartnerSteps(partnerId: string): Promise<number> {
     return 0;
   }
 
-  console.log('[getPartnerSteps] direct:', partnerId, 'date:', today, 'steps:', data?.steps ?? 0);
+  if (__DEV__) {
+    console.log('[getPartnerSteps] direct:', partnerId, 'date:', today, 'steps:', data?.steps ?? 0);
+  }
   return data?.steps ?? 0;
 }
 

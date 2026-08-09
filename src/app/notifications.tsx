@@ -3,6 +3,7 @@ import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -88,7 +89,7 @@ export default function NotificationsScreen() {
     markAllAsRead.mutate();
   };
 
-  const formatTimeAgo = (dateStr: string) => {
+  const formatTimeAgo = useCallback((dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const minutes = Math.floor(diff / 60_000);
     if (minutes < 1) return t('time-ago.just-now');
@@ -101,7 +102,7 @@ export default function NotificationsScreen() {
       month: "short",
       day: "numeric",
     });
-  };
+  }, [t]);
 
   const renderItem = useCallback(
     ({ item }: { item: AppNotification }) => {
@@ -143,7 +144,7 @@ export default function NotificationsScreen() {
         </Pressable>
       );
     },
-    [handlePress],
+    [formatTimeAgo, handlePress],
   );
 
   if (isLoading) {
@@ -189,6 +190,10 @@ export default function NotificationsScreen() {
             if (hasNextPage && !isFetchingNextPage) fetchNextPage();
           }}
           onEndReachedThreshold={0.5}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === 'android'}
           refreshing={isRefetching}
           onRefresh={refetch}
           ListFooterComponent={

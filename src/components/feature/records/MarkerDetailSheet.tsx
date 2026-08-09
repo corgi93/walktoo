@@ -91,6 +91,8 @@ export function MarkerDetailSheet({
               source={{ uri: thumbnail }}
               style={styles.thumb}
               resizeMode="cover"
+              resizeMethod="resize"
+              fadeDuration={0}
             />
           ) : (
             <View style={[styles.thumb, styles.thumbEmpty]}>

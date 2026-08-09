@@ -1,7 +1,7 @@
 /**
  * RevenueCat SDK 래퍼
  *
- * - 1회성 결제 (non-consumable) 전용
+ * - 커플 패스와 테마팩 IAP 처리
  * - API 키가 없거나 native 모듈이 없으면 모든 호출이 no-op
  * - SDK 호출 결과는 모두 graceful 처리 (throw X, 호출부에서 결과 분기)
  *
@@ -110,14 +110,16 @@ export const getCurrentOffering = async (): Promise<PurchasesOffering | null> =>
 };
 
 /**
- * 현재 offering에서 기록 업그레이드 1회성 패키지를 찾는다.
+ * 현재 offering에서 커플 패스 패키지를 찾는다.
  * RevenueCat 기본 패키지 타입 또는 product ID 매칭을 모두 지원한다.
  */
-export const findRecordUpgradePackage = (
+export const findCouplePassPackage = (
   offering: PurchasesOffering,
 ): PurchasesPackage | null => {
   const matched = offering.availablePackages.find(
-    (p) => p.product.identifier === PREMIUM.PRODUCT_ID,
+    (p) =>
+      p.product.identifier === PREMIUM.PRODUCT_ID ||
+      p.product.identifier === PREMIUM.ANDROID_PRODUCT_ID,
   );
   return matched ?? null;
 };
@@ -152,8 +154,10 @@ export interface PurchaseOutcome {
   ok: boolean;
   /** 사용자가 dialog를 취소함 (에러 표시 X) */
   userCancelled?: boolean;
-  /** 활성 entitlement 보유 여부 (기록 업그레이드) */
+  /** 활성 entitlement 보유 여부 (커플 패스) */
   hasEntitlement?: boolean;
+  /** 커플 패스 entitlement 만료일. null이면 스토어/RC상 만료일 없음. */
+  entitlementExpiresAt?: string | null;
   /** 여행 무드 테마팩 entitlement 보유 여부 (restore 시 함께 확인) */
   hasThemePack?: boolean;
   /** RevenueCat appUserID (Supabase 동기화에 사용) */
@@ -174,10 +178,15 @@ const purchaseWithEntitlement = async (
   }
   try {
     const result = await Purchases.purchasePackage(pkg);
-    const hasEntitlement =
-      !!result.customerInfo.entitlements.active[entitlementId];
+    const entitlement = result.customerInfo.entitlements.active[entitlementId];
+    const hasEntitlement = !!entitlement;
     const appUserId = await Purchases.getAppUserID();
-    return { ok: hasEntitlement, hasEntitlement, appUserId };
+    return {
+      ok: hasEntitlement,
+      hasEntitlement,
+      entitlementExpiresAt: entitlement?.expirationDate ?? null,
+      appUserId,
+    };
   } catch (e: unknown) {
     const err = e as { userCancelled?: boolean; message?: string };
     if (err.userCancelled) {
@@ -187,7 +196,7 @@ const purchaseWithEntitlement = async (
   }
 };
 
-export const purchaseRecordUpgrade = (
+export const purchaseCouplePass = (
   pkg: PurchasesPackage,
 ): Promise<PurchaseOutcome> =>
   purchaseWithEntitlement(pkg, PREMIUM.ENTITLEMENT_ID);
@@ -207,12 +216,14 @@ export const restorePurchases = async (): Promise<PurchaseOutcome> => {
   }
   try {
     const customerInfo = await Purchases.restorePurchases();
-    const hasEntitlement = hasActiveEntitlement(customerInfo);
+    const entitlement = customerInfo.entitlements.active[PREMIUM.ENTITLEMENT_ID];
+    const hasEntitlement = !!entitlement;
     const hasThemePack = hasActiveThemePackEntitlement(customerInfo);
     const appUserId = await Purchases.getAppUserID();
     return {
       ok: hasEntitlement || hasThemePack,
       hasEntitlement,
+      entitlementExpiresAt: entitlement?.expirationDate ?? null,
       hasThemePack,
       appUserId,
     };
@@ -226,6 +237,12 @@ export const restorePurchases = async (): Promise<PurchaseOutcome> => {
 
 export const hasActiveEntitlement = (info: CustomerInfo): boolean => {
   return !!info.entitlements.active[PREMIUM.ENTITLEMENT_ID];
+};
+
+export const getActiveEntitlementExpirationDate = (
+  info: CustomerInfo,
+): string | null | undefined => {
+  return info.entitlements.active[PREMIUM.ENTITLEMENT_ID]?.expirationDate;
 };
 
 export const hasActiveThemePackEntitlement = (info: CustomerInfo): boolean => {

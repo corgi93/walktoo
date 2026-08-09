@@ -98,7 +98,9 @@ export const useSocialLoginMutation = () => {
     },
     onSuccess: (profile) => {
       hideLoading();
-      console.log('[SocialLogin] 성공! user:', profile?.id, profile?.nickname);
+      if (__DEV__) {
+        console.log('[SocialLogin] 성공! user:', profile?.id, profile?.nickname);
+      }
       setUser(profile);
       routeAfterLogin(profile);
     },
@@ -132,7 +134,9 @@ export const useWebOAuthMutation = () => {
     },
     onSuccess: (profile) => {
       hideLoading();
-      console.log('[WebOAuth] 성공! user:', profile?.id, profile?.nickname);
+      if (__DEV__) {
+        console.log('[WebOAuth] 성공! user:', profile?.id, profile?.nickname);
+      }
       setUser(profile);
       routeAfterLogin(profile);
     },

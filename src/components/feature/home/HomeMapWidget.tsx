@@ -19,6 +19,7 @@ interface HomeMapWidgetProps {
 }
 
 const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
+const HOME_MAP_MARKER_LIMIT = 12;
 
 const pickCoords = (walk: WalkDiary): Coords | null =>
   walk.locationCoords ??
@@ -36,7 +37,8 @@ export function HomeMapWidget({
   const markers = useMemo<WebMapMarker[]>(
     () => {
       const nextMarkers: WebMapMarker[] = [];
-      walks.forEach((walk) => {
+      for (const walk of walks) {
+        if (nextMarkers.length >= HOME_MAP_MARKER_LIMIT) break;
         const coords = pickCoords(walk);
         if (coords) {
           nextMarkers.push({
@@ -46,7 +48,7 @@ export function HomeMapWidget({
             subtitle: walk.date,
           });
         }
-      });
+      }
       return nextMarkers;
     },
     [walks],
@@ -80,7 +82,7 @@ export function HomeMapWidget({
         >
           <Icon name="map-pin" size={13} color={theme.colors.primary} />
           <Text variant="caption" color="primary" ml="xxs">
-            전체
+            지도
           </Text>
         </Pressable>
       </View>
@@ -109,7 +111,7 @@ export function HomeMapWidget({
 
       <View style={styles.footer}>
         <Text variant="caption" color="textMuted">
-          전체 위치 기록
+          최근 위치 기록
         </Text>
         <View style={styles.countBadge}>
           <Text variant="caption" color="primary" weight="700">

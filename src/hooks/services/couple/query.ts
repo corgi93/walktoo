@@ -16,6 +16,7 @@ export const useGetCoupleQuery = (
     queryKey: QUERY_KEYS.couple.profile,
     queryFn: () => couplesService.getCoupleProfile(me!.coupleId!),
     enabled: !!me?.coupleId,
+    staleTime: 60_000,
     ...config,
   });
 };
@@ -29,5 +30,6 @@ export const useCoupleStatsQuery = () => {
     queryKey: QUERY_KEYS.couple.stats,
     queryFn: () => walksService.getStats(me!.coupleId!),
     enabled: !!me?.coupleId,
+    staleTime: 60_000,
   });
 };

@@ -246,6 +246,8 @@ function PhotoArea({
             source={{ uri: photoUri }}
             style={styles.photoImage}
             resizeMode="cover"
+            resizeMethod="resize"
+            fadeDuration={0}
           />
         )
       ) : showAddButton ? (

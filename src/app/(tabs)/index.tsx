@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from 'react-i18next';
@@ -21,10 +28,11 @@ import { useClaimStampMutation } from '@/hooks/services/stamps/mutation';
 import { useTodayStampQuery } from '@/hooks/services/stamps/query';
 import { usePartnerStepsQuery } from '@/hooks/services/steps/query';
 import { useCouplePolling } from '@/hooks/services/user/query';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
-import { usePedometer } from '@/hooks/usePedometer';
 import { usePermission } from '@/hooks/usePermission';
 import { useRefresh } from '@/hooks/useRefresh';
+import { useStepsStore } from '@/stores/stepsStore';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
 import { getLocalToday } from '@/utils/date';
@@ -36,6 +44,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { t } = useTranslation(['home', 'couple']);
+  const keyboardBottomInset = useKeyboardBottomInset(LAYOUT.sectionGap);
 
   // 데이터 ────────────────────────────────────────────────
   const {
@@ -68,33 +77,16 @@ export default function HomeScreen() {
 
   const today = getLocalToday();
 
-  // 홈 지도/각자 모먼트/오늘 사진첩은 월 제한 없이 전체 기록을 사용한다.
-  const {
-    data: walkPages,
-    fetchNextPage: fetchNextWalkPage,
-    hasNextPage: hasNextWalkPage,
-    isFetchingNextPage: isFetchingNextWalkPage,
-  } = useDiaryListQuery();
-  const allWalks = useMemo(
-    () => walkPages?.pages.flatMap((page) => page) ?? [],
+  // 홈 위젯은 첫 페이지만 사용한다. 전체 기록은 목록/상세 화면에서 사용자가 요청할 때 불러온다.
+  const { data: walkPages } = useDiaryListQuery();
+  const recentWalks = useMemo(
+    () => walkPages?.pages[0] ?? [],
     [walkPages],
   );
   const todayWalk = useMemo(
-    () => allWalks.find((w) => w.date === today && w.kind === 'each'),
-    [allWalks, today],
+    () => recentWalks.find((w) => w.date === today && w.kind === 'each'),
+    [recentWalks, today],
   );
-
-  useEffect(() => {
-    if (!isCoupleConnected) return;
-    if (!hasNextWalkPage || isFetchingNextWalkPage) return;
-    fetchNextWalkPage();
-  }, [
-    allWalks.length,
-    fetchNextWalkPage,
-    hasNextWalkPage,
-    isCoupleConnected,
-    isFetchingNextWalkPage,
-  ]);
 
   // 홈 지도 조작 중에는 상위 ScrollView가 드래그를 가져가지 않게 잠근다.
   const [isMapInteracting, setIsMapInteracting] = useState(false);
@@ -128,7 +120,7 @@ export default function HomeScreen() {
   );
 
   // 걸음수 ────────────────────────────────────────────────
-  const { steps: mySteps } = usePedometer();
+  const mySteps = useStepsStore((state) => state.mySteps);
   const { data: partnerStepsData } = usePartnerStepsQuery(partnerId);
   const partnerSteps = partnerStepsData ?? 0;
 
@@ -182,9 +174,15 @@ export default function HomeScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: LAYOUT.bottomSafe + keyboardBottomInset },
+        ]}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!isMapInteracting}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -250,7 +248,7 @@ export default function HomeScreen() {
           <WidgetBoard
             firstMetDate={couple?.firstMetDate}
             todayWalk={todayWalk}
-            walks={allWalks}
+            walks={recentWalks}
             myName={myName}
             partnerName={partnerName}
             myCharacter={myCharacter}
@@ -291,7 +289,6 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingTop: 12,
-    paddingBottom: LAYOUT.bottomSafe,
   },
   noCoupleWrap: {
     marginTop: 16,

@@ -36,11 +36,13 @@ import {
   useDeleteDiaryMutation,
   useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
+import { useDiaryDetailQuery } from '@/hooks/services/diary/query';
 import { useNudgeMutation } from '@/hooks/services/notification/mutation';
 import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { useEntitlement } from '@/hooks/useEntitlement';
+import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
 import { PREMIUM } from '@/constants/premium';
 import { useDialogStore } from '@/stores/dialogStore';
 import { useDiaryTheme } from '@/hooks/useDiaryTheme';
@@ -63,6 +65,15 @@ import {
 
 // ─── Component ──────────────────────────────────────────
 
+function parseEntryParam(value?: string): FootprintEntry | undefined {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value) as FootprintEntry;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function DiaryDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -79,8 +90,14 @@ export default function DiaryDetailScreen() {
     partnerEntry: string;
   }>();
 
+  const walkId = params.id;
+  const { data: walkDetail } = useDiaryDetailQuery(walkId);
+  const routeMyEntry = parseEntryParam(params.myEntry);
+  const routePartnerEntry = parseEntryParam(params.partnerEntry);
   const walkKind: 'together' | 'each' =
-    params.kind === 'each' ? 'each' : 'together';
+    walkDetail?.kind ?? (params.kind === 'each' ? 'each' : 'together');
+  const walkDate = walkDetail?.date ?? params.date ?? '';
+  const walkLocationName = walkDetail?.locationName ?? params.locationName ?? '';
 
   // 사진 한도 — 각자(each)는 1인당 2장, 우리의 하루는 4~8장
   const photoLimit =
@@ -94,14 +111,10 @@ export default function DiaryDetailScreen() {
     : PREMIUM.VIDEO_DURATION_FREE_SECONDS;
   const videoDurationLimitMs = videoDurationLimitSeconds * 1000;
 
-  const walkId = params.id;
-  const isRevealed = params.isRevealed === 'true';
-  const myEntry: FootprintEntry | undefined = params.myEntry
-    ? JSON.parse(params.myEntry)
-    : undefined;
-  const partnerEntry: FootprintEntry | undefined = params.partnerEntry
-    ? JSON.parse(params.partnerEntry)
-    : undefined;
+  const isRevealed = walkDetail?.isRevealed ?? params.isRevealed === 'true';
+  const myEntry: FootprintEntry | undefined = walkDetail?.myEntry ?? routeMyEntry;
+  const partnerEntry: FootprintEntry | undefined =
+    walkDetail?.partnerEntry ?? routePartnerEntry;
 
   const hasMyEntry = !!myEntry;
 
@@ -109,7 +122,7 @@ export default function DiaryDetailScreen() {
   const { data: couple } = useGetCoupleQuery();
   const { diaryQuestion, coupleQuestion } = getDailyQuestions(
     couple?.firstMetDate,
-    params.date,
+    walkDate,
   );
 
   // ─── 다꾸 테마 ────────────────────────────────────────
@@ -166,14 +179,23 @@ export default function DiaryDetailScreen() {
     );
   };
 
-  const formattedDate = params.date
-    ? formatDate(parseLocalDate(params.date), {
+  const formattedDate = walkDate
+    ? formatDate(parseLocalDate(walkDate), {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         weekday: 'short',
       })
     : '';
+
+  React.useEffect(() => {
+    if (isEditing) return;
+    setMemo(myEntry?.memo ?? '');
+    setPhotos(myEntry?.photos ?? []);
+    setDiaryAnswer(myEntry?.diaryAnswer ?? '');
+    setCoupleAnswer(myEntry?.coupleAnswer ?? '');
+    setMyLocationName(myEntry?.locationName ?? '');
+  }, [isEditing, myEntry]);
 
   const handleStartEdit = () => {
     setMemo(myEntry?.memo ?? '');
@@ -192,11 +214,11 @@ export default function DiaryDetailScreen() {
       if (walkKind === 'together' && !isEntitled) {
         dialog.showDialog({
           title: '오늘 기록을 더 풍성하게',
-          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 업그레이드하면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
+          message: `기본은 ${PREMIUM.PHOTO_LIMIT_FREE}장까지 무료예요. 커플 패스가 있으면 이 기록에 ${PREMIUM.PHOTO_LIMIT_PREMIUM}장까지 담을 수 있어요.`,
           buttons: [
             { label: '나중에', variant: 'cancel' },
             {
-              label: '업그레이드 보기',
+              label: '커플 패스 보기',
               variant: 'primary',
               onPress: () => router.push('/paywall'),
             },
@@ -318,7 +340,7 @@ export default function DiaryDetailScreen() {
           {
             onSuccess: () => {
               router.back();
-              // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 업그레이드 제안.
+              // 둘 다 완성 → reveal 순간. free 사용자에게 가볍게 커플 패스 제안.
               maybeShowRevealNudge();
             },
             onError: (e) =>
@@ -339,6 +361,9 @@ export default function DiaryDetailScreen() {
   };
 
   const showForm = !hasMyEntry || isEditing;
+  const keyboardBottomInset = useKeyboardBottomInset(
+    showForm ? SPACING.xxxl : 0,
+  );
 
   return (
     <View
@@ -399,18 +424,24 @@ export default function DiaryDetailScreen() {
       </Row>
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardAvoider}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           style={styles.scroller}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            {
+              paddingBottom:
+                LAYOUT.bottomSafe + LAYOUT.sectionGap + keyboardBottomInset,
+            },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         >
-          <View
-            style={{ paddingBottom: LAYOUT.bottomSafe + LAYOUT.sectionGap }}
-          >
+          <View>
           <Box px="xxl">
             {/* 디자인의 DiaryPage 형태 — rounded 카드 wrapper 없이 ThemeBg 위에 직접 콘텐츠 */}
             <View style={styles.diaryPage}>
@@ -420,7 +451,7 @@ export default function DiaryDetailScreen() {
                   date={formattedDate}
                   place={
                     walkKind === 'together'
-                      ? params.locationName
+                      ? walkLocationName
                       : [myEntry?.locationName, partnerEntry?.locationName]
                           .filter(Boolean)
                           .join(' · ') || t('common:labels.each-day')
@@ -438,7 +469,7 @@ export default function DiaryDetailScreen() {
                   editable={isEditing}
                   onAddMyPhoto={handleAddPhoto}
                   onRemoveMyPhoto={handleRemovePhoto}
-                  stampDate={params.date?.replace(/-/g, '·').slice(2) ?? ''}
+                  stampDate={walkDate.replace(/-/g, '·').slice(2)}
                 />
               ) : !isEditing ? (
                 <PhotoPage
@@ -446,8 +477,8 @@ export default function DiaryDetailScreen() {
                   photos={[
                     ...(myEntry?.photos ?? []),
                     ...(partnerEntry?.photos ?? []),
-                  ].slice(0, PREMIUM.PHOTO_LIMIT_FREE)}
-                  quoteSeed={params.date}
+                  ].slice(0, photoLimit)}
+                  quoteSeed={walkDate}
                 />
               ) : (
                 <PhotoPage
@@ -456,7 +487,7 @@ export default function DiaryDetailScreen() {
                   editable
                   onAddPhoto={() => handleAddPhoto()}
                   onRemovePhoto={(slotIdx) => handleRemovePhoto(slotIdx)}
-                  quoteSeed={params.date}
+                  quoteSeed={walkDate}
                 />
               )}
 
@@ -1034,6 +1065,9 @@ const styles = StyleSheet.create({
   },
   themeBtnEmoji: {
     fontSize: 13,
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   dateBannerWrap: {
     marginVertical: SPACING.lg,

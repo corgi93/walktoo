@@ -16,6 +16,7 @@ export const useGetMeQuery = () => {
       if (!user) throw new Error('로그인이 필요합니다');
       return couplesService.getMyProfile(user.id);
     },
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
 };
@@ -41,6 +42,8 @@ export const useCouplePolling = (coupleId?: string, isConnected?: boolean) => {
 
   // 앱이 포그라운드로 돌아올 때도 refetch
   useEffect(() => {
+    if (!coupleId && !isConnected) return;
+
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.user.me });
@@ -48,5 +51,5 @@ export const useCouplePolling = (coupleId?: string, isConnected?: boolean) => {
       }
     });
     return () => sub.remove();
-  }, [queryClient]);
+  }, [coupleId, isConnected, queryClient]);
 };

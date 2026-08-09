@@ -110,6 +110,8 @@ export function FilmStripLayout({
                   source={{ uri: photo }}
                   style={styles.frameImage}
                   resizeMode="cover"
+                  resizeMethod="resize"
+                  fadeDuration={0}
                 />
               ) : editable ? (
                 <View style={styles.frameAddSlot}>

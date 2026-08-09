@@ -267,7 +267,7 @@ async function sendExpoPush(
         result.data.message,
         '| details:', result.data.details,
       );
-    } else {
+    } else if (__DEV__) {
       console.log('[ExpoPush] 발송 성공:', result.data?.id);
     }
   } catch (error) {

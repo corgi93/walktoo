@@ -16,27 +16,37 @@ export const useCreateDiaryMutation = () => {
 
   return useMutation({
     mutationFn: async (input: CreateWalkDiaryInput) => {
-      if (!me?.coupleId) throw new Error('커플 연결이 필요합니다');
+      if (!me?.id || !me.coupleId) throw new Error('커플 연결이 필요합니다');
+      const coupleId = me.coupleId;
+      const currentUserId = me.id;
 
       // 1. 사진이 있으면 먼저 업로드
       let photoUrls: string[] = [];
       if (input.photos.length > 0) {
         const tempId = Date.now().toString();
         photoUrls = await storageService.uploadPhotos(
-          me.coupleId,
+          coupleId,
           tempId,
           input.photos,
         );
       }
 
       // 2. 산책 + 엔트리 생성 (업로드된 URL로, 텍스트 필드 암호화)
-      const walkId = await walksService.create(me.coupleId, me.id, {
-        ...input,
-        memo: encrypt(input.memo),
-        diaryAnswer: input.diaryAnswer ? encrypt(input.diaryAnswer) : input.diaryAnswer,
-        coupleAnswer: input.coupleAnswer ? encrypt(input.coupleAnswer) : input.coupleAnswer,
-        photos: photoUrls.length > 0 ? photoUrls : input.photos,
-      });
+      let walkId: string;
+      try {
+        walkId = await walksService.create(coupleId, currentUserId, {
+          ...input,
+          memo: encrypt(input.memo),
+          diaryAnswer: input.diaryAnswer ? encrypt(input.diaryAnswer) : input.diaryAnswer,
+          coupleAnswer: input.coupleAnswer ? encrypt(input.coupleAnswer) : input.coupleAnswer,
+          photos: photoUrls.length > 0 ? photoUrls : input.photos,
+        });
+      } catch (error) {
+        if (photoUrls.length > 0) {
+          await storageService.deletePhotos(photoUrls);
+        }
+        throw error;
+      }
 
       return walkId;
     },
@@ -89,19 +99,26 @@ export const useAddEntryMutation = () => {
       }
 
       // 2. 엔트리 추가 (둘 다 작성 → reveal, 텍스트 필드 암호화)
-      await walksService.addEntry(
-        walkId,
-        me.id,
-        encrypt(memo),
-        photoUrls.length > 0 ? photoUrls : photos,
-        {
-          diaryQuestionId,
-          diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
-          coupleQuestionId,
-          coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
-        },
-        locationName,
-      );
+      try {
+        await walksService.addEntry(
+          walkId,
+          me.id,
+          encrypt(memo),
+          photoUrls.length > 0 ? photoUrls : photos,
+          {
+            diaryQuestionId,
+            diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
+            coupleQuestionId,
+            coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
+          },
+          locationName,
+        );
+      } catch (error) {
+        if (photoUrls.length > 0) {
+          await storageService.deletePhotos(photoUrls);
+        }
+        throw error;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.diary.list });
@@ -156,11 +173,18 @@ export const useUpdateEntryMutation = () => {
 
       const allPhotos = [...existingUrls, ...newUrls];
 
-      await walksService.updateEntry(entryId, encrypt(memo), allPhotos, {
-        locationName,
-        diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
-        coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
-      });
+      try {
+        await walksService.updateEntry(entryId, encrypt(memo), allPhotos, {
+          locationName,
+          diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
+          coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
+        });
+      } catch (error) {
+        if (newUrls.length > 0) {
+          await storageService.deletePhotos(newUrls);
+        }
+        throw error;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.diary.list });
