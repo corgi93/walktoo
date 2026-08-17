@@ -143,6 +143,31 @@ export const walksService = {
     return (data ?? []).map((row) => toWalkDiary(row, currentUserId));
   },
 
+  /** 특정 날짜와 종류의 산책 ID만 조회 — 저장 직전 중복 확인용 */
+  findByDateAndKind: async (
+    coupleId: string,
+    date: string,
+    kind: WalkDiary['kind'],
+  ) => {
+    const { data, error } = await walksRepository.findByDateAndKind(
+      coupleId,
+      date,
+      kind,
+    );
+    if (error) throw error;
+    return data?.[0] ?? null;
+  },
+
+  /** 특정 산책에 현재 사용자의 엔트리가 있는지 확인 */
+  findEntryByWalkIdAndUserId: async (walkId: string, userId: string) => {
+    const { data, error } = await walksRepository.findEntryByWalkIdAndUserId(
+      walkId,
+      userId,
+    );
+    if (error) throw error;
+    return data;
+  },
+
   /** 산책 상세 조회 */
   getDetail: async (id: string, currentUserId: string) => {
     const { data, error } = await walksRepository.findById(id);

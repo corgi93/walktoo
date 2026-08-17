@@ -156,6 +156,15 @@ export const walksRepository = {
       .eq('kind', kind)
       .returns<{ id: string }[]>(),
 
+  /** 특정 산책에 본인 엔트리가 있는지 확인 */
+  findEntryByWalkIdAndUserId: (walkId: string, userId: string) =>
+    supabase
+      .from('footprint_entries')
+      .select('id')
+      .eq('walk_id', walkId)
+      .eq('user_id', userId)
+      .maybeSingle<Pick<EntryRow, 'id'>>(),
+
   /** 커플의 특정 월 산책 목록 (entries 포함, 최신순) */
   findByCoupleIdAndMonth: (coupleId: string, startDate: string, endDate: string) =>
     supabase

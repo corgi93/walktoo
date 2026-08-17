@@ -29,15 +29,16 @@ import { getDailyQuestions } from '@/constants/questions';
 import {
   useAddEntryMutation,
   useCreateDiaryMutation,
+  useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
-import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useRevealUpgradeNudge } from '@/hooks/useRevealUpgradeNudge';
+import { walksService } from '@/server';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
-import { getLocalToday, parseLocalDate } from '@/utils/date';
+import { getLocalToday } from '@/utils/date';
 import {
   getLocalFileSize,
   MAX_SHORT_VIDEO_BYTES,
@@ -59,10 +60,11 @@ export default function QuickCaptureScreen() {
   const { t } = useTranslation('diary');
   const dialog = useDialogStore();
 
-  const { couple, isCoupleConnected } = usePartnerDerivation();
+  const { me, couple, isCoupleConnected } = usePartnerDerivation();
   const { isEntitled } = useEntitlement();
   const createDiary = useCreateDiaryMutation();
   const addEntry = useAddEntryMutation();
+  const updateEntry = useUpdateEntryMutation();
   const maybeShowRevealNudge = useRevealUpgradeNudge();
   const [isSaving, setIsSaving] = useState(false);
   const videoMaxDuration = isEntitled
@@ -103,16 +105,6 @@ export default function QuickCaptureScreen() {
   const { diaryQuestion, coupleQuestion } = useMemo(
     () => getDailyQuestions(couple?.firstMetDate, date),
     [couple?.firstMetDate, date],
-  );
-
-  // 오늘 '각자' walk가 이미 있으면(파트너가 먼저 남김) 새로 생성하지 않고 조인한다.
-  const { year, month } = useMemo(() => {
-    const d = parseLocalDate(date);
-    return { year: d.getFullYear(), month: d.getMonth() + 1 };
-  }, [date]);
-  const { data: monthWalks, refetch: refetchMonth } = useDiaryByMonthQuery(
-    year,
-    month,
   );
 
   // ─── Permissions ─────────────────────────────────────
@@ -316,15 +308,30 @@ export default function QuickCaptureScreen() {
         }
       }
 
-      // 저장 직전 최신 목록으로 오늘 '각자' walk 존재 여부를 판정한다.
-      // (커플·날짜·kind당 walk 1개 모델 — 파트너가 먼저 남겼으면 조인해야 함)
-      const refreshed = await refetchMonth();
-      const walks = refreshed.data ?? monthWalks ?? [];
-      const existingEach = walks.find(
-        (w) => w.date === date && w.kind === 'each',
-      );
+      // 월 전체 기록 대신 오늘 '각자' walk의 ID만 확인한다.
+      // 저장 화면에서 엔트리·프로필까지 다시 읽으면 불필요한 실패 지점이 생긴다.
+      const existingEach = couple
+        ? await walksService.findByDateAndKind(couple.id, date, 'each')
+        : null;
+      const existingMine =
+        existingEach && me
+          ? await walksService.findEntryByWalkIdAndUserId(
+              existingEach.id,
+              me.id,
+            )
+          : null;
 
-      if (existingEach) {
+      if (existingMine && existingEach) {
+        // 이미 오늘 내 컷이 있으면 실패시키지 않고 새 컷으로 교체한다.
+        await updateEntry.mutateAsync({
+          walkId: existingEach.id,
+          entryId: existingMine.id,
+          memo: '',
+          photos: [capturedUri],
+          locationName: '',
+        });
+        router.back();
+      } else if (existingEach) {
         // 두 번째 파트너 — 새 walk 생성이 아니라 기존 walk에 내 엔트리를 조인.
         await addEntry.mutateAsync({
           walkId: existingEach.id,
@@ -353,8 +360,15 @@ export default function QuickCaptureScreen() {
         });
         router.back();
       }
-    } catch {
-      dialog.alert(t('quick.save-failed-title'), t('quick.save-failed'));
+    } catch (error) {
+      if (__DEV__) {
+        console.error('[quick-capture] save failed', error);
+      }
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t('quick.save-failed');
+      dialog.alert(t('quick.save-failed-title'), message);
     } finally {
       setIsSaving(false);
     }
@@ -367,13 +381,14 @@ export default function QuickCaptureScreen() {
     date,
     diaryQuestion.id,
     dialog,
+    couple,
     isCoupleConnected,
     isSaving,
+    me,
     maybeShowRevealNudge,
-    monthWalks,
-    refetchMonth,
     router,
     t,
+    updateEntry,
   ]);
 
   // ─── Render: permission gate ─────────────────────────
