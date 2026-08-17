@@ -28,7 +28,7 @@ export const useCalendarMonthQuery = (
   const { couple, isCoupleConnected } = usePartnerDerivation();
   const coupleId = isCoupleConnected ? couple?.id : undefined;
 
-  const walksQuery = useDiaryByMonthQuery(year, month);
+  const walksQuery = useDiaryByMonthQuery(year, month, 'together');
   const stampsQuery = useStampsByMonthQuery(coupleId, year, month);
 
   const isLoading = walksQuery.isLoading || stampsQuery.isLoading;

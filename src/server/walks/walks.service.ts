@@ -133,11 +133,13 @@ export const walksService = {
     currentUserId: string,
     startDate: string,
     endDate: string,
+    kind?: WalkDiary['kind'],
   ) => {
     const { data, error } = await walksRepository.findByCoupleIdAndMonth(
       coupleId,
       startDate,
       endDate,
+      kind,
     );
     if (error) throw error;
     return (data ?? []).map((row) => toWalkDiary(row, currentUserId));

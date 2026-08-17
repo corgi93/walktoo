@@ -69,6 +69,7 @@ export default function PlannerScreen() {
   const { data: walks = [] } = useDiaryByMonthQuery(
     visibleMonth.year,
     visibleMonth.month,
+    'together',
   );
   const createSchedule = useCreateScheduleMutation();
   const updateSchedule = useUpdateScheduleMutation();
@@ -286,7 +287,7 @@ export default function PlannerScreen() {
                         onPress={() => handleWalkPress(walk)}
                         style={styles.walkCard}
                       >
-                        <WalkPreviewImage walk={walk} size="large" />
+                        <WalkPreviewImage walk={walk} />
                         <View style={styles.scheduleBody}>
                           <Text
                             variant="bodySmall"
@@ -458,21 +459,14 @@ const getWalkPreviewText = (walk: WalkDiary) =>
   getEntryPreviewText(walk.partnerEntry) ||
   (walk.isRevealed ? '둘 다 남긴 기록' : '함께 산책');
 
-function WalkPreviewImage({
-  walk,
-  size = 'small',
-}: {
-  walk: WalkDiary;
-  size?: 'small' | 'large';
-}) {
+function WalkPreviewImage({ walk }: { walk: WalkDiary }) {
   const uri = getWalkPreviewImageUri(walk);
-  const isLarge = size === 'large';
 
   if (uri) {
     return (
       <Image
         source={{ uri }}
-        style={isLarge ? styles.walkThumbLarge : styles.walkThumbSmall}
+        style={styles.walkThumbSmall}
         resizeMode="cover"
       />
     );
@@ -481,13 +475,13 @@ function WalkPreviewImage({
   return (
     <View
       style={[
-        isLarge ? styles.walkThumbLarge : styles.walkThumbSmall,
+        styles.walkThumbSmall,
         styles.walkThumbEmpty,
       ]}
     >
       <Icon
         name="footprint"
-        size={isLarge ? 18 : 11}
+        size={11}
         color={walk.isRevealed ? theme.colors.primary : theme.colors.secondary}
       />
     </View>
@@ -850,14 +844,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.white,
     backgroundColor: theme.colors.gray100,
     transform: [{ rotate: '-2deg' }],
-  },
-  walkThumbLarge: {
-    width: 52,
-    height: 52,
-    borderRadius: theme.radius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.gray100,
   },
   walkThumbEmpty: {
     alignItems: 'center',
