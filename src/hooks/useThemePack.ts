@@ -72,24 +72,31 @@ export function useThemePack() {
       return false;
     }
     setIsPurchasing(true);
-    const outcome = await purchaseThemePack(pkg);
-    if (outcome.userCancelled) {
-      setIsPurchasing(false);
+    try {
+      const outcome = await purchaseThemePack(pkg);
+      if (outcome.userCancelled) return false;
+      if (!outcome.ok || !outcome.appUserId) {
+        toast.error(t('premium:result.failed'));
+        return false;
+      }
+
+      try {
+        const sync = await markThemePack.mutateAsync(outcome.appUserId);
+        if (sync.success) {
+          toast.success(t('premium:theme-pack.purchased'));
+          return true;
+        }
+      } catch {
+        // Store purchase succeeded; the server sync can be retried later.
+      }
+      toast.error(t('premium:result.sync-delayed'));
       return false;
-    }
-    if (!outcome.ok || !outcome.appUserId) {
-      setIsPurchasing(false);
+    } catch {
       toast.error(t('premium:result.failed'));
       return false;
+    } finally {
+      setIsPurchasing(false);
     }
-    const sync = await markThemePack.mutateAsync(outcome.appUserId);
-    setIsPurchasing(false);
-    if (sync.success) {
-      toast.success(t('premium:theme-pack.purchased'));
-      return true;
-    }
-    toast.error(t('premium:result.failed'));
-    return false;
   }, [isPurchasing, pkg, markThemePack, t, toast]);
 
   /**
