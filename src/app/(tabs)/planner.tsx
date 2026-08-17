@@ -358,20 +358,41 @@ function DayDetailsSheet({
         <View style={styles.daySheetHandle} />
         <View style={styles.daySheetHeader}>
           <View style={styles.daySheetTitleWrap}>
-            <Text variant="headingSmall">
+            <Text variant="caption" color="primary" weight="700">
+              선택한 날짜
+            </Text>
+            <Text variant="headingMedium" mt="xxs">
               {formatDate(parseLocalDate(date), {
                 month: 'long',
                 day: 'numeric',
                 weekday: 'short',
               })}
             </Text>
-            <Text variant="caption" color="textMuted" mt="xxs">
-              일정 {schedules.length}개 · 우리 기록 {walks.length}개
-            </Text>
           </View>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable
+            onPress={onClose}
+            style={styles.daySheetClose}
+            accessibilityRole="button"
+            accessibilityLabel="날짜 상세 닫기"
+          >
             <Icon name="x" size={20} color={theme.colors.gray500} />
           </Pressable>
+        </View>
+
+        <View style={styles.daySheetSummary}>
+          <View style={styles.daySheetSummaryItem}>
+            <Icon name="calendar" size={15} color={theme.colors.primary} />
+            <Text variant="caption" color="textSecondary" ml="xs">
+              일정 {schedules.length}
+            </Text>
+          </View>
+          <View style={styles.daySheetSummaryDivider} />
+          <View style={styles.daySheetSummaryItem}>
+            <Icon name="footprint" size={15} color={theme.colors.secondary} />
+            <Text variant="caption" color="textSecondary" ml="xs">
+              우리 기록 {walks.length}
+            </Text>
+          </View>
         </View>
 
         <ScrollView
@@ -390,14 +411,27 @@ function DayDetailsSheet({
             <View style={styles.scheduleList}>
               {walks.length > 0 && (
                 <View style={styles.walkGroup}>
-                  <Text variant="caption" color="textMuted" weight="700">
-                    우리 기록
-                  </Text>
+                  <View style={styles.daySectionHeader}>
+                    <View style={styles.daySectionTitle}>
+                      <Icon name="book-open" size={15} color={theme.colors.secondary} />
+                      <Text variant="bodySmall" weight="700" ml="xs">
+                        우리 기록
+                      </Text>
+                    </View>
+                    <Text variant="caption" color="textMuted" style={styles.daySectionCount}>
+                      {walks.length}
+                    </Text>
+                  </View>
                   {walks.map((walk) => (
                     <Pressable
                       key={walk.id}
                       onPress={() => onOpenWalk(walk)}
-                      style={styles.walkCard}
+                      style={({ pressed }) => [
+                        styles.walkCard,
+                        pressed && styles.daySheetRowPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel="우리 기록 자세히 보기"
                     >
                       <WalkPreviewImage walk={walk} />
                       <View style={styles.scheduleBody}>
@@ -420,9 +454,17 @@ function DayDetailsSheet({
 
               {schedules.length > 0 && (
                 <View style={styles.walkGroup}>
-                  <Text variant="caption" color="textMuted" weight="700">
-                    일정
-                  </Text>
+                  <View style={styles.daySectionHeader}>
+                    <View style={styles.daySectionTitle}>
+                      <Icon name="calendar" size={15} color={theme.colors.primary} />
+                      <Text variant="bodySmall" weight="700" ml="xs">
+                        일정
+                      </Text>
+                    </View>
+                    <Text variant="caption" color="textMuted" style={styles.daySectionCount}>
+                      {schedules.length}
+                    </Text>
+                  </View>
                   {schedules.map((schedule) => {
                     const isMine = schedule.ownerId === myUserId;
                     const owner = isMine ? myName : partnerName;
@@ -430,12 +472,15 @@ function DayDetailsSheet({
                       <Pressable
                         key={schedule.id}
                         onPress={() => onEditSchedule(schedule)}
-                        style={[
+                        style={({ pressed }) => [
                           styles.scheduleCard,
                           isMine
                             ? styles.scheduleCardMine
                             : styles.scheduleCardPartner,
+                          pressed && styles.daySheetRowPressed,
                         ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${schedule.title} 일정 수정`}
                       >
                         <View style={styles.scheduleEmoji}>
                           <Text variant="bodyLarge">{schedule.emoji ?? '📌'}</Text>
@@ -919,12 +964,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACING.md,
-    paddingBottom: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingBottom: SPACING.sm,
   },
   daySheetTitleWrap: {
     flex: 1,
+  },
+  daySheetClose: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.surface,
+  },
+  daySheetSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 36,
+    paddingHorizontal: SPACING.sm,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.borderLight,
+  },
+  daySheetSummaryItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  daySheetSummaryDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: theme.colors.borderLight,
   },
   daySheetScroll: {
     flexShrink: 1,
@@ -940,7 +1012,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: SPACING.sm,
     borderRadius: theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primaryDark,
     backgroundColor: theme.colors.primary,
+  },
+  daySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 24,
+  },
+  daySectionTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  daySectionCount: {
+    minWidth: 22,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 2,
+    textAlign: 'center',
+    borderRadius: theme.radius.xs,
+    backgroundColor: theme.colors.gray100,
+    overflow: 'hidden',
+  },
+  daySheetRowPressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.99 }],
   },
   scheduleList: {
     gap: SPACING.sm,
