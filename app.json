@@ -23,8 +23,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSMotionUsageDescription": "걸음수를 측정하기 위해 모션 데이터 접근이 필요합니다.",
-        "NSLocationWhenInUseUsageDescription": "함께 걷는 경로를 기록하기 위해 위치 접근이 필요합니다.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "백그라운드에서도 걷기 경로를 기록하기 위해 위치 접근이 필요합니다.",
+        "NSLocationWhenInUseUsageDescription": "산책 장소를 검색하고 기록에 추가하기 위해 위치 접근이 필요합니다.",
         "NSCameraUsageDescription": "오늘의 나를 가볍게 기록하기 위해 카메라 접근이 필요합니다.",
         "NSMicrophoneUsageDescription": "5초 영상에 소리를 함께 담기 위해 마이크 접근이 필요합니다.",
         "UIBackgroundModes": [
@@ -47,10 +46,8 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.RECORD_AUDIO",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED"
       ]
     },
@@ -89,9 +86,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "함께 걷는 경로를 기록하기 위해 위치 접근이 필요합니다.",
-          "locationAlwaysAndWhenInUsePermission": "백그라운드에서도 걷기 경로를 기록하기 위해 위치 접근이 필요합니다.",
-          "isAndroidBackgroundLocationEnabled": true
+          "locationWhenInUsePermission": "산책 장소를 검색하고 기록에 추가하기 위해 위치 접근이 필요합니다."
         }
       ],
       "@react-native-google-signin/google-signin",

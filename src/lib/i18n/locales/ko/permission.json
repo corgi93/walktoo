@@ -10,7 +10,7 @@
   },
   "location": {
     "title": "위치 권한",
-    "description": "함께 걷는 경로를 기록하기 위해\n위치 접근이 필요해요."
+    "description": "산책 장소를 검색하고 기록에 추가하기 위해\n위치 접근이 필요해요."
   },
   "notifications": {
     "title": "알림 권한",

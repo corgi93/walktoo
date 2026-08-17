@@ -13,13 +13,14 @@ import { openAppSettings } from '@/utils/permissions';
 
 interface PermissionSettingsGuideProps {
   type: PermissionType;
+  onSkip?: () => void;
 }
 
 // ─── Component ──────────────────────────────────────
 
 export const PermissionSettingsGuide: React.FC<
   PermissionSettingsGuideProps
-> = ({ type }) => {
+> = ({ type, onSkip }) => {
   const { t } = useTranslation('permission');
 
   return (
@@ -50,6 +51,11 @@ export const PermissionSettingsGuide: React.FC<
         <Button onPress={openAppSettings} size="large" variant="secondary">
           {t('settings-guide.open-settings')}
         </Button>
+        {onSkip && (
+          <Button onPress={onSkip} variant="ghost" size="medium" mt="sm">
+            {t('prompt.later')}
+          </Button>
+        )}
       </Box>
     </View>
   );

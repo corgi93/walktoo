@@ -16,7 +16,8 @@ export const PERMISSION_CONFIGS: Record<PermissionType, PermissionConfig> = {
   location: {
     type: 'location',
     icon: 'location-outline',
-    required: true,
+    // 장소 검색과 기록 저장은 수동 입력으로도 사용할 수 있다.
+    required: false,
   },
   notifications: {
     type: 'notifications',

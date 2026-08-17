@@ -1,7 +1,9 @@
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
-import { Linking, Platform } from 'react-native';
+import { Linking } from 'react-native';
+
+import { PermissionStatus, PermissionType } from '@/types/permission';
 
 // expo-notifications는 Expo Go(SDK 53+)에서 네이티브 에러를 던지므로
 // Expo Go 환경에서는 아예 로드하지 않음
@@ -15,8 +17,6 @@ if (!isExpoGo) {
     // dev build에서도 실패 시 무시
   }
 }
-
-import { PermissionStatus, PermissionType } from '@/types/permission';
 
 // ─── Status Normalization ───────────────────────────
 
@@ -66,17 +66,7 @@ export const requestPermission = async (
   switch (type) {
     case 'location': {
       const foreground = await Location.requestForegroundPermissionsAsync();
-      if (foreground.status !== 'granted') {
-        return normalizeStatus(foreground.status, foreground.canAskAgain);
-      }
-      // Android 10+: 백그라운드 위치는 별도 요청
-      if (Platform.OS === 'android') {
-        const background =
-          await Location.requestBackgroundPermissionsAsync();
-        return normalizeStatus(background.status, background.canAskAgain);
-      }
-      // iOS: Always 권한은 OS가 나중에 자동 follow-up
-      return 'granted';
+      return normalizeStatus(foreground.status, foreground.canAskAgain);
     }
     case 'pedometer': {
       const { status, canAskAgain } =
