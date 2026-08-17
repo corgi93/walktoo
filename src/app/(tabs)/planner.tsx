@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   Image,
@@ -58,9 +58,7 @@ export default function PlannerScreen() {
   );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalToday);
-  const lastCalendarPressRef = useRef<{ date: string; time: number } | null>(
-    null,
-  );
+  const [showDayDetails, setShowDayDetails] = useState(false);
 
   const { data: schedules = [] } = useSchedulesByMonthQuery(
     visibleMonth.year,
@@ -100,6 +98,7 @@ export default function PlannerScreen() {
   const selectedWalks = walksByDate.get(selectedDate) ?? [];
 
   const moveMonth = (delta: number) => {
+    setShowDayDetails(false);
     setVisibleMonth((current) => {
       const next = addMonths(current.year, current.month, delta);
       setSelectedDate(`${getMonthKey(next.year, next.month)}-01`);
@@ -154,20 +153,12 @@ export default function PlannerScreen() {
   };
 
   const handleCalendarDatePress = (date: string) => {
-    const now = Date.now();
-    const lastPress = lastCalendarPressRef.current;
-    const isDoublePress =
-      lastPress?.date === date && now - lastPress.time <= 450;
-
     setSelectedDate(date);
-    lastCalendarPressRef.current = { date, time: now };
-
-    if (isDoublePress) {
-      setShowCreateForm(true);
-    }
+    setShowDayDetails(true);
   };
 
   const handleWalkPress = (walk: WalkDiary) => {
+    setShowDayDetails(false);
     router.push({
       pathname: '/diary-detail',
       params: {
@@ -180,6 +171,16 @@ export default function PlannerScreen() {
         partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
       },
     });
+  };
+
+  const handleAddSchedule = () => {
+    setShowDayDetails(false);
+    setShowCreateForm(true);
+  };
+
+  const handleEditSchedule = (schedule: CoupleSchedule) => {
+    setShowDayDetails(false);
+    setEditingSchedule(schedule);
   };
 
   if (!isCoupleConnected) {
@@ -242,136 +243,22 @@ export default function PlannerScreen() {
           onNext={() => moveMonth(1)}
           onSelectDate={handleCalendarDatePress}
         />
-
-          <View style={styles.selectedPanel}>
-            <View style={styles.selectedHeader}>
-              <View>
-                <Text variant="headingSmall">
-                  {formatDate(parseLocalDate(selectedDate), {
-                    month: 'long',
-                    day: 'numeric',
-                    weekday: 'short',
-                  })}
-                </Text>
-                <Text variant="caption" color="textMuted" mt="xxs">
-                  일정 {selectedSchedules.length}개 · 우리 기록 {selectedWalks.length}개
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setShowCreateForm(true)}
-                style={styles.smallAddButton}
-              >
-                <Icon name="plus" size={15} color={theme.colors.white} />
-                <Text variant="caption" color="white" ml="xxs" weight="700">
-                  추가
-                </Text>
-              </Pressable>
-            </View>
-
-            {selectedSchedules.length === 0 && selectedWalks.length === 0 ? (
-              <View style={styles.scheduleEmpty}>
-                <Text variant="bodySmall" color="textSecondary">
-                  선택한 날짜에 일정이나 기록이 없어요
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.scheduleList}>
-                {selectedWalks.length > 0 && (
-                  <View style={styles.walkGroup}>
-                    <Text variant="caption" color="textMuted" weight="700">
-                      우리 기록
-                    </Text>
-                    {selectedWalks.map((walk) => (
-                      <Pressable
-                        key={walk.id}
-                        onPress={() => handleWalkPress(walk)}
-                        style={styles.walkCard}
-                      >
-                        <WalkPreviewImage walk={walk} />
-                        <View style={styles.scheduleBody}>
-                          <Text
-                            variant="bodySmall"
-                            weight="700"
-                            numberOfLines={1}
-                          >
-                            {getWalkPreviewTitle(walk)}
-                          </Text>
-                          <Text variant="caption" color="textSecondary" mt="xxs">
-                            {getWalkPreviewText(walk)}
-                          </Text>
-                        </View>
-                        <Icon
-                          name="chevron-right"
-                          size={16}
-                          color={theme.colors.textMuted}
-                        />
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-
-                {selectedSchedules.length > 0 && (
-                  <Text variant="caption" color="textMuted" weight="700">
-                    일정
-                  </Text>
-                )}
-                {selectedSchedules.map((schedule) => {
-                  const isMine = schedule.ownerId === me?.id;
-                  const owner = isMine ? myName : partnerName;
-                  return (
-                    <Pressable
-                      key={schedule.id}
-                      onPress={() => setEditingSchedule(schedule)}
-                      style={[
-                        styles.scheduleCard,
-                        isMine
-                          ? styles.scheduleCardMine
-                          : styles.scheduleCardPartner,
-                      ]}
-                    >
-                      <View style={styles.scheduleEmoji}>
-                        <Text variant="bodyLarge">{schedule.emoji ?? '📌'}</Text>
-                      </View>
-                      <View style={styles.scheduleBody}>
-                        <View style={styles.scheduleTitleRow}>
-                          <Text
-                            variant="bodySmall"
-                            weight="700"
-                            numberOfLines={1}
-                            style={styles.scheduleTitle}
-                          >
-                            {schedule.title}
-                          </Text>
-                          <Text
-                            variant="caption"
-                            style={[
-                              styles.scheduleOwnerBadge,
-                              isMine
-                                ? styles.scheduleOwnerMine
-                                : styles.scheduleOwnerPartner,
-                            ]}
-                          >
-                            {owner}
-                          </Text>
-                        </View>
-                        {!!schedule.note && (
-                          <Text
-                            variant="caption"
-                            color="textSecondary"
-                            numberOfLines={2}
-                            mt="xxs"
-                          >
-                            {schedule.note}
-                          </Text>
-                        )}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-          </View>
       </ScrollView>
+
+      <DayDetailsSheet
+        visible={showDayDetails}
+        date={selectedDate}
+        schedules={selectedSchedules}
+        walks={selectedWalks}
+        myUserId={me?.id}
+        myName={myName}
+        partnerName={partnerName}
+        bottomInset={insets.bottom}
+        onClose={() => setShowDayDetails(false)}
+        onAddSchedule={handleAddSchedule}
+        onEditSchedule={handleEditSchedule}
+        onOpenWalk={handleWalkPress}
+      />
 
       {showCreateForm && (
         <ScheduleForm
@@ -432,6 +319,177 @@ export default function PlannerScreen() {
         </Pressable>
       )}
     </KeyboardAvoidingView>
+  );
+}
+
+function DayDetailsSheet({
+  visible,
+  date,
+  schedules,
+  walks,
+  myUserId,
+  myName,
+  partnerName,
+  bottomInset,
+  onClose,
+  onAddSchedule,
+  onEditSchedule,
+  onOpenWalk,
+}: {
+  visible: boolean;
+  date: string;
+  schedules: CoupleSchedule[];
+  walks: WalkDiary[];
+  myUserId?: string;
+  myName: string;
+  partnerName: string;
+  bottomInset: number;
+  onClose: () => void;
+  onAddSchedule: () => void;
+  onEditSchedule: (schedule: CoupleSchedule) => void;
+  onOpenWalk: (walk: WalkDiary) => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <View style={styles.daySheetLayer}>
+      <Pressable style={styles.daySheetBackdrop} onPress={onClose} />
+      <View style={[styles.daySheet, { paddingBottom: bottomInset + SPACING.md }]}>
+        <View style={styles.daySheetHandle} />
+        <View style={styles.daySheetHeader}>
+          <View style={styles.daySheetTitleWrap}>
+            <Text variant="headingSmall">
+              {formatDate(parseLocalDate(date), {
+                month: 'long',
+                day: 'numeric',
+                weekday: 'short',
+              })}
+            </Text>
+            <Text variant="caption" color="textMuted" mt="xxs">
+              일정 {schedules.length}개 · 우리 기록 {walks.length}개
+            </Text>
+          </View>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Icon name="x" size={20} color={theme.colors.gray500} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={styles.daySheetScroll}
+          contentContainerStyle={styles.daySheetContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {walks.length === 0 && schedules.length === 0 ? (
+            <View style={styles.scheduleEmpty}>
+              <Text variant="bodySmall" color="textSecondary">
+                선택한 날짜에 일정이나 기록이 없어요
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.scheduleList}>
+              {walks.length > 0 && (
+                <View style={styles.walkGroup}>
+                  <Text variant="caption" color="textMuted" weight="700">
+                    우리 기록
+                  </Text>
+                  {walks.map((walk) => (
+                    <Pressable
+                      key={walk.id}
+                      onPress={() => onOpenWalk(walk)}
+                      style={styles.walkCard}
+                    >
+                      <WalkPreviewImage walk={walk} />
+                      <View style={styles.scheduleBody}>
+                        <Text variant="bodySmall" weight="700" numberOfLines={1}>
+                          {getWalkPreviewTitle(walk)}
+                        </Text>
+                        <Text variant="caption" color="textSecondary" mt="xxs">
+                          {getWalkPreviewText(walk)}
+                        </Text>
+                      </View>
+                      <Icon
+                        name="chevron-right"
+                        size={16}
+                        color={theme.colors.textMuted}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {schedules.length > 0 && (
+                <View style={styles.walkGroup}>
+                  <Text variant="caption" color="textMuted" weight="700">
+                    일정
+                  </Text>
+                  {schedules.map((schedule) => {
+                    const isMine = schedule.ownerId === myUserId;
+                    const owner = isMine ? myName : partnerName;
+                    return (
+                      <Pressable
+                        key={schedule.id}
+                        onPress={() => onEditSchedule(schedule)}
+                        style={[
+                          styles.scheduleCard,
+                          isMine
+                            ? styles.scheduleCardMine
+                            : styles.scheduleCardPartner,
+                        ]}
+                      >
+                        <View style={styles.scheduleEmoji}>
+                          <Text variant="bodyLarge">{schedule.emoji ?? '📌'}</Text>
+                        </View>
+                        <View style={styles.scheduleBody}>
+                          <View style={styles.scheduleTitleRow}>
+                            <Text
+                              variant="bodySmall"
+                              weight="700"
+                              numberOfLines={1}
+                              style={styles.scheduleTitle}
+                            >
+                              {schedule.title}
+                            </Text>
+                            <Text
+                              variant="caption"
+                              style={[
+                                styles.scheduleOwnerBadge,
+                                isMine
+                                  ? styles.scheduleOwnerMine
+                                  : styles.scheduleOwnerPartner,
+                              ]}
+                            >
+                              {owner}
+                            </Text>
+                          </View>
+                          {!!schedule.note && (
+                            <Text
+                              variant="caption"
+                              color="textSecondary"
+                              numberOfLines={2}
+                              mt="xxs"
+                            >
+                              {schedule.note}
+                            </Text>
+                          )}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+
+        <Pressable onPress={onAddSchedule} style={styles.daySheetAddButton}>
+          <Icon name="plus" size={16} color={theme.colors.white} />
+          <Text variant="bodySmall" color="white" ml="xs" weight="700">
+            일정 추가
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -819,8 +877,72 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderLight,
     backgroundColor: theme.colors.white,
   },
-  scheduleList: {
+  daySheetLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 90,
+    elevation: 10,
+  },
+  daySheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(44, 44, 46, 0.38)',
+  },
+  daySheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: '78%',
+    paddingHorizontal: LAYOUT.screenPx,
+    paddingTop: SPACING.sm,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    borderWidth: 1.5,
+    borderBottomWidth: 0,
+    borderColor: theme.colors.borderLight,
+    ...theme.shadows.card,
+  },
+  daySheetHandle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: SPACING.md,
+    backgroundColor: theme.colors.gray300,
+  },
+  daySheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  daySheetTitleWrap: {
     flex: 1,
+  },
+  daySheetScroll: {
+    flexShrink: 1,
+  },
+  daySheetContent: {
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+  },
+  daySheetAddButton: {
+    height: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.sm,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
+  },
+  scheduleList: {
     gap: SPACING.sm,
   },
   walkGroup: {
@@ -848,29 +970,6 @@ const styles = StyleSheet.create({
   walkThumbEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  selectedPanel: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surface,
-    padding: SPACING.md,
-    gap: SPACING.md,
-  },
-  selectedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-  },
-  smallAddButton: {
-    height: 36,
-    paddingHorizontal: SPACING.md,
-    borderRadius: theme.radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
   },
   scheduleEmpty: {
     minHeight: 74,
