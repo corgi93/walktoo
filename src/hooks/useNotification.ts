@@ -1,10 +1,12 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { useSavePushTokenMutation } from './services/notification/mutation';
 import { useGetMeQuery } from './services/user/query';
+import { usePermissionStore } from '@/stores/permissionStore';
 
 // ─── Notification Handler 설정 ──────────────────────────
 
@@ -33,6 +35,9 @@ export function useNotificationSetup() {
   const { data: me } = useGetMeQuery();
   const savePushToken = useSavePushTokenMutation();
   const router = useRouter();
+  const hasCompletedOnboarding = usePermissionStore(
+    state => state.hasCompletedOnboarding,
+  );
 
   // router ref: 리스너 클로저가 항상 최신 router를 참조하되 effect를 재실행하지 않음
   const routerRef = useRef(router);
@@ -59,10 +64,11 @@ export function useNotificationSetup() {
     [me?.id],
   );
 
-  // 최초 등록 — me.id 바뀔 때 권한 요청까지 포함해 시도
+  // 온보딩 화면이 권한 설명과 시스템 요청을 담당한다.
+  // 루트에서는 이미 허용된 권한만 등록해 중복 시스템 다이얼로그를 막는다.
   useEffect(() => {
-    registerAndSave(true);
-  }, [registerAndSave]);
+    registerAndSave(false);
+  }, [registerAndSave, hasCompletedOnboarding]);
 
   // 포그라운드 복귀 시 재시도 — 사용자가 설정에서 알림을 뒤늦게 켠 경우,
   // 앱 재시작 없이도 토큰을 등록해 푸시(공개/톡톡 알림)가 살아나게 한다.
@@ -136,9 +142,12 @@ async function registerForPushNotifications(
     }
 
     // Expo Push Token 발급
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-    });
+    const projectId =
+      process.env.EXPO_PUBLIC_PROJECT_ID ??
+      Constants.expoConfig?.extra?.eas?.projectId;
+    const tokenData = projectId
+      ? await Notifications.getExpoPushTokenAsync({ projectId })
+      : await Notifications.getExpoPushTokenAsync();
     return tokenData.data;
   } catch (error) {
     console.warn('[Notification] 토큰 발급 실패 (Expo Go에서는 정상):', error);
