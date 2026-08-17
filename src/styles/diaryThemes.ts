@@ -7,14 +7,11 @@
  * 살짝 채도 낮춘 레트로 팝 톤. 무드별 구분은 유지.
  * 데이터 레이어와는 무관 — 표시 레이어에서만 소비.
  *
- * 폰트는 새 native asset을 늘리지 않고 디바이스 기본 폴백을 사용한다.
- *  - bodyFont는 긴 기록/입력 가독성을 위해 NeoDunggeunmo 유지
- *  - titleFont/handFont/monoFont만 테마별 짧은 제목·캡션·날짜에 사용
+ * 폰트는 앱 전역의 NeoDunggeunmo 하나로 통일한다.
+ *  - 테마별 제목 모드와 스타일은 유지하되 글꼴만 레트로 폰트를 사용한다.
  *
  * @see Downloads/walktoo/diary.jsx 원본 디자인
  */
-
-import { Platform } from 'react-native';
 
 import type {
   DiaryFrameId,
@@ -67,21 +64,6 @@ export type TitleMode =
 
 const PIXEL_FONT = 'NeoDunggeunmo';
 
-const SYSTEM_SERIF = Platform.select({
-  ios: 'Times New Roman',
-  android: 'serif',
-  default: 'serif',
-}) ?? 'serif';
-const SYSTEM_MONO = Platform.select({
-  ios: 'Menlo',
-  android: 'monospace',
-  default: 'monospace',
-}) ?? 'monospace';
-const SYSTEM_SANS = Platform.select({
-  ios: 'Helvetica Neue',
-  android: 'sans-serif',
-  default: 'sans-serif',
-}) ?? 'sans-serif';
 
 // ─── Theme ──────────────────────────────────────────────
 
@@ -176,9 +158,9 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: SYSTEM_SANS,
+    handFont: PIXEL_FONT,
     handWeight: '400',
-    monoFont: SYSTEM_MONO,
+    monoFont: PIXEL_FONT,
     gridOpacity: 0.14,
     tapes: [
       { pattern: 'stripe', color: '#FFE9B0' },
@@ -236,13 +218,13 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accent: '#98674A',
     accentDeep: '#623E29',
     tints: ['#D6C0A2', '#C3CFCF', '#EADCC0', '#B69E84', '#A2825F'],
-    titleFont: SYSTEM_SERIF,
+    titleFont: PIXEL_FONT,
     titleWeight: '700',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: SYSTEM_SERIF,
+    handFont: PIXEL_FONT,
     handWeight: '600',
-    monoFont: SYSTEM_MONO,
+    monoFont: PIXEL_FONT,
     gridOpacity: 0,
     tapes: [
       { pattern: 'solid', color: '#D9B48A' },
@@ -344,13 +326,13 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accent: '#4E7A6F',
     accentDeep: '#2C544C',
     tints: ['#EDE8DC', '#D8E6DE', '#EDD4C9', '#EBE6D8', '#D3DFE4'],
-    titleFont: SYSTEM_SANS,
+    titleFont: PIXEL_FONT,
     titleWeight: '600',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: SYSTEM_SANS,
+    handFont: PIXEL_FONT,
     handWeight: '400',
-    monoFont: SYSTEM_MONO,
+    monoFont: PIXEL_FONT,
     gridOpacity: 0.4,
     tapes: [{ pattern: 'solid', color: '#E8E4DC' }],
     stickers: ['checkmark'],
@@ -386,13 +368,13 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accent: '#6B92BC',
     accentDeep: '#3D6790',
     tints: ['#C9DCE6', '#D0E0EA', '#DCD0E2', '#EAC6C0', '#EEE0A8'],
-    titleFont: SYSTEM_SERIF,
+    titleFont: PIXEL_FONT,
     titleWeight: '700',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: SYSTEM_SERIF,
+    handFont: PIXEL_FONT,
     handWeight: '600',
-    monoFont: SYSTEM_MONO,
+    monoFont: PIXEL_FONT,
     gridOpacity: 0.12,
     tapes: [
       { pattern: 'dot', color: '#CFE3F0' },
@@ -440,7 +422,7 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
-    handFont: SYSTEM_SANS,
+    handFont: PIXEL_FONT,
     handWeight: '400',
     monoFont: PIXEL_FONT,
     gridOpacity: 0.18,
