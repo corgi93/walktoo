@@ -19,7 +19,7 @@ walkToo의 자동 갱신 없는 12개월 커플 패스는 [RevenueCat](https://w
 | **무료 체험** | 없음 |
 | **기간** | 구매일로부터 12개월 |
 | **자동 갱신** | 없음 |
-| **가격** | ₩8,800 / $6.99 |
+| **가격** | ₩9,900 / $6.99 |
 
 ### 여행 무드 테마팩
 
@@ -54,7 +54,7 @@ walkToo의 자동 갱신 없는 12개월 커플 패스는 [RevenueCat](https://w
    - Reference Name: `walkToo Couple Pass Annual`
    - Product ID: `com.walktoo.couple_pass_annual`
 3. 가격 설정:
-   - 한국 (KRW): **₩8,800**
+   - 한국 (KRW): **₩9,900**
    - 글로벌 (USD): **$6.99**
    - 다른 국가는 Apple 자동 환산 사용
 4. 표시 정보 (다국어):
@@ -76,7 +76,7 @@ walkToo의 자동 갱신 없는 12개월 커플 패스는 [RevenueCat](https://w
    - Type: **Prepaid**
    - Duration: **1 year**
    - Renewal: **자동 갱신 없음**
-4. 가격: **₩8,800** (다른 국가는 자동 환산)
+4. 가격: **₩9,900** (다른 국가는 자동 환산)
 5. 상태: **활성**
 6. 라이선스 테스터 추가 (sandbox 결제 테스트용)
 
