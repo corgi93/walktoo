@@ -169,6 +169,7 @@ export default function QuickCaptureScreen() {
       const result = await cameraRef.current.takePictureAsync({
         quality: 0.75,
         skipProcessing: false,
+        shutterSound: false,
       });
       if (result?.uri) {
         if (__DEV__) {
