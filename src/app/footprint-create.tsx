@@ -120,7 +120,7 @@ export default function FootprintCreateScreen() {
     });
   }, [existingWalk, router]);
 
-  // 포토부스에서 돌아왔을 때 결과 이미지 반영
+  // 투로그 프레임에서 돌아왔을 때 결과 이미지 반영
   useFocusEffect(
     useCallback(() => {
       if (photoBoothResultUri) {
@@ -433,7 +433,7 @@ export default function FootprintCreateScreen() {
                   quoteSeed={date}
                 />
 
-                {/* 포토부스 — 텍스트 링크 톤 */}
+                {/* 투로그 프레임 — 텍스트 링크 톤 */}
                 {photos.some(isImageUri) && (
                   <Pressable
                     onPress={handleOpenPhotoBooth}

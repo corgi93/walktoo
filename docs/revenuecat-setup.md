@@ -37,9 +37,9 @@ walkToo의 자동 갱신 없는 12개월 커플 패스는 [RevenueCat](https://w
 | 상품 | Product ID | Type | 가격 |
 |---|---|---|---:|
 | 커플 패스+테마팩 | `com.walktoo.bundle_couple_pass_theme` | 보류: 패스 만료/테마 영구 권한 분리 구현 후 결정 | ₩11,000 / $8.99 |
-| 추억 카드 이미지 | `com.walktoo.memory_card_image` | Consumable | ₩1,500 / $1.49 |
-| 산책북 기본 | `com.walktoo.walk_book_basic` | Consumable | ₩6,900 / $5.99 |
-| 산책북 긴 기간 | `com.walktoo.walk_book_extended` | Consumable | ₩8,900 / $7.99 |
+| 투로그 카드 이미지 | `com.walktoo.memory_card_image` | Consumable | ₩1,500 / $1.49 |
+| 투로그북 기본 | `com.walktoo.walk_book_basic` | Consumable | ₩6,900 / $5.99 |
+| 투로그북 긴 기간 | `com.walktoo.walk_book_extended` | Consumable | ₩8,900 / $7.99 |
 | 기념일 리포트 | `com.walktoo.anniversary_report` | Consumable | ₩5,900 / $4.99 |
 
 코드에서는 `src/constants/premium.ts`의 `PREMIUM.*` / `THEME_PACK.*` / `RESULT_PRODUCTS.*` / `PRODUCT_BUNDLES.*` 상수에 박혀 있으니 콘솔과 정확히 일치시켜야 한다.

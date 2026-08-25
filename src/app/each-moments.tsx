@@ -142,10 +142,10 @@ export default function EachMomentsScreen() {
         <View style={styles.emptyState}>
           <Icon name="camera" size={44} color={theme.colors.gray500} />
           <Text variant="bodyMedium" color="white" mt="md">
-            아직 각자의 모먼트가 없어요
+            아직 투로그가 없어요
           </Text>
           <Text variant="caption" color="textMuted" mt="xs" align="center">
-            홈에서 오늘 한 컷을 남기면 여기에 쌓여요
+            홈에서 오늘의 투로그를 남기면 여기에 쌓여요
           </Text>
         </View>
       </View>

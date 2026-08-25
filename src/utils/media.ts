@@ -15,7 +15,7 @@ export const MAX_SHORT_VIDEO_DURATION_MS = MAX_SHORT_VIDEO_DURATION_PREMIUM_MS;
  */
 export const MAX_SHORT_VIDEO_BYTES = 12 * 1024 * 1024;
 
-/** 엔트리(한 기록)당 영상 첨부 한도. 비용 상한 — "짧은 모먼트" 한 컷. */
+/** 엔트리(한 기록)당 영상 첨부 한도. 비용 상한 — 짧은 투로그용 클립. */
 export const MAX_VIDEOS_PER_ENTRY = 1;
 
 export const OPTIMIZED_IMAGE_MAX_WIDTH = 1600;
