@@ -17,6 +17,10 @@
     "goal-suffix": "/ {{goal}}"
   },
   "today": {
+    "loading": "불러오는 중...",
+    "section-title": "오늘의 투로그",
+    "section-description": "장소 없이도 가볍게 한 장씩",
+    "add-short": "한 장 남기기",
     "done": "기록됨",
     "waiting-reveal": "둘 다 남기면 열려요",
     "empty-mine": "투로그 남기기",
@@ -68,12 +72,15 @@
   },
   "tab": {
     "home": "홈",
-    "records": "우리 기록",
+    "records": "장소",
     "planner": "캘린더",
     "profile": "마이"
   },
   "unified-mission": {
     "title": "오늘 우리의 걸음",
+    "combined-title": "오늘 둘의 걸음",
+    "remaining": "{{count}}걸음 남음",
+    "completed": "목표 달성",
     "solo-title": "오늘의 걸음",
     "progress-percent": "{{percent}}%",
     "goal-suffix": "/ {{goal}}",
@@ -89,13 +96,13 @@
     "already-sent": "오늘은 이미 콕 찔렀어요 🤏"
   },
   "records-tab": {
-    "title": "기록",
-    "subtitle": "둘이 함께 남긴 산책만 모아봐요",
+    "title": "둘만의 장소",
+    "subtitle": "걸으며 발견한 곳과 사진을 모아봐요",
     "walks-section-title": "이 달의 산책",
     "walks-empty": "이 달엔 아직 산책 기록이 없어요",
-    "empty-title": "아직 둘의 산책 기록이 없어요",
-    "empty-description": "장소와 사진을 가볍게 남기면 우리 지도에 하나씩 쌓여요.",
-    "empty-cta": "함께 산책 기록하기",
+    "empty-title": "아직 둘만의 장소가 없어요",
+    "empty-description": "첫 장소를 남기면 둘만의 지도가 시작돼요.",
+    "empty-cta": "첫 장소 남기기",
     "picker-title": "월 선택",
     "picker-today": "이번 달"
   }

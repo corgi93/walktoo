@@ -67,7 +67,7 @@ export default function TabLayout() {
         name="records"
         options={{
           title: t('tab.records'),
-          tabBarIcon: ({ color }) => <TabIcon name="book-open" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="map-pin" color={color} />,
         }}
       />
       <Tabs.Screen

@@ -40,12 +40,16 @@ export type WalkKind = 'together' | 'each';
 export function getWalkLocationSummary(walk: {
   kind: WalkKind;
   locationName: string;
+  isRevealed?: boolean;
   myEntry?: { locationName: string };
   partnerEntry?: { locationName: string };
 }): string {
   if (walk.kind === 'together') return walk.locationName;
   const mine = walk.myEntry?.locationName?.trim() || '';
-  const partner = walk.partnerEntry?.locationName?.trim() || '';
+  const partner =
+    walk.isRevealed === false
+      ? ''
+      : walk.partnerEntry?.locationName?.trim() || '';
   if (mine && partner) return `${mine} · ${partner}`;
   return mine || partner || walk.locationName;
 }

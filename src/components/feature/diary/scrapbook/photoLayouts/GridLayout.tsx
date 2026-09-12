@@ -27,7 +27,8 @@ export function GridLayout({
   onAddPhoto,
   onRemovePhoto,
 }: GridLayoutProps) {
-  const fallback = PLACEHOLDER_CAPTIONS[t.id] ?? PLACEHOLDER_CAPTIONS.grid_minimal;
+  const fallback =
+    PLACEHOLDER_CAPTIONS[t.id] ?? PLACEHOLDER_CAPTIONS.grid_minimal;
   const isPixel = t.id === 'pixel_retro';
   const stickers = t.imgStickers;
   const { scale, stageWidth, onLayout } = useStageScale(REF_W);
@@ -40,10 +41,7 @@ export function GridLayout({
   const stageHeight = cellH * 2 + GAP + (isPixel ? 24 : 16);
 
   return (
-    <View
-      onLayout={onLayout}
-      style={[styles.stage, { height: stageHeight }]}
-    >
+    <View onLayout={onLayout} style={[styles.stage, { height: stageHeight }]}>
       <View style={styles.grid}>
         {[0, 1, 2, 3].map((i) => {
           const photo = photos[i];
@@ -146,7 +144,7 @@ export function GridLayout({
                     {
                       color: t.ink,
                       fontFamily: t.bodyFont,
-                      fontWeight: isPixel ? '600' : t.bodyWeight,
+                      fontWeight: t.bodyWeight,
                       fontSize: isPixel ? 11 : 12,
                     },
                   ]}
@@ -249,7 +247,7 @@ const styles = StyleSheet.create({
   cellAddLabel: {
     fontSize: 10,
     letterSpacing: 1.5,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   cellRemove: {
     position: 'absolute',

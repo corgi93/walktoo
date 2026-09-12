@@ -3,8 +3,14 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/base';
-import { MarkerDetailSheet } from '@/components/feature/records/MarkerDetailSheet';
-import { NaverMapWebView, type WebMapMarker } from '@/components/feature/records/NaverMapWebView';
+import {
+  MarkerDetailSheet,
+  type MarkerSelection,
+} from '@/components/feature/records/MarkerDetailSheet';
+import {
+  NaverMapWebView,
+  type WebMapMarker,
+} from '@/components/feature/records/NaverMapWebView';
 import type { Coords } from '@/lib/location';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
@@ -20,10 +26,10 @@ interface RecordsMapViewProps {
   onMapInteractionEnd?: () => void;
 }
 
-interface PinnedWalk {
-  walk: WalkDiary;
+interface PinnedPlace extends MarkerSelection {
+  id: string;
   coords: Coords;
-  thumbnailUrl?: string;
+  walkIds: Set<string>;
 }
 
 const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
@@ -54,94 +60,114 @@ export function RecordsMapView({
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { pinnedWalks, placeCount } = useMemo<{
-    pinnedWalks: PinnedWalk[];
-    placeCount: number;
+  const { pinnedPlaces, visitCount } = useMemo<{
+    pinnedPlaces: PinnedPlace[];
+    visitCount: number;
   }>(() => {
-    const result: PinnedWalk[] = [];
-    let count = 0;
-    for (const w of walks) {
+    const result: PinnedPlace[] = [];
+    const placeIndexes = new Map<string, number>();
+    let totalVisits = 0;
+
+    const addPlace = (
+      walk: WalkDiary,
+      coords: Coords | undefined,
+      placeName: string,
+      thumbnailUrl?: string,
+    ) => {
       if (
-        w.locationCoords &&
-        Number.isFinite(w.locationCoords.lat) &&
-        Number.isFinite(w.locationCoords.lng)
+        !coords ||
+        !Number.isFinite(coords.lat) ||
+        !Number.isFinite(coords.lng)
       ) {
-        count += 1;
-        if (result.length < RECORD_MAP_MARKER_LIMIT) {
-          result.push({
-            walk: w,
-            coords: w.locationCoords,
-            thumbnailUrl: getFirstImageUri(
-              w.myEntry?.photos,
-              w.partnerEntry?.photos,
-            ),
-          });
+        return;
+      }
+
+      const normalizedName = placeName.trim().toLowerCase() || '장소';
+      const key = `${normalizedName}:${coords.lat.toFixed(4)}:${coords.lng.toFixed(4)}`;
+      const existingIndex = placeIndexes.get(key);
+      if (existingIndex !== undefined) {
+        const existing = result[existingIndex];
+        if (!existing.walkIds.has(walk.id)) {
+          existing.walkIds.add(walk.id);
+          existing.visitCount += 1;
+          totalVisits += 1;
         }
+        return;
+      }
+      totalVisits += 1;
+      if (result.length >= RECORD_MAP_MARKER_LIMIT) return;
+
+      placeIndexes.set(key, result.length);
+      result.push({
+        id: `${walk.id}:${result.length}`,
+        walk,
+        coords,
+        placeName: placeName.trim() || '우리의 장소',
+        thumbnailUrl,
+        visitCount: 1,
+        walkIds: new Set([walk.id]),
+      });
+    };
+
+    for (const walk of walks) {
+      if (walk.locationCoords && (walk.isRevealed || walk.myEntry)) {
+        addPlace(
+          walk,
+          walk.locationCoords,
+          walk.locationName,
+          getFirstImageUri(
+            walk.myEntry?.photos,
+            walk.isRevealed ? walk.partnerEntry?.photos : undefined,
+          ),
+        );
         continue;
       }
-      if (
-        w.myEntry?.locationCoords &&
-        Number.isFinite(w.myEntry.locationCoords.lat) &&
-        Number.isFinite(w.myEntry.locationCoords.lng)
-      ) {
-        count += 1;
-        if (result.length < RECORD_MAP_MARKER_LIMIT) {
-          result.push({
-            walk: w,
-            coords: w.myEntry.locationCoords,
-            thumbnailUrl: getFirstImageUri(
-              w.myEntry.photos,
-              w.partnerEntry?.photos,
-            ),
-          });
-        }
-        continue;
-      }
-      if (
-        w.partnerEntry?.locationCoords &&
-        Number.isFinite(w.partnerEntry.locationCoords.lat) &&
-        Number.isFinite(w.partnerEntry.locationCoords.lng)
-      ) {
-        count += 1;
-        if (result.length < RECORD_MAP_MARKER_LIMIT) {
-          result.push({
-            walk: w,
-            coords: w.partnerEntry.locationCoords,
-            thumbnailUrl: getFirstImageUri(
-              w.partnerEntry.photos,
-              w.myEntry?.photos,
-            ),
-          });
-        }
+
+      addPlace(
+        walk,
+        walk.myEntry?.locationCoords,
+        walk.myEntry?.locationName ?? '',
+        getFirstImageUri(walk.myEntry?.photos),
+      );
+      if (walk.isRevealed) {
+        addPlace(
+          walk,
+          walk.partnerEntry?.locationCoords,
+          walk.partnerEntry?.locationName ?? '',
+          getFirstImageUri(walk.partnerEntry?.photos),
+        );
       }
     }
-    return { pinnedWalks: result, placeCount: count };
+    return { pinnedPlaces: result, visitCount: totalVisits };
   }, [walks]);
 
-  const initialCenter = pinnedWalks[0]?.coords ?? SEOUL_CENTER;
+  const initialCenter = pinnedPlaces[0]?.coords ?? SEOUL_CENTER;
   const markers = useMemo<WebMapMarker[]>(
     () =>
-      pinnedWalks.map(({ walk, coords, thumbnailUrl }) => ({
-        id: walk.id,
-        coords,
-        title: walk.locationName || '기록',
-        subtitle: walk.date,
-        thumbnailUrl,
-      })),
-    [pinnedWalks],
+      pinnedPlaces.map(
+        ({ id, walk, coords, placeName, thumbnailUrl, visitCount }) => ({
+          id,
+          coords,
+          title: placeName,
+          subtitle:
+            visitCount > 1 ? `${walk.date} · ${visitCount}번 방문` : walk.date,
+          thumbnailUrl,
+        }),
+      ),
+    [pinnedPlaces],
   );
 
-  const selectedWalk = useMemo(
-    () => pinnedWalks.find((p) => p.walk.id === selectedId)?.walk ?? null,
-    [pinnedWalks, selectedId],
+  const selectedPlace = useMemo(
+    () => pinnedPlaces.find((place) => place.id === selectedId) ?? null,
+    [pinnedPlaces, selectedId],
   );
   const countLabel =
-    placeCount > pinnedWalks.length
-      ? `최근 ${pinnedWalks.length}곳`
-      : `${pinnedWalks.length}곳`;
+    visitCount > pinnedPlaces.length
+      ? `최근 ${pinnedPlaces.length}곳 · ${visitCount}번 방문`
+      : `최근 ${pinnedPlaces.length}곳`;
 
-  const handleMarkerPress = (walkId: string) => {
-    setSelectedId(walkId);
+  const handleMarkerPress = (placeId: string) => {
+    setSelectedId(placeId);
   };
 
   const handleClose = () => {
@@ -159,12 +185,14 @@ export function RecordsMapView({
         kind: walk.kind,
         isRevealed: String(walk.isRevealed),
         myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
-        partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
+        partnerEntry: walk.partnerEntry
+          ? JSON.stringify(walk.partnerEntry)
+          : '',
       },
     });
   };
 
-  if (pinnedWalks.length === 0) {
+  if (pinnedPlaces.length === 0) {
     return <EmptyState />;
   }
 
@@ -188,7 +216,7 @@ export function RecordsMapView({
       </View>
 
       <MarkerDetailSheet
-        walk={selectedWalk}
+        selection={selectedPlace}
         bottomInset={bottomInset}
         onClose={handleClose}
         onOpenDetail={handleOpenDetail}
@@ -206,7 +234,7 @@ function EmptyState() {
         <Icon name="map-pin" size={28} color={theme.colors.gray400} />
       </View>
       <Text variant="bodyMedium" color="textSecondary" align="center" mt="md">
-        지도에 표시할 산책이 아직 없어요
+        지도에 표시할 장소가 아직 없어요
       </Text>
       <Text
         variant="caption"
@@ -215,7 +243,7 @@ function EmptyState() {
         mt="xs"
         style={{ paddingHorizontal: SPACING.xl, lineHeight: 18 }}
       >
-        장소를 검색해서 기록하면 여기 지도에 마커로 쌓여요
+        장소를 검색해 기록하면 사진과 함께 지도에 쌓여요
       </Text>
     </View>
   );

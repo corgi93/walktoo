@@ -64,7 +64,6 @@ export type TitleMode =
 
 const PIXEL_FONT = 'NeoDunggeunmo';
 
-
 // ─── Theme ──────────────────────────────────────────────
 
 export interface DiaryTheme {
@@ -219,16 +218,20 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accentDeep: '#623E29',
     tints: ['#D6C0A2', '#C3CFCF', '#EADCC0', '#B69E84', '#A2825F'],
     titleFont: PIXEL_FONT,
-    titleWeight: '700',
+    titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
     handFont: PIXEL_FONT,
-    handWeight: '600',
+    handWeight: '400',
     monoFont: PIXEL_FONT,
     gridOpacity: 0,
     tapes: [
       { pattern: 'solid', color: '#D9B48A' },
-      { pattern: 'stripe', color: '#BFA07A', patternColor: 'rgba(58,46,34,0.35)' },
+      {
+        pattern: 'stripe',
+        color: '#BFA07A',
+        patternColor: 'rgba(58,46,34,0.35)',
+      },
     ],
     stickers: ['star', 'sparkle'],
     imgTapes: ['mustard-solid', 'stars-brown', 'teal-solid', 'journal'],
@@ -327,7 +330,7 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accentDeep: '#2C544C',
     tints: ['#EDE8DC', '#D8E6DE', '#EDD4C9', '#EBE6D8', '#D3DFE4'],
     titleFont: PIXEL_FONT,
-    titleWeight: '600',
+    titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
     handFont: PIXEL_FONT,
@@ -369,11 +372,11 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     accentDeep: '#3D6790',
     tints: ['#C9DCE6', '#D0E0EA', '#DCD0E2', '#EAC6C0', '#EEE0A8'],
     titleFont: PIXEL_FONT,
-    titleWeight: '700',
+    titleWeight: '400',
     bodyFont: PIXEL_FONT,
     bodyWeight: '400',
     handFont: PIXEL_FONT,
-    handWeight: '600',
+    handWeight: '400',
     monoFont: PIXEL_FONT,
     gridOpacity: 0.12,
     tapes: [
@@ -427,8 +430,16 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
     monoFont: PIXEL_FONT,
     gridOpacity: 0.18,
     tapes: [
-      { pattern: 'grid', color: '#8FB7B7', patternColor: 'rgba(255,245,220,0.4)' },
-      { pattern: 'stripe', color: '#F4AFA1', patternColor: 'rgba(39,50,58,0.22)' },
+      {
+        pattern: 'grid',
+        color: '#8FB7B7',
+        patternColor: 'rgba(255,245,220,0.4)',
+      },
+      {
+        pattern: 'stripe',
+        color: '#F4AFA1',
+        patternColor: 'rgba(39,50,58,0.22)',
+      },
     ],
     stickers: ['star', 'sparkle', 'heart'],
     imgTapes: ['doodle-blue', 'wave-blue', 'journal', 'teal-solid'],
@@ -466,10 +477,14 @@ export const DIARY_THEMES: Record<DiaryThemeId, DiaryTheme> = {
   },
 };
 
-export const DIARY_THEME_LIST: readonly DiaryTheme[] = Object.values(DIARY_THEMES);
+export const DIARY_THEME_LIST: readonly DiaryTheme[] =
+  Object.values(DIARY_THEMES);
 
 export const DEFAULT_DIARY_THEME_ID: DiaryThemeId = 'y2k_pastel';
 
 export function getDiaryTheme(id: DiaryThemeId | undefined): DiaryTheme {
-  return DIARY_THEMES[id ?? DEFAULT_DIARY_THEME_ID] ?? DIARY_THEMES[DEFAULT_DIARY_THEME_ID];
+  return (
+    DIARY_THEMES[id ?? DEFAULT_DIARY_THEME_ID] ??
+    DIARY_THEMES[DEFAULT_DIARY_THEME_ID]
+  );
 }

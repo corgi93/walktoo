@@ -57,7 +57,12 @@ export function ScrapbookLockedEntry({
         ]}
       >
         <View style={{ alignItems: 'center', marginBottom: 10 }}>
-          <ScrapbookByTag theme={t} prefix="by." name={partnerName} colorKey="accent" />
+          <ScrapbookByTag
+            theme={t}
+            prefix="by."
+            name={partnerName}
+            colorKey="accent"
+          />
         </View>
 
         <View
@@ -116,7 +121,7 @@ export function ScrapbookLockedEntry({
                 {
                   color: t.accent,
                   fontFamily: t.handFont,
-                  fontWeight: '700',
+                  fontWeight: '400',
                 },
               ]}
             >

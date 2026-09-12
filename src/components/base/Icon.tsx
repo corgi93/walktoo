@@ -51,6 +51,7 @@ const ICON_MAP = {
   'bell-off': { set: 'material', name: 'bell-off' },
   check: { set: 'feather', name: 'check' },
   'check-circle': { set: 'feather', name: 'check-circle' },
+  'alert-circle': { set: 'feather', name: 'alert-circle' },
   clock: { set: 'feather', name: 'clock' },
   star: { set: 'feather', name: 'star' },
   award: { set: 'feather', name: 'award' },

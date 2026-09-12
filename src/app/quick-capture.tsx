@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, Text } from '@/components/base';
+import { LocationPicker } from '@/components/feature/diary/LocationPicker';
 import { PREMIUM } from '@/constants/premium';
 import { getDailyQuestions } from '@/constants/questions';
 import {
@@ -35,6 +36,7 @@ import {
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useRevealUpgradeNudge } from '@/hooks/useRevealUpgradeNudge';
+import type { PickedLocation } from '@/lib/location';
 import { walksService } from '@/server';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
@@ -98,6 +100,8 @@ export default function QuickCaptureScreen() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [remainingSec, setRemainingSec] = useState<number>(videoMaxDuration);
   const [caption, setCaption] = useState('');
+  const [location, setLocation] = useState<PickedLocation | null>(null);
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 미리보기 영상 플레이어 — 녹화 직후 자동 루프 재생.
@@ -125,11 +129,11 @@ export default function QuickCaptureScreen() {
   }, [cameraPermission, requestCameraPermission]);
 
   useEffect(() => {
-    if (!micPermission) return;
+    if (mode !== 'video' || !micPermission) return;
     if (!micPermission.granted && micPermission.canAskAgain) {
       void requestMicPermission();
     }
-  }, [micPermission, requestMicPermission]);
+  }, [micPermission, mode, requestMicPermission]);
 
   useEffect(() => {
     return () => {
@@ -199,6 +203,13 @@ export default function QuickCaptureScreen() {
 
   const handleStartRecord = useCallback(async () => {
     if (!cameraRef.current || isCapturing || isRecording) return;
+    if (!micPermission?.granted) {
+      const permission = await requestMicPermission();
+      if (!permission.granted) {
+        dialog.alert('', t('quick.microphone-required'));
+        return;
+      }
+    }
     setIsRecording(true);
     setRemainingSec(videoMaxDuration);
     try {
@@ -222,9 +233,12 @@ export default function QuickCaptureScreen() {
       }, 1000);
 
       // Safety stop in case maxDuration on native side doesn't fire.
-      stopTimerRef.current = setTimeout(() => {
-        cameraRef.current?.stopRecording();
-      }, (videoMaxDuration + 0.3) * 1000);
+      stopTimerRef.current = setTimeout(
+        () => {
+          cameraRef.current?.stopRecording();
+        },
+        (videoMaxDuration + 0.3) * 1000,
+      );
 
       const result = await promise;
       if (stopTimerRef.current) {
@@ -252,7 +266,15 @@ export default function QuickCaptureScreen() {
       setIsRecording(false);
       setRemainingSec(videoMaxDuration);
     }
-  }, [isCapturing, isRecording, videoMaxDuration]);
+  }, [
+    dialog,
+    isCapturing,
+    isRecording,
+    micPermission?.granted,
+    requestMicPermission,
+    t,
+    videoMaxDuration,
+  ]);
 
   const handleStopRecord = useCallback(() => {
     cameraRef.current?.stopRecording();
@@ -266,7 +288,13 @@ export default function QuickCaptureScreen() {
     } else {
       void handleStartRecord();
     }
-  }, [handleStartRecord, handleStopRecord, handleTakePicture, isRecording, mode]);
+  }, [
+    handleStartRecord,
+    handleStopRecord,
+    handleTakePicture,
+    isRecording,
+    mode,
+  ]);
 
   const handleRetake = useCallback(() => {
     setCapturedUri(null);
@@ -334,22 +362,49 @@ export default function QuickCaptureScreen() {
           : null;
 
       if (existingMine && existingEach) {
-        // 이미 오늘 내 컷이 있으면 실패시키지 않고 새 컷으로 교체한다.
-        await updateEntry.mutateAsync({
-          walkId: existingEach.id,
-          entryId: existingMine.id,
-          memo: trimmedCaption,
-          photos: [capturedUri],
-          locationName: '',
-        });
-        router.back();
+        // 기존 컷을 조용히 덮어쓰지 않는다. 사용자가 교체를 확인한 뒤 저장한다.
+        setIsSaving(false);
+        dialog.confirm(
+          t('quick.replace-title'),
+          t('quick.replace-message'),
+          () => {
+            setIsSaving(true);
+            void updateEntry
+              .mutateAsync({
+                walkId: existingEach.id,
+                entryId: existingMine.id,
+                memo: trimmedCaption,
+                photos: [capturedUri],
+                ...(location && {
+                  locationName: location.name,
+                  locationCoords: location.coords,
+                  locationAddress: location.address,
+                  locationSource: location.source,
+                }),
+              })
+              .then(() => router.back())
+              .catch((error: unknown) => {
+                const message =
+                  error instanceof Error && error.message
+                    ? error.message
+                    : t('quick.save-failed');
+                dialog.alert(t('quick.save-failed-title'), message);
+              })
+              .finally(() => setIsSaving(false));
+          },
+          t('quick.replace-confirm'),
+        );
+        return;
       } else if (existingEach) {
         // 두 번째 파트너 — 새 walk 생성이 아니라 기존 walk에 내 엔트리를 조인.
         await addEntry.mutateAsync({
           walkId: existingEach.id,
           memo: trimmedCaption,
           photos: [capturedUri],
-          locationName: '',
+          locationName: location?.name,
+          locationCoords: location?.coords,
+          locationAddress: location?.address,
+          locationSource: location?.source,
           diaryQuestionId: diaryQuestion.id,
           diaryAnswer: '',
           coupleQuestionId: coupleQuestion.id,
@@ -362,7 +417,10 @@ export default function QuickCaptureScreen() {
         await createDiary.mutateAsync({
           date,
           kind: 'each',
-          locationName: '',
+          locationName: location?.name ?? '',
+          locationCoords: location?.coords,
+          locationAddress: location?.address,
+          locationSource: location?.source,
           memo: trimmedCaption,
           photos: [capturedUri],
           diaryQuestionId: diaryQuestion.id,
@@ -397,6 +455,7 @@ export default function QuickCaptureScreen() {
     couple,
     isCoupleConnected,
     isSaving,
+    location,
     me,
     maybeShowRevealNudge,
     router,
@@ -436,10 +495,7 @@ export default function QuickCaptureScreen() {
             {t('quick.permission-message')}
           </Text>
           <Pressable
-            onPress={() => {
-              void requestCameraPermission();
-              void requestMicPermission();
-            }}
+            onPress={() => void requestCameraPermission()}
             style={styles.permissionCta}
           >
             <Text variant="bodyMedium" color="white">
@@ -454,107 +510,179 @@ export default function QuickCaptureScreen() {
   // ─── Render: captured preview ────────────────────────
   if (capturedUri) {
     return (
-      <View style={styles.root}>
-        <View style={styles.previewMedia}>
-          {capturedKind === 'picture' ? (
-            <Image
-              source={{ uri: capturedUri }}
-              style={styles.previewImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <VideoView
-              player={previewPlayer}
-              style={styles.previewImage}
-              contentFit="cover"
-              nativeControls={false}
-            />
-          )}
-          {/* Top close — also cancels save */}
-          <Pressable
-            onPress={handleClose}
-            style={[styles.topCloseBtn, { top: insets.top + SPACING.md }]}
-            disabled={isSaving}
-          >
-            <Icon name="x" size={26} color={theme.colors.white} />
-          </Pressable>
-        </View>
-
-        <View
-          style={[
-            styles.previewControls,
-            { paddingBottom: insets.bottom + SPACING.xl },
-          ]}
-        >
-          <View style={styles.captionPanel}>
-            <View style={styles.captionHeader}>
-              <Text variant="caption" color="white" style={styles.captionLabel}>
-                {t('quick.caption-label')}
-              </Text>
-              <Text variant="caption" color="gray300" style={styles.captionCount}>
-                {t('quick.caption-count', {
-                  count: caption.length,
-                  max: TOOLOG_CAPTION_MAX_LENGTH,
-                })}
-              </Text>
-            </View>
-            <TextInput
-              value={caption}
-              onChangeText={setCaption}
-              maxLength={TOOLOG_CAPTION_MAX_LENGTH}
-              editable={!isSaving}
-              placeholder={t('quick.caption-placeholder')}
-              placeholderTextColor="rgba(255,255,255,0.45)"
-              cursorColor={theme.colors.primary}
-              style={styles.captionInput}
-              returnKeyType="done"
-            />
-            <View style={styles.captionSuggestions}>
-              {CAPTION_SUGGESTION_KEYS.map((key) => (
-                <Pressable
-                  key={key}
-                  onPress={() => setCaption(t(key))}
-                  disabled={isSaving}
-                  style={styles.captionSuggestion}
-                >
-                  <Text variant="caption" color="white" style={styles.captionSuggestionText}>
-                    {t(key)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+      <>
+        <View style={styles.root}>
+          <View style={styles.previewMedia}>
+            {capturedKind === 'picture' ? (
+              <Image
+                source={{ uri: capturedUri }}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <VideoView
+                player={previewPlayer}
+                style={styles.previewImage}
+                contentFit="cover"
+                nativeControls={false}
+              />
+            )}
+            {/* Top close — also cancels save */}
+            <Pressable
+              onPress={handleClose}
+              style={[styles.topCloseBtn, { top: insets.top + SPACING.md }]}
+              disabled={isSaving}
+            >
+              <Icon name="x" size={26} color={theme.colors.white} />
+            </Pressable>
           </View>
 
-          <View style={styles.previewActions}>
+          <View
+            style={[
+              styles.previewControls,
+              { paddingBottom: insets.bottom + SPACING.xl },
+            ]}
+          >
+            <View style={styles.captionPanel}>
+              <View style={styles.captionHeader}>
+                <Text
+                  variant="caption"
+                  color="white"
+                  style={styles.captionLabel}
+                >
+                  {t('quick.caption-label')}
+                </Text>
+                <Text
+                  variant="caption"
+                  color="gray300"
+                  style={styles.captionCount}
+                >
+                  {t('quick.caption-count', {
+                    count: caption.length,
+                    max: TOOLOG_CAPTION_MAX_LENGTH,
+                  })}
+                </Text>
+              </View>
+              <TextInput
+                value={caption}
+                onChangeText={setCaption}
+                maxLength={TOOLOG_CAPTION_MAX_LENGTH}
+                editable={!isSaving}
+                placeholder={t('quick.caption-placeholder')}
+                placeholderTextColor="rgba(255,255,255,0.45)"
+                cursorColor={theme.colors.primary}
+                style={styles.captionInput}
+                returnKeyType="done"
+              />
+              <View style={styles.captionSuggestions}>
+                {CAPTION_SUGGESTION_KEYS.map((key) => (
+                  <Pressable
+                    key={key}
+                    onPress={() => setCaption(t(key))}
+                    disabled={isSaving}
+                    style={styles.captionSuggestion}
+                  >
+                    <Text
+                      variant="caption"
+                      color="white"
+                      style={styles.captionSuggestionText}
+                    >
+                      {t(key)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
             <Pressable
-              onPress={handleRetake}
+              onPress={() => setLocationPickerOpen(true)}
               disabled={isSaving}
-              style={[styles.previewBtn, styles.previewBtnGhost]}
+              style={({ pressed }) => [
+                styles.locationRow,
+                pressed && styles.controlPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t('quick.location-title')}
             >
-              <Icon name="rotate-ccw" size={18} color={theme.colors.white} />
-              <Text variant="bodyMedium" color="white" style={styles.previewBtnLabel}>
-                {t('quick.retake')}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={handleSave}
-              disabled={isSaving}
-              style={[styles.previewBtn, styles.previewBtnPrimary]}
-            >
-              {isSaving ? (
-                <ActivityIndicator color={theme.colors.white} />
+              <View style={styles.locationIcon}>
+                <Icon
+                  name="map-pin"
+                  size={16}
+                  color={location ? theme.colors.primary : theme.colors.gray300}
+                />
+              </View>
+              <View style={styles.locationText}>
+                <Text variant="bodySmall" color="white" numberOfLines={1}>
+                  {location?.name ?? t('quick.location-title')}
+                </Text>
+                <Text variant="caption" color="gray300" numberOfLines={1}>
+                  {location?.address ?? t('quick.location-description')}
+                </Text>
+              </View>
+              {location ? (
+                <Pressable
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    setLocation(null);
+                  }}
+                  hitSlop={10}
+                  style={styles.locationRemove}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('quick.location-remove')}
+                >
+                  <Icon name="x" size={15} color={theme.colors.gray300} />
+                </Pressable>
               ) : (
-                <>
-                  <Icon name="check" size={18} color={theme.colors.white} />
-                  <Text variant="bodyMedium" color="white" style={styles.previewBtnLabel}>
-                    {t('quick.save')}
-                  </Text>
-                </>
+                <Icon
+                  name="chevron-right"
+                  size={17}
+                  color={theme.colors.gray300}
+                />
               )}
             </Pressable>
+
+            <View style={styles.previewActions}>
+              <Pressable
+                onPress={handleRetake}
+                disabled={isSaving}
+                style={[styles.retakeBtn, styles.previewBtnGhost]}
+                accessibilityRole="button"
+                accessibilityLabel={t('quick.retake')}
+              >
+                <Icon name="rotate-ccw" size={19} color={theme.colors.white} />
+              </Pressable>
+              <Pressable
+                onPress={handleSave}
+                disabled={isSaving}
+                style={[styles.previewBtn, styles.previewBtnPrimary]}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color={theme.colors.white} />
+                ) : (
+                  <>
+                    <Icon name="check" size={18} color={theme.colors.white} />
+                    <Text
+                      variant="bodyMedium"
+                      color="white"
+                      style={styles.previewBtnLabel}
+                    >
+                      {t('quick.save')}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
+
+        <LocationPicker
+          open={locationPickerOpen}
+          initialQuery={location?.name}
+          onPick={setLocation}
+          onPickPlainText={(name) => setLocation({ name })}
+          onClose={() => setLocationPickerOpen(false)}
+        />
+      </>
     );
   }
 
@@ -580,10 +708,7 @@ export default function QuickCaptureScreen() {
               <Pressable
                 key={m}
                 onPress={() => handleSwitchMode(m)}
-                style={[
-                  styles.modeChip,
-                  active && styles.modeChipActive,
-                ]}
+                style={[styles.modeChip, active && styles.modeChipActive]}
               >
                 <Text
                   variant="bodyMedium"
@@ -607,7 +732,9 @@ export default function QuickCaptureScreen() {
 
       {/* Recording indicator */}
       {isRecording && (
-        <View style={[styles.recordBadge, { top: insets.top + SPACING.xxl + 32 }]}>
+        <View
+          style={[styles.recordBadge, { top: insets.top + SPACING.xxl + 32 }]}
+        >
           <View style={styles.recordDot} />
           <Text variant="bodySmall" color="white">
             REC · {remainingSec}s
@@ -628,7 +755,11 @@ export default function QuickCaptureScreen() {
               onPress={() => router.push('/paywall')}
               style={styles.hintUpgrade}
             >
-              <Text variant="caption" color="primary" style={styles.hintUpgradeText}>
+              <Text
+                variant="caption"
+                color="primary"
+                style={styles.hintUpgradeText}
+              >
                 {t('quick.video-upgrade')}
               </Text>
             </Pressable>
@@ -637,7 +768,12 @@ export default function QuickCaptureScreen() {
       )}
 
       {/* Bottom bar: shutter + flip */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + SPACING.xl }]}>
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: insets.bottom + SPACING.xl },
+        ]}
+      >
         <View style={styles.bottomSide} />
 
         <Pressable
@@ -850,6 +986,39 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg,
     backgroundColor: '#000',
   },
+  locationRow: {
+    minHeight: 58,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: theme.radius.lg,
+  },
+  locationIcon: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.sm,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  locationText: {
+    flex: 1,
+    gap: 2,
+  },
+  locationRemove: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlPressed: {
+    opacity: 0.8,
+  },
   captionPanel: {
     marginBottom: SPACING.md,
     padding: SPACING.md,
@@ -906,7 +1075,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     height: 56,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
+  },
+  retakeBtn: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.lg,
   },
   previewBtnGhost: {
     backgroundColor: 'rgba(255,255,255,0.12)',

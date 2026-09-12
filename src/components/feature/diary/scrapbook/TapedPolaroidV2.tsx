@@ -133,9 +133,7 @@ export function TapedPolaroidV2({
             style={[
               styles.captionWrap,
               {
-                transform: [
-                  { rotate: `${seeded(`${seed}cap`, 3)}deg` },
-                ],
+                transform: [{ rotate: `${seeded(`${seed}cap`, 3)}deg` }],
               },
             ]}
           >
@@ -182,10 +180,7 @@ export function TapedPolaroidV2({
         <Pressable
           onPress={onRemovePress}
           hitSlop={6}
-          style={[
-            styles.removeBtn,
-            { backgroundColor: t.accentDeep },
-          ]}
+          style={[styles.removeBtn, { backgroundColor: t.accentDeep }]}
         >
           <Icon name="x" size={12} color="#FFFFFF" />
         </Pressable>
@@ -279,12 +274,7 @@ function PhotoArea({
           style={[styles.cornerStamp, { transform: [{ rotate: '3deg' }] }]}
           pointerEvents="none"
         >
-          <Text
-            style={[
-              styles.cornerStampText,
-              { fontFamily: t.monoFont },
-            ]}
-          >
+          <Text style={[styles.cornerStampText, { fontFamily: t.monoFont }]}>
             {stampDate}
           </Text>
         </View>
@@ -345,7 +335,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FFFFFF',
     letterSpacing: 1.5,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   placeholderWrap: {
     ...StyleSheet.absoluteFillObject,
@@ -400,7 +390,7 @@ const styles = StyleSheet.create({
   addSlotLabel: {
     fontSize: 11,
     letterSpacing: 1.5,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   removeBtn: {
     position: 'absolute',

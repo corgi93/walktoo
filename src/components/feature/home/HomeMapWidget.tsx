@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/base';
 import {
@@ -15,6 +15,7 @@ import { isImageUri } from '@/utils/media';
 
 interface HomeMapWidgetProps {
   walks: readonly WalkDiary[];
+  isLoading?: boolean;
   onMapInteractionStart?: () => void;
   onMapInteractionEnd?: () => void;
 }
@@ -22,45 +23,77 @@ interface HomeMapWidgetProps {
 const SEOUL_CENTER: Coords = { lat: 37.5665, lng: 126.978 };
 const HOME_MAP_MARKER_LIMIT = 12;
 
-const pickCoords = (walk: WalkDiary): Coords | null =>
-  walk.locationCoords ??
-  walk.myEntry?.locationCoords ??
-  walk.partnerEntry?.locationCoords ??
-  null;
+interface PlacePoint {
+  id: string;
+  coords: Coords;
+  title: string;
+  thumbnailUrl?: string;
+}
 
-const getFirstImageUri = (walk: WalkDiary): string | undefined =>
-  [
-    ...(walk.myEntry?.photos ?? []),
-    ...(walk.partnerEntry?.photos ?? []),
-  ].find(isImageUri);
+const getPlacePoints = (walk: WalkDiary): PlacePoint[] => {
+  if (walk.locationCoords && (walk.isRevealed || walk.myEntry)) {
+    return [
+      {
+        id: `${walk.id}:together`,
+        coords: walk.locationCoords,
+        title: getWalkLocationSummary(walk) || '우리의 장소',
+        thumbnailUrl: [
+          ...(walk.myEntry?.photos ?? []),
+          ...(walk.isRevealed ? (walk.partnerEntry?.photos ?? []) : []),
+        ].find(isImageUri),
+      },
+    ];
+  }
+
+  const points: PlacePoint[] = [];
+  if (walk.myEntry?.locationCoords) {
+    points.push({
+      id: `${walk.id}:mine`,
+      coords: walk.myEntry.locationCoords,
+      title: walk.myEntry.locationName || '나의 장소',
+      thumbnailUrl: walk.myEntry.photos.find(isImageUri),
+    });
+  }
+  if (walk.isRevealed && walk.partnerEntry?.locationCoords) {
+    points.push({
+      id: `${walk.id}:partner`,
+      coords: walk.partnerEntry.locationCoords,
+      title: walk.partnerEntry.locationName || '연인의 장소',
+      thumbnailUrl: walk.partnerEntry.photos.find(isImageUri),
+    });
+  }
+  return points;
+};
 
 export function HomeMapWidget({
   walks,
+  isLoading = false,
   onMapInteractionStart,
   onMapInteractionEnd,
 }: HomeMapWidgetProps) {
   const router = useRouter();
 
-  const markers = useMemo<WebMapMarker[]>(
-    () => {
-      const nextMarkers: WebMapMarker[] = [];
-      for (const walk of walks) {
+  const markers = useMemo<WebMapMarker[]>(() => {
+    const nextMarkers: WebMapMarker[] = [];
+    const seenPlaces = new Set<string>();
+    for (const walk of walks) {
+      for (const point of getPlacePoints(walk)) {
         if (nextMarkers.length >= HOME_MAP_MARKER_LIMIT) break;
-        const coords = pickCoords(walk);
-        if (coords) {
-          nextMarkers.push({
-            id: walk.id,
-            coords,
-            title: getWalkLocationSummary(walk) || '우리 기록',
-            subtitle: walk.date,
-            thumbnailUrl: getFirstImageUri(walk),
-          });
-        }
+        const placeKey = `${point.title.trim().toLowerCase()}:${point.coords.lat.toFixed(4)}:${point.coords.lng.toFixed(4)}`;
+        if (seenPlaces.has(placeKey)) continue;
+        seenPlaces.add(placeKey);
+        nextMarkers.push({
+          id: point.id,
+          coords: point.coords,
+          title: point.title,
+          subtitle: walk.date,
+          thumbnailUrl: point.thumbnailUrl,
+        });
       }
-      return nextMarkers;
-    },
-    [walks],
-  );
+      if (nextMarkers.length >= HOME_MAP_MARKER_LIMIT) break;
+    }
+    return nextMarkers;
+  }, [walks]);
 
   const center = markers[0]?.coords ?? SEOUL_CENTER;
 
@@ -73,30 +106,40 @@ export function HomeMapWidget({
           </View>
           <View>
             <Text variant="bodySmall" weight="700">
-              우리 지도
+              둘만의 장소
             </Text>
             <Text variant="caption" color="textMuted" style={styles.subtitle}>
-              함께 남긴 위치를 한눈에 봐요
+              걸으며 발견한 사진과 추억
             </Text>
           </View>
         </View>
 
         <Pressable
           onPress={() =>
-            router.push({ pathname: '/(tabs)/records', params: { view: 'map' } })
+            router.push({
+              pathname: '/(tabs)/records',
+              params: { view: 'map' },
+            })
           }
           style={styles.mapButton}
           hitSlop={8}
         >
           <Icon name="map-pin" size={13} color={theme.colors.primary} />
           <Text variant="caption" color="primary" ml="xxs">
-            지도
+            전체
           </Text>
         </Pressable>
       </View>
 
       <View style={styles.mapFrame}>
-        {markers.length > 0 ? (
+        {isLoading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <Text variant="caption" color="textMuted" mt="sm">
+              장소를 불러오는 중...
+            </Text>
+          </View>
+        ) : markers.length > 0 ? (
           <NaverMapWebView
             markers={markers}
             center={center}
@@ -108,24 +151,41 @@ export function HomeMapWidget({
           <View style={styles.empty}>
             <Icon name="map-pin" size={28} color={theme.colors.gray400} />
             <Text variant="bodySmall" color="textSecondary" mt="sm">
-              아직 지도에 표시할 기록이 없어요
+              아직 둘만의 장소가 없어요
             </Text>
             <Text variant="caption" color="textMuted" mt="xxs" align="center">
-              기록을 남길 때 위치를 추가하면 여기에 보여요
+              다녀온 곳을 남기면 사진이 지도에 쌓여요
             </Text>
           </View>
         )}
       </View>
 
       <View style={styles.footer}>
-        <Text variant="caption" color="textMuted">
-          최근 위치 기록
-        </Text>
-        <View style={styles.countBadge}>
-          <Text variant="caption" color="primary" weight="700">
-            {markers.length}
+        <View style={styles.placeCount}>
+          <Icon name="map-pin" size={12} color={theme.colors.primary} />
+          <Text variant="caption" color="textMuted" ml="xxs">
+            최근 장소 {markers.length}곳
           </Text>
         </View>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/footprint-create',
+              params: { kind: 'together' },
+            })
+          }
+          style={({ pressed }) => [
+            styles.archiveCta,
+            pressed && styles.archiveCtaPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="오늘 다녀온 곳 남기기"
+        >
+          <Icon name="plus" size={14} color={theme.colors.white} />
+          <Text variant="bodySmall" color="white" ml="xs">
+            오늘 다녀온 곳 남기기
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -181,7 +241,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
   },
   mapFrame: {
-    height: 188,
+    height: 172,
     borderRadius: theme.radius.md,
     overflow: 'hidden',
     backgroundColor: theme.colors.gray100,
@@ -197,15 +257,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: SPACING.sm,
     paddingHorizontal: 2,
   },
-  countBadge: {
-    minWidth: 28,
-    height: 22,
-    paddingHorizontal: 8,
-    borderRadius: 11,
+  placeCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  archiveCta: {
+    minHeight: 40,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: SPACING.md,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+  },
+  archiveCtaPressed: {
+    opacity: 0.86,
+    transform: [{ translateX: 1 }, { translateY: 1 }],
   },
 });

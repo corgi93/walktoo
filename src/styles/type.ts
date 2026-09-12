@@ -9,7 +9,6 @@
 
 export const FONT_FAMILY = {
   pixel: 'NeoDunggeunmo',
-  body: 'NeoDunggeunmo', // 본문도 픽셀폰트로 통일
 } as const;
 
 export type FontFamily = keyof typeof FONT_FAMILY;
@@ -18,11 +17,19 @@ export type FontFamily = keyof typeof FONT_FAMILY;
 
 export const TYPOGRAPHY = {
   displayLarge: { fontFamily: FONT_FAMILY.pixel, fontSize: 40, lineHeight: 48 },
-  displayMedium: { fontFamily: FONT_FAMILY.pixel, fontSize: 32, lineHeight: 40 },
+  displayMedium: {
+    fontFamily: FONT_FAMILY.pixel,
+    fontSize: 32,
+    lineHeight: 40,
+  },
   displaySmall: { fontFamily: FONT_FAMILY.pixel, fontSize: 24, lineHeight: 32 },
 
   headingLarge: { fontFamily: FONT_FAMILY.pixel, fontSize: 22, lineHeight: 28 },
-  headingMedium: { fontFamily: FONT_FAMILY.pixel, fontSize: 18, lineHeight: 24 },
+  headingMedium: {
+    fontFamily: FONT_FAMILY.pixel,
+    fontSize: 18,
+    lineHeight: 24,
+  },
   headingSmall: { fontFamily: FONT_FAMILY.pixel, fontSize: 16, lineHeight: 22 },
 
   bodyLarge: { fontFamily: FONT_FAMILY.pixel, fontSize: 16, lineHeight: 24 },
@@ -94,38 +101,43 @@ export const COMPONENT_SIZE = {
 
 export const LAYOUT = {
   /** 화면 좌우 여백 — Box px="xxl" 과 동일 */
-  screenPx: SPACING.xxl,           // 24
+  screenPx: SPACING.xxl, // 24
 
   /** 섹션(카드) 사이 작은 간격 — 관련도 높은 그룹 */
-  sectionGapSm: SPACING.sm,        // 8
+  sectionGapSm: SPACING.sm, // 8
 
   /** 섹션(카드) 사이 기본 간격 */
-  sectionGap: SPACING.lg,          // 16
+  sectionGap: SPACING.lg, // 16
 
   /** 큰 섹션 간격 (폼 필드, 미션, CTA 위 등) */
-  sectionGapLg: SPACING.xl,        // 20
+  sectionGapLg: SPACING.xl, // 20
 
   /** 맥락 전환 간격 (주제 바뀔 때) */
-  sectionGapXl: SPACING.xxl,       // 24
+  sectionGapXl: SPACING.xxl, // 24
 
   /** 카드 내부 패딩 */
-  cardPx: SPACING.lg,              // 16
-  cardPy: SPACING.lg,              // 16
+  cardPx: SPACING.lg, // 16
+  cardPy: SPACING.lg, // 16
 
   /** 카드 내 요소 간 간격 — 작음 (배지 사이 등) */
-  itemGap: SPACING.sm,             // 8
+  itemGap: SPACING.sm, // 8
 
   /** 카드 내 요소 간 간격 — 보통 (라벨↔값 등) */
-  itemGapMd: SPACING.md,           // 12
+  itemGapMd: SPACING.md, // 12
 
   /** 상단 바 세로 패딩 */
-  headerPy: SPACING.md,            // 12
+  headerPy: SPACING.md, // 12
 
   /** 하단 고정 영역 패딩 */
-  bottomSafe: SPACING.xxl,         // 24
+  bottomSafe: SPACING.xxl, // 24
 } as const;
 
 // ─── Button & Size Variants ─────────────────────────────
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'text';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'text';
 export type Size = 'small' | 'medium' | 'large';
