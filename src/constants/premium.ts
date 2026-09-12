@@ -47,7 +47,7 @@ export const PREMIUM = {
    * 가격 fallback. 스토어 가격이 source of truth.
    * 커플 1쌍이 12개월 동안 함께 쓰는 기준가.
    */
-  PRICE_KRW: 8_800,
+  PRICE_KRW: 9_900,
   PRICE_USD: 6.99,
 } as const;
 

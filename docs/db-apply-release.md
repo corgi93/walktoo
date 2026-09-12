@@ -2,7 +2,7 @@
 
 작성일: 2026-08-08
 
-이 문서는 운영 Supabase DB에 실제로 적용할 SQL 순서만 정리한다. 가격(`₩8,800`)은 DB에 저장하지 않고 App Store / Google Play / RevenueCat 콘솔과 앱 상수에서 관리한다.
+이 문서는 운영 Supabase DB에 실제로 적용할 SQL 순서만 정리한다. 가격(`₩9,900`)은 DB에 저장하지 않고 App Store / Google Play / RevenueCat 콘솔과 앱 상수에서 관리한다.
 
 ## 1. 적용 전 중복 체크
 
@@ -104,5 +104,5 @@ ORDER BY routine_name;
 - iOS product: `com.walktoo.couple_pass_annual`
 - Android product: `com.walktoo.couple_pass_annual:annual_prepaid`
 - Theme pack product: `com.walktoo.theme_pack_travel`
-- 커플 패스 가격: `₩8,800`
+- 커플 패스 가격: `₩9,900`
 - 결제 후 `profiles.has_premium = true`, `profiles.premium_expires_at > now()`인지 확인

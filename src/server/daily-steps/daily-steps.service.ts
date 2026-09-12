@@ -1,32 +1,25 @@
-import { supabase } from '../client';
+import { stepsToCalories } from '@/constants/game-config';
 import { getLocalToday } from '@/utils/date';
 
-// ─── 타입 ────────────────────────────────────────────────
-
-interface DailyStepRow {
-  user_id: string;
-  date: string;
-  steps: number;
-  kcal: number;
-  updated_at: string;
-}
+import { supabase } from '../client';
+import type { DailyStepRow } from '../types/database.types';
 
 // ─── 오늘의 걸음수 Upsert ───────────────────────────────
 
 export async function syncSteps(userId: string, steps: number) {
   const today = getLocalToday();
-  const kcal = Math.round(steps * 0.04 * 10) / 10;
+  const kcal = stepsToCalories(steps);
 
   const { error } = await supabase
     .from('daily_steps')
     .upsert(
-      {
-        user_id: userId,
-        date: today,
-        steps,
-        kcal,
-        updated_at: new Date().toISOString(),
-      } as never,
+	      {
+	        user_id: userId,
+	        date: today,
+	        steps,
+	        kcal,
+	        updated_at: new Date().toISOString(),
+	      },
       { onConflict: 'user_id,date' },
     );
 

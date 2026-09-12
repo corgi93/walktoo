@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { PARTNER_POLLING } from '@/constants/game-config';
 import { QUERY_KEYS } from '@/constants/keys';
 import { dailyStepsService } from '@/server/daily-steps';
 
@@ -25,7 +26,7 @@ export const usePartnerStepsQuery = (partnerId: string | undefined) => {
     queryKey: [...QUERY_KEYS.steps.partner, partnerId],
     queryFn: () => dailyStepsService.getPartnerSteps(partnerId!),
     enabled: !!partnerId,
-    refetchInterval: 30_000,
+    refetchInterval: PARTNER_POLLING.STEPS_INTERVAL_MS,
     staleTime: 10_000,
     retry: 2,
   });

@@ -1,12 +1,15 @@
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
 import { Box, Row, Text } from "@/components/base";
-import { PermissionPrompt } from "@/components/feature/permissions";
-import { PERMISSION_ORDER } from "@/constants/permissions";
+import {
+  PermissionPrompt,
+  PermissionSettingsGuide,
+} from "@/components/feature/permissions";
+import { PERMISSION_CONFIGS, PERMISSION_ORDER } from "@/constants/permissions";
 import { usePermission } from "@/hooks/usePermission";
 import { usePermissionStore } from "@/stores/permissionStore";
 import { theme } from "@/styles/theme";
@@ -36,21 +39,41 @@ function PermissionStep({
   type: PermissionType;
   onComplete: () => void;
 }) {
-  const { request } = usePermission(type);
+  const { status, request } = usePermission(type);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === "granted") onComplete();
+  }, [status, onComplete]);
 
   const handleAllow = useCallback(async () => {
     setLoading(true);
-    await request();
-    setLoading(false);
-    onComplete();
+    try {
+      const nextStatus = await request();
+      if (nextStatus === "granted") onComplete();
+    } finally {
+      setLoading(false);
+    }
   }, [request, onComplete]);
+
+  if (status === "blocked") {
+    return (
+      <PermissionSettingsGuide
+        type={type}
+        onSkip={
+          PERMISSION_CONFIGS[type].required ? undefined : onComplete
+        }
+      />
+    );
+  }
 
   return (
     <PermissionPrompt
       type={type}
       onAllow={handleAllow}
-      onSkip={onComplete}
+      onSkip={
+        PERMISSION_CONFIGS[type].required ? undefined : onComplete
+      }
       loading={loading}
     />
   );

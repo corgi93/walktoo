@@ -21,7 +21,6 @@ export { WashiTape } from './WashiTape';
 export { seeded } from './seeded';
 
 // ─── Polaroid ───────────────────────────────────────────
-export { TapedPolaroid } from './TapedPolaroid';
 export { TapedPolaroidV2 } from './TapedPolaroidV2';
 
 // ─── Photo Layouts ──────────────────────────────────────

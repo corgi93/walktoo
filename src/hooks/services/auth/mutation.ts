@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 
 import { authService, couplesService } from '@/server';
 import { useAuthStore } from '@/stores/authStore';
-import { useCoupleStore } from '@/stores/coupleStore';
 import { useLoadingStore } from '@/stores/loadingStore';
 import { usePermissionStore } from '@/stores/permissionStore';
 import type { UserResponse } from '@/types/user';
@@ -150,14 +149,12 @@ export const useWebOAuthMutation = () => {
 
 export const useLogoutMutation = () => {
   const { clearUser } = useAuthStore();
-  const { clearCouple } = useCoupleStore();
   const queryClient = useQueryClient();
   const { showLoading, hideLoading } = useLoadingStore();
 
   const cleanup = async () => {
     hideLoading();
     clearUser();
-    clearCouple();
     queryClient.clear();
 
     // Google 네이티브 로그인 세션 초기화 → 다음 로그인 시 계정 선택기 표시
@@ -186,7 +183,6 @@ export const useLogoutMutation = () => {
 
 export const useDeleteAccountMutation = () => {
   const { clearUser } = useAuthStore();
-  const { clearCouple } = useCoupleStore();
   const queryClient = useQueryClient();
   const { showLoading, hideLoading } = useLoadingStore();
 
@@ -198,7 +194,6 @@ export const useDeleteAccountMutation = () => {
     onSuccess: async () => {
       hideLoading();
       clearUser();
-      clearCouple();
       queryClient.clear();
 
       try {

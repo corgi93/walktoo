@@ -18,8 +18,8 @@
   },
   "today": {
     "done": "기록됨",
-    "waiting-reveal": "둘 다 쓰면 열려요",
-    "empty-mine": "셀카로 보내기",
+    "waiting-reveal": "둘 다 남기면 열려요",
+    "empty-mine": "투로그 남기기",
     "empty-partner": "기다리는 중…"
   },
   "timeline": {
@@ -27,7 +27,7 @@
     "stamp-count": "{{count}}개의 기록"
   },
   "photobooth": {
-    "title": "포토부스",
+    "title": "투로그 프레임",
     "hint": "사진 꾸미기"
   },
   "mission": {
@@ -59,7 +59,7 @@
   },
   "cta": {
     "create-walk": "오늘의 산책 기록하기",
-    "today-moment": "오늘 한 컷 남기기",
+    "today-moment": "오늘의 투로그 남기기",
     "together-walk": "함께 산책 기록하기"
   },
   "solo": {

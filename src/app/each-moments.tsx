@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, Text } from '@/components/base';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
-import { useNudgeMutation } from '@/hooks/services/notification/mutation';
+import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
@@ -142,10 +142,10 @@ export default function EachMomentsScreen() {
         <View style={styles.emptyState}>
           <Icon name="camera" size={44} color={theme.colors.gray500} />
           <Text variant="bodyMedium" color="white" mt="md">
-            아직 각자의 모먼트가 없어요
+            아직 투로그가 없어요
           </Text>
           <Text variant="caption" color="textMuted" mt="xs" align="center">
-            홈에서 오늘 한 컷을 남기면 여기에 쌓여요
+            홈에서 오늘의 투로그를 남기면 여기에 쌓여요
           </Text>
         </View>
       </View>
@@ -213,7 +213,7 @@ const DayPage = memo(function DayPage({
   isActive: boolean;
 }) {
   const router = useRouter();
-  const nudge = useNudgeMutation();
+  const nudge = useSendNudgeMutation();
   const toast = useToast();
   const nudgedRef = useRef(false);
 
@@ -248,7 +248,12 @@ const DayPage = memo(function DayPage({
   const handleNudge = () => {
     if (!partnerId || !coupleId || nudgedRef.current) return;
     nudge.mutate(
-      { recipientId: partnerId, coupleId, walkId: group.walkId },
+      {
+        recipientId: partnerId,
+        coupleId,
+        senderName: myName,
+        walkId: group.walkId,
+      },
       {
         onSuccess: () => {
           nudgedRef.current = true;

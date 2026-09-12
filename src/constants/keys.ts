@@ -1,7 +1,4 @@
 export const QUERY_KEYS = {
-  auth: {
-    session: ['auth', 'session'] as const,
-  },
   user: {
     me: ['user', 'me'] as const,
   },

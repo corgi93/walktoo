@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
+import { NOTIFICATION_POLLING } from '@/constants/game-config';
 import { QUERY_KEYS } from '@/constants/keys';
 import { notificationsService } from '@/server';
 import { useGetMeQuery } from '../user/query';
@@ -29,6 +30,6 @@ export const useUnreadCountQuery = () => {
     queryKey: QUERY_KEYS.notification.unreadCount,
     queryFn: () => notificationsService.getUnreadCount(me!.id),
     enabled: !!me?.id,
-    refetchInterval: 30_000, // 30초마다 폴링
+    refetchInterval: NOTIFICATION_POLLING.UNREAD_COUNT_INTERVAL_MS,
   });
 };

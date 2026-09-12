@@ -37,7 +37,7 @@ import {
   useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
 import { useDiaryDetailQuery } from '@/hooks/services/diary/query';
-import { useNudgeMutation } from '@/hooks/services/notification/mutation';
+import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
 import { useGetCoupleQuery } from '@/hooks/services/couple/query';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useToast } from '@/components/composite/toast/ToastProvider';
@@ -144,9 +144,9 @@ export default function DiaryDetailScreen() {
   const maybeShowRevealNudge = useRevealUpgradeNudge();
   const updateEntry = useUpdateEntryMutation();
   const deleteDiary = useDeleteDiaryMutation();
-  const nudge = useNudgeMutation();
+  const nudge = useSendNudgeMutation();
   const toast = useToast();
-  const { partnerId, couple: coupleData } = usePartnerDerivation();
+  const { partnerId, couple: coupleData, myName } = usePartnerDerivation();
   const isSaving = addEntry.isPending || updateEntry.isPending;
 
   const handleDelete = () => {
@@ -171,7 +171,12 @@ export default function DiaryDetailScreen() {
   const handleNudge = () => {
     if (!partnerId || !coupleData?.id) return;
     nudge.mutate(
-      { recipientId: partnerId, coupleId: coupleData.id, walkId },
+      {
+        recipientId: partnerId,
+        coupleId: coupleData.id,
+        senderName: myName,
+        walkId,
+      },
       {
         onSuccess: () => toast.success(t('diary:timeline.nudge-success')),
         onError: () => toast.error(t('diary:timeline.nudge-failed')),

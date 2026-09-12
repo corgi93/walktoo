@@ -23,6 +23,14 @@ interface CoupleScheduleRow {
   updated_at: string;
 }
 
+type ScheduleUpdate = {
+  date?: string;
+  title?: string;
+  category?: ScheduleCategory;
+  emoji?: string | null;
+  note?: string | null;
+};
+
 const fromRow = (row: CoupleScheduleRow): CoupleSchedule => ({
   id: row.id,
   coupleId: row.couple_id,
@@ -120,7 +128,7 @@ export async function create(
 export async function update(
   payload: UpdateSchedulePayload,
 ): Promise<CoupleSchedule | null> {
-  const patch: Record<string, unknown> = {};
+  const patch: ScheduleUpdate = {};
   if (payload.date !== undefined) patch.date = payload.date;
   if (payload.title !== undefined) patch.title = payload.title.trim();
   if (payload.category !== undefined) patch.category = payload.category;

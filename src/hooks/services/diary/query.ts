@@ -72,15 +72,27 @@ export const useDiaryDetailQuery = (id: string) => {
 //
 // 캘린더 뷰용 — 특정 연/월에 속한 산책 목록 (entries 포함).
 
-export const useDiaryByMonthQuery = (year: number, month: number) => {
+export const useDiaryByMonthQuery = (
+  year: number,
+  month: number,
+  kind?: WalkKind,
+) => {
   const { data: me } = useGetMeQuery();
   const { decrypt } = useFieldCrypto();
 
   return useQuery({
-    queryKey: QUERY_KEYS.diary.byMonth(year, month),
+    queryKey: kind
+      ? [...QUERY_KEYS.diary.byMonth(year, month), 'kind', kind]
+      : QUERY_KEYS.diary.byMonth(year, month),
     queryFn: () => {
       const { start, end } = getMonthRange(year, month);
-      return walksService.listByMonth(me!.coupleId!, me!.id, start, end);
+      return walksService.listByMonth(
+        me!.coupleId!,
+        me!.id,
+        start,
+        end,
+        kind,
+      );
     },
     enabled: !!me?.coupleId && !!me?.id,
     staleTime: 60_000,

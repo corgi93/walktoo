@@ -244,6 +244,55 @@ export interface Database {
         };
         Relationships: [];
       };
+      daily_steps: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          steps: number;
+          kcal: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date?: string;
+          steps?: number;
+          kcal?: number;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          date?: string;
+          steps?: number;
+          kcal?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      memory_stamps: {
+        Row: {
+          id: string;
+          couple_id: string;
+          date: string;
+          count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          couple_id: string;
+          date: string;
+          count?: number;
+          created_at?: string;
+        };
+        Update: {
+          couple_id?: string;
+          date?: string;
+          count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       monthly_reflections: {
         Row: {
           id: string;
@@ -616,4 +665,6 @@ export type CoupleRow = Tables['couples']['Row'];
 export type WalkRow = Tables['walks']['Row'];
 export type FootprintEntryRow = Tables['footprint_entries']['Row'];
 export type NotificationRow = Tables['notifications']['Row'];
+export type DailyStepRow = Tables['daily_steps']['Row'];
+export type MemoryStampRow = Tables['memory_stamps']['Row'];
 export type CoupleScheduleRow = Tables['couple_schedules']['Row'];

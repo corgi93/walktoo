@@ -79,27 +79,32 @@ export default function PaywallScreen() {
     }
 
     setIsPurchasing(true);
-    const outcome = await purchaseCouplePass(couplePassPackage);
-    if (outcome.userCancelled) {
-      setIsPurchasing(false);
-      return;
-    }
-    if (!outcome.ok || !outcome.appUserId) {
-      setIsPurchasing(false);
-      toast.error(t('premium:result.failed'));
-      return;
-    }
+    try {
+      const outcome = await purchaseCouplePass(couplePassPackage);
+      if (outcome.userCancelled) return;
+      if (!outcome.ok || !outcome.appUserId) {
+        toast.error(t('premium:result.failed'));
+        return;
+      }
 
-    const sync = await markPremium.mutateAsync({
-      revenuecatUserId: outcome.appUserId,
-      expiresAt: outcome.entitlementExpiresAt ?? null,
-    });
-    setIsPurchasing(false);
-    if (sync.success) {
-      toast.success(t('premium:result.success'));
-      router.back();
-    } else {
+      try {
+        const sync = await markPremium.mutateAsync({
+          revenuecatUserId: outcome.appUserId,
+          expiresAt: outcome.entitlementExpiresAt ?? null,
+        });
+        if (sync.success) {
+          toast.success(t('premium:result.success'));
+          router.back();
+        } else {
+          toast.error(t('premium:result.sync-delayed'));
+        }
+      } catch {
+        toast.error(t('premium:result.sync-delayed'));
+      }
+    } catch {
       toast.error(t('premium:result.failed'));
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
@@ -111,32 +116,36 @@ export default function PaywallScreen() {
     }
 
     setIsRestoring(true);
-    const outcome = await restorePurchases();
-    if (!outcome.ok || !outcome.appUserId) {
-      setIsRestoring(false);
-      toast.info(t('premium:result.no-purchases'));
-      return;
-    }
+    try {
+      const outcome = await restorePurchases();
+      if (!outcome.ok || !outcome.appUserId) {
+        toast.info(t('premium:result.no-purchases'));
+        return;
+      }
 
-    // 커플 패스와 테마팩 — 복원된 entitlement만 각각 동기화
-    let synced = false;
-    if (outcome.hasEntitlement) {
-      const sync = await markPremium.mutateAsync({
-        revenuecatUserId: outcome.appUserId,
-        expiresAt: outcome.entitlementExpiresAt ?? null,
-      });
-      synced = synced || sync.success;
-    }
-    if (outcome.hasThemePack) {
-      const sync = await markThemePack.mutateAsync(outcome.appUserId);
-      synced = synced || sync.success;
-    }
-    setIsRestoring(false);
-    if (synced) {
-      toast.success(t('premium:result.restored'));
-      router.back();
-    } else {
-      toast.error(t('premium:result.failed'));
+      // 커플 패스와 테마팩 — 복원된 entitlement만 각각 동기화
+      let synced = false;
+      if (outcome.hasEntitlement) {
+        const sync = await markPremium.mutateAsync({
+          revenuecatUserId: outcome.appUserId,
+          expiresAt: outcome.entitlementExpiresAt ?? null,
+        });
+        synced = synced || sync.success;
+      }
+      if (outcome.hasThemePack) {
+        const sync = await markThemePack.mutateAsync(outcome.appUserId);
+        synced = synced || sync.success;
+      }
+      if (synced) {
+        toast.success(t('premium:result.restored'));
+        router.back();
+      } else {
+        toast.error(t('premium:result.sync-delayed'));
+      }
+    } catch {
+      toast.error(t('premium:result.sync-delayed'));
+    } finally {
+      setIsRestoring(false);
     }
   };
 

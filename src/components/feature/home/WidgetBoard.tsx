@@ -172,7 +172,7 @@ export function WidgetBoard({
         />
       </View>
 
-      {/* 각자 모먼트 둘러보기 — 과거 each 기록이 있을 때만 노출 */}
+      {/* 투로그 모아보기 — 과거 each 기록이 있을 때만 노출 */}
       <EachMomentsBrowseLink walks={walks} />
 
       {/* 걸음 미션은 보조 습관으로 유지하되, 기록 CTA보다 뒤에 둔다. */}
@@ -256,7 +256,7 @@ function PrimaryRecordActions() {
   );
 }
 
-// ─── 각자 모먼트 둘러보기 링크 ──────────────────────────
+// ─── 투로그 모아보기 링크 ───────────────────────────────
 //
 // 과거 kind='each' + 미디어 있는 walks가 있을 때만 노출.
 // 신규 유저가 진입하자마자 빈 상태로 갔다가 돌아오는 경험을 피하기 위함.
@@ -289,7 +289,7 @@ function EachMomentsBrowseLink({
         pressed && { opacity: 0.85 },
       ]}
       accessibilityRole="button"
-      accessibilityLabel="각자 모먼트 둘러보기"
+      accessibilityLabel="투로그 모아보기"
     >
       <View style={styles.browseLinkLeft}>
         <View style={styles.browseLinkIcon}>
@@ -297,10 +297,10 @@ function EachMomentsBrowseLink({
         </View>
         <View style={styles.browseLinkText}>
           <Text variant="bodyMedium" style={styles.browseLinkTitle}>
-            각자의 모먼트 둘러보기
+            투로그 모아보기
           </Text>
           <Text variant="caption" color="textMuted">
-            최근 {eachMomentCount}일의 한 컷을 한 번에
+            최근 {eachMomentCount}일의 투로그를 한 번에
           </Text>
         </View>
       </View>
@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: 1 }, { translateY: 1 }],
   },
 
-  // 각자 모먼트 둘러보기 — 슬림 1-라인 CTA
+  // 투로그 모아보기 — 슬림 1-라인 CTA
   browseLink: {
     flexDirection: 'row',
     alignItems: 'center',

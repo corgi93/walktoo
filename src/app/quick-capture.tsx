@@ -16,6 +16,7 @@ import React, {
 import {
   ActivityIndicator,
   Image,
+  TextInput,
   Pressable,
   StyleSheet,
   View,
@@ -29,15 +30,16 @@ import { getDailyQuestions } from '@/constants/questions';
 import {
   useAddEntryMutation,
   useCreateDiaryMutation,
+  useUpdateEntryMutation,
 } from '@/hooks/services/diary/mutation';
-import { useDiaryByMonthQuery } from '@/hooks/services/diary/query';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useRevealUpgradeNudge } from '@/hooks/useRevealUpgradeNudge';
+import { walksService } from '@/server';
 import { useDialogStore } from '@/stores/dialogStore';
 import { theme } from '@/styles/theme';
-import { SPACING } from '@/styles/type';
-import { getLocalToday, parseLocalDate } from '@/utils/date';
+import { FONT_FAMILY, SPACING } from '@/styles/type';
+import { getLocalToday } from '@/utils/date';
 import {
   getLocalFileSize,
   MAX_SHORT_VIDEO_BYTES,
@@ -45,6 +47,13 @@ import {
 } from '@/utils/media';
 
 type Mode = 'picture' | 'video';
+
+const TOOLOG_CAPTION_MAX_LENGTH = 30;
+const CAPTION_SUGGESTION_KEYS = [
+  'quick.caption-suggestion-1',
+  'quick.caption-suggestion-2',
+  'quick.caption-suggestion-3',
+] as const;
 
 const formatBytes = (bytes: number | null): string => {
   if (!bytes && bytes !== 0) return '?';
@@ -59,10 +68,11 @@ export default function QuickCaptureScreen() {
   const { t } = useTranslation('diary');
   const dialog = useDialogStore();
 
-  const { couple, isCoupleConnected } = usePartnerDerivation();
+  const { me, couple, isCoupleConnected } = usePartnerDerivation();
   const { isEntitled } = useEntitlement();
   const createDiary = useCreateDiaryMutation();
   const addEntry = useAddEntryMutation();
+  const updateEntry = useUpdateEntryMutation();
   const maybeShowRevealNudge = useRevealUpgradeNudge();
   const [isSaving, setIsSaving] = useState(false);
   const videoMaxDuration = isEntitled
@@ -87,6 +97,7 @@ export default function QuickCaptureScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [remainingSec, setRemainingSec] = useState<number>(videoMaxDuration);
+  const [caption, setCaption] = useState('');
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 미리보기 영상 플레이어 — 녹화 직후 자동 루프 재생.
@@ -103,16 +114,6 @@ export default function QuickCaptureScreen() {
   const { diaryQuestion, coupleQuestion } = useMemo(
     () => getDailyQuestions(couple?.firstMetDate, date),
     [couple?.firstMetDate, date],
-  );
-
-  // 오늘 '각자' walk가 이미 있으면(파트너가 먼저 남김) 새로 생성하지 않고 조인한다.
-  const { year, month } = useMemo(() => {
-    const d = parseLocalDate(date);
-    return { year: d.getFullYear(), month: d.getMonth() + 1 };
-  }, [date]);
-  const { data: monthWalks, refetch: refetchMonth } = useDiaryByMonthQuery(
-    year,
-    month,
   );
 
   // ─── Permissions ─────────────────────────────────────
@@ -177,6 +178,7 @@ export default function QuickCaptureScreen() {
       const result = await cameraRef.current.takePictureAsync({
         quality: 0.75,
         skipProcessing: false,
+        shutterSound: false,
       });
       if (result?.uri) {
         if (__DEV__) {
@@ -307,6 +309,8 @@ export default function QuickCaptureScreen() {
     // 이 지점 이후로는 await가 있으므로 가드를 먼저 세워 더블탭 이중 저장을 막는다.
     setIsSaving(true);
     try {
+      const trimmedCaption = caption.trim();
+
       // Video size guard — surface a friendly error before upload starts.
       if (capturedKind === 'video') {
         const size = await getLocalFileSize(capturedUri);
@@ -316,19 +320,34 @@ export default function QuickCaptureScreen() {
         }
       }
 
-      // 저장 직전 최신 목록으로 오늘 '각자' walk 존재 여부를 판정한다.
-      // (커플·날짜·kind당 walk 1개 모델 — 파트너가 먼저 남겼으면 조인해야 함)
-      const refreshed = await refetchMonth();
-      const walks = refreshed.data ?? monthWalks ?? [];
-      const existingEach = walks.find(
-        (w) => w.date === date && w.kind === 'each',
-      );
+      // 월 전체 기록 대신 오늘 '각자' walk의 ID만 확인한다.
+      // 저장 화면에서 엔트리·프로필까지 다시 읽으면 불필요한 실패 지점이 생긴다.
+      const existingEach = couple
+        ? await walksService.findByDateAndKind(couple.id, date, 'each')
+        : null;
+      const existingMine =
+        existingEach && me
+          ? await walksService.findEntryByWalkIdAndUserId(
+              existingEach.id,
+              me.id,
+            )
+          : null;
 
-      if (existingEach) {
+      if (existingMine && existingEach) {
+        // 이미 오늘 내 컷이 있으면 실패시키지 않고 새 컷으로 교체한다.
+        await updateEntry.mutateAsync({
+          walkId: existingEach.id,
+          entryId: existingMine.id,
+          memo: trimmedCaption,
+          photos: [capturedUri],
+          locationName: '',
+        });
+        router.back();
+      } else if (existingEach) {
         // 두 번째 파트너 — 새 walk 생성이 아니라 기존 walk에 내 엔트리를 조인.
         await addEntry.mutateAsync({
           walkId: existingEach.id,
-          memo: '',
+          memo: trimmedCaption,
           photos: [capturedUri],
           locationName: '',
           diaryQuestionId: diaryQuestion.id,
@@ -344,7 +363,7 @@ export default function QuickCaptureScreen() {
           date,
           kind: 'each',
           locationName: '',
-          memo: '',
+          memo: trimmedCaption,
           photos: [capturedUri],
           diaryQuestionId: diaryQuestion.id,
           diaryAnswer: '',
@@ -353,13 +372,21 @@ export default function QuickCaptureScreen() {
         });
         router.back();
       }
-    } catch {
-      dialog.alert(t('quick.save-failed-title'), t('quick.save-failed'));
+    } catch (error) {
+      if (__DEV__) {
+        console.error('[quick-capture] save failed', error);
+      }
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t('quick.save-failed');
+      dialog.alert(t('quick.save-failed-title'), message);
     } finally {
       setIsSaving(false);
     }
   }, [
     addEntry,
+    caption,
     capturedKind,
     capturedUri,
     coupleQuestion.id,
@@ -367,13 +394,14 @@ export default function QuickCaptureScreen() {
     date,
     diaryQuestion.id,
     dialog,
+    couple,
     isCoupleConnected,
     isSaving,
+    me,
     maybeShowRevealNudge,
-    monthWalks,
-    refetchMonth,
     router,
     t,
+    updateEntry,
   ]);
 
   // ─── Render: permission gate ─────────────────────────
@@ -452,33 +480,79 @@ export default function QuickCaptureScreen() {
           </Pressable>
         </View>
 
-        <View style={[styles.previewActions, { paddingBottom: insets.bottom + SPACING.xl }]}>
-          <Pressable
-            onPress={handleRetake}
-            disabled={isSaving}
-            style={[styles.previewBtn, styles.previewBtnGhost]}
-          >
-            <Icon name="rotate-ccw" size={18} color={theme.colors.white} />
-            <Text variant="bodyMedium" color="white" style={styles.previewBtnLabel}>
-              {t('quick.retake')}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={handleSave}
-            disabled={isSaving}
-            style={[styles.previewBtn, styles.previewBtnPrimary]}
-          >
-            {isSaving ? (
-              <ActivityIndicator color={theme.colors.white} />
-            ) : (
-              <>
-                <Icon name="check" size={18} color={theme.colors.white} />
-                <Text variant="bodyMedium" color="white" style={styles.previewBtnLabel}>
-                  {t('quick.save')}
-                </Text>
-              </>
-            )}
-          </Pressable>
+        <View
+          style={[
+            styles.previewControls,
+            { paddingBottom: insets.bottom + SPACING.xl },
+          ]}
+        >
+          <View style={styles.captionPanel}>
+            <View style={styles.captionHeader}>
+              <Text variant="caption" color="white" style={styles.captionLabel}>
+                {t('quick.caption-label')}
+              </Text>
+              <Text variant="caption" color="gray300" style={styles.captionCount}>
+                {t('quick.caption-count', {
+                  count: caption.length,
+                  max: TOOLOG_CAPTION_MAX_LENGTH,
+                })}
+              </Text>
+            </View>
+            <TextInput
+              value={caption}
+              onChangeText={setCaption}
+              maxLength={TOOLOG_CAPTION_MAX_LENGTH}
+              editable={!isSaving}
+              placeholder={t('quick.caption-placeholder')}
+              placeholderTextColor="rgba(255,255,255,0.45)"
+              cursorColor={theme.colors.primary}
+              style={styles.captionInput}
+              returnKeyType="done"
+            />
+            <View style={styles.captionSuggestions}>
+              {CAPTION_SUGGESTION_KEYS.map((key) => (
+                <Pressable
+                  key={key}
+                  onPress={() => setCaption(t(key))}
+                  disabled={isSaving}
+                  style={styles.captionSuggestion}
+                >
+                  <Text variant="caption" color="white" style={styles.captionSuggestionText}>
+                    {t(key)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.previewActions}>
+            <Pressable
+              onPress={handleRetake}
+              disabled={isSaving}
+              style={[styles.previewBtn, styles.previewBtnGhost]}
+            >
+              <Icon name="rotate-ccw" size={18} color={theme.colors.white} />
+              <Text variant="bodyMedium" color="white" style={styles.previewBtnLabel}>
+                {t('quick.retake')}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSave}
+              disabled={isSaving}
+              style={[styles.previewBtn, styles.previewBtnPrimary]}
+            >
+              {isSaving ? (
+                <ActivityIndicator color={theme.colors.white} />
+              ) : (
+                <>
+                  <Icon name="check" size={18} color={theme.colors.white} />
+                  <Text variant="bodyMedium" color="white" style={styles.previewBtnLabel}>
+                    {t('quick.save')}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </View>
         </View>
       </View>
     );
@@ -771,12 +845,59 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  previewActions: {
-    flexDirection: 'row',
-    gap: SPACING.md,
+  previewControls: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.lg,
     backgroundColor: '#000',
+  },
+  captionPanel: {
+    marginBottom: SPACING.md,
+    padding: SPACING.md,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 8,
+  },
+  captionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
+  },
+  captionLabel: {
+    fontSize: 11,
+  },
+  captionCount: {
+    fontSize: 10,
+  },
+  captionInput: {
+    minHeight: 38,
+    paddingVertical: 0,
+    color: theme.colors.white,
+    fontFamily: FONT_FAMILY.pixel,
+    fontSize: 15,
+    includeFontPadding: false,
+  },
+  captionSuggestions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  captionSuggestion: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  captionSuggestionText: {
+    fontSize: 10,
+  },
+  previewActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
   },
   previewBtn: {
     flex: 1,

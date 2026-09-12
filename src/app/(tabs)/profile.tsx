@@ -212,10 +212,10 @@ export default function ProfileScreen() {
               />
             ) : (
               <MenuItem
-                iconName="link"
-                label={t('menu.couple-connect')}
-                onPress={() => router.push('/(tabs)')}
-              />
+	                iconName="link"
+	                label={t('menu.couple-connect')}
+	                onPress={() => router.navigate('/(tabs)')}
+	              />
             )}
             <MenuItem
               iconName="file-text"

@@ -53,7 +53,13 @@ export const PopupProvider = ({ children }: { children: React.ReactNode }) => {
     <PopupContext.Provider value={value}>
       {children}
 
-      <Modal visible={state.visible} transparent animationType="fade" statusBarTranslucent>
+      <Modal
+        visible={state.visible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={hide}
+      >
         <Pressable style={styles.backdrop} onPress={hide}>
           <Pressable style={styles.container}>
             <Column p="xl" gap={12}>
@@ -77,7 +83,13 @@ export const PopupProvider = ({ children }: { children: React.ReactNode }) => {
                 )}
                 <TouchableOpacity
                   style={[styles.btn, styles.confirmBtn, !state.cancelText && styles.singleBtn]}
-                  onPress={async () => { await state.onConfirm?.(); hide(); }}
+                  onPress={async () => {
+                    try {
+                      await state.onConfirm?.();
+                    } finally {
+                      hide();
+                    }
+                  }}
                 >
                   <Text variant="label" color="white">
                     {state.confirmText ?? t('actions.confirm')}

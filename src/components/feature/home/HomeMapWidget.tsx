@@ -11,6 +11,7 @@ import type { Coords } from '@/lib/location';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import { getWalkLocationSummary, type WalkDiary } from '@/types';
+import { isImageUri } from '@/utils/media';
 
 interface HomeMapWidgetProps {
   walks: readonly WalkDiary[];
@@ -26,6 +27,12 @@ const pickCoords = (walk: WalkDiary): Coords | null =>
   walk.myEntry?.locationCoords ??
   walk.partnerEntry?.locationCoords ??
   null;
+
+const getFirstImageUri = (walk: WalkDiary): string | undefined =>
+  [
+    ...(walk.myEntry?.photos ?? []),
+    ...(walk.partnerEntry?.photos ?? []),
+  ].find(isImageUri);
 
 export function HomeMapWidget({
   walks,
@@ -46,6 +53,7 @@ export function HomeMapWidget({
             coords,
             title: getWalkLocationSummary(walk) || '우리 기록',
             subtitle: walk.date,
+            thumbnailUrl: getFirstImageUri(walk),
           });
         }
       }

@@ -12,6 +12,7 @@ export const nudgeService = {
     recipientId: string,
     coupleId: string,
     senderName: string,
+    walkId?: string,
   ): Promise<SendNudgeResult> => {
     const { data, error } = await supabase.rpc('send_nudge', {
       p_sender_id: senderId,
@@ -31,7 +32,7 @@ export const nudgeService = {
         senderId,
         coupleId,
         senderName,
-        '',
+        walkId ?? '',
       );
     } catch (pushError) {
       console.warn('[nudgeService] push failed (nudge still saved)', pushError);
