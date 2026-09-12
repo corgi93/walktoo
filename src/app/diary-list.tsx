@@ -23,7 +23,7 @@ import {
 } from '@/components/feature/diary';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
 import { useKeyboardBottomInset } from '@/hooks/useKeyboardBottomInset';
-import { useNudgeMutation } from '@/hooks/services/notification/mutation';
+import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { LAYOUT } from '@/styles/type';
@@ -42,7 +42,7 @@ export default function DiaryScreen() {
   const toast = useToast();
   const { t } = useTranslation(['diary']);
   const { me, hasCoupleId, partnerId, myName, partnerName } = usePartnerDerivation();
-  const nudge = useNudgeMutation();
+  const nudge = useSendNudgeMutation();
   const keyboardBottomInset = useKeyboardBottomInset(LAYOUT.sectionGap);
 
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
@@ -85,14 +85,19 @@ export default function DiaryScreen() {
     (diary: WalkDiary) => {
       if (!partnerId || !me?.coupleId) return;
       nudge.mutate(
-        { recipientId: partnerId, coupleId: me.coupleId, walkId: diary.id },
+        {
+          recipientId: partnerId,
+          coupleId: me.coupleId,
+          senderName: myName,
+          walkId: diary.id,
+        },
         {
           onSuccess: () => toast.success(t('diary:timeline.nudge-success')),
           onError: () => toast.error(t('diary:timeline.nudge-failed')),
         },
       );
     },
-    [partnerId, me, nudge, toast, t],
+    [partnerId, me, myName, nudge, toast, t],
   );
 
   const handleAdd = () => {

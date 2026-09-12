@@ -1,11 +1,7 @@
-export type MediaKind = 'image' | 'video';
+type MediaKind = 'image' | 'video';
 
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'm4v', 'webm']);
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
-
-export const MAX_SHORT_VIDEO_DURATION_FREE_MS = 3_000;
-export const MAX_SHORT_VIDEO_DURATION_PREMIUM_MS = 5_000;
-export const MAX_SHORT_VIDEO_DURATION_MS = MAX_SHORT_VIDEO_DURATION_PREMIUM_MS;
 
 /**
  * 업로드 허용 영상 용량 상한 (압축 후 검증). 보관 비용을 통제하려고
@@ -21,15 +17,12 @@ export const MAX_VIDEOS_PER_ENTRY = 1;
 export const OPTIMIZED_IMAGE_MAX_WIDTH = 1600;
 export const OPTIMIZED_IMAGE_QUALITY = 0.78;
 
-/** 영상 압축 타깃 — 긴 변 기준(px). 720p급. */
-export const VIDEO_COMPRESS_MAX_DIMENSION = 1280;
-
 export function getMediaExtension(uri: string): string {
   const path = uri.split('?')[0] ?? uri;
   return path.split('.').pop()?.toLowerCase() ?? '';
 }
 
-export function getMediaKind(uri: string): MediaKind {
+function getMediaKind(uri: string): MediaKind {
   const ext = getMediaExtension(uri);
   if (VIDEO_EXTENSIONS.has(ext)) return 'video';
   return 'image';
@@ -105,7 +98,7 @@ export async function optimizeImageForUpload(uri: string): Promise<string> {
 }
 
 /**
- * 업로드 전 영상 압축 자리 — 720p급(VIDEO_COMPRESS_MAX_DIMENSION)으로 재인코딩하면
+ * 업로드 전 영상 압축 자리 — 720p급(긴 변 1280px)으로 재인코딩하면
  * 용량을 크게 줄일 수 있다. 현재는 패스스루(no-op)다.
  *
  * 활성화: `react-native-compressor` 설치 + dev client 재빌드 후 아래 블록의 주석을
@@ -117,7 +110,7 @@ export async function optimizeImageForUpload(uri: string): Promise<string> {
  *     const { Video } = await import('react-native-compressor');
  *     const out = await Video.compress(uri, {
  *       compressionMethod: 'auto',
- *       maxSize: VIDEO_COMPRESS_MAX_DIMENSION,
+ *       maxSize: 1280,
  *     });
  *     return out || uri;
  *   } catch { return uri; }

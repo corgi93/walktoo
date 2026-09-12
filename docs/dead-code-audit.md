@@ -13,6 +13,11 @@
 **이 문서는 스냅샷이다.** 항목을 고치면 체크박스를 채우고, 해결된 섹션은 커밋 해시와 함께 지운다.
 새로 감사를 돌렸으면 기준 커밋을 갱신한다.
 
+**정리 로그 (2026-09-08, 커밋 전)**:
+릴리즈 로컬 게이트 기준으로 앱 코드 수정 가능한 항목을 우선 반영했다.
+`npx tsc --noEmit` 통과, 번들 Node 기반 ESLint 0 errors / 26 warnings.
+법적 고지 URL, EAS/스토어 콘솔 등록, RevenueCat 환불 webhook, DB 드롭 마이그레이션은 로컬에서 확정 불가라 남은 출시 전 체크로 유지한다.
+
 ---
 
 ## 0. 요약
@@ -83,7 +88,7 @@ CREATE POLICY "profiles_select_partner" ON public.profiles
 
 ### 수정
 
-- [ ] 세 쿼리 모두에 `.eq('id', userId)` 추가 (`getStatus`가 `userId`를 인자로 받도록 변경)
+- [x] 세 쿼리 모두에 `.eq('id', userId)` 추가 (`getStatus`가 `userId`를 인자로 받도록 변경)
 - [ ] 또는 이미 DB에 있는 `is_entitled` RPC로 대체 — 현재 호출 0건인 미사용 함수인데 이 문제를 그대로 해결해준다
 - [ ] 회귀 테스트: **커플 연결 상태**에서 결제 → `isEntitled: true` 확인. 미연결 상태만 테스트하면 이 버그를 놓친다
 
@@ -131,9 +136,9 @@ App Store Review Guideline 5.1.1 / Google Play 개인정보처리방침 항목 �
 
 ### 수정
 
-- [ ] 3개 화면을 `useSendNudgeMutation`으로 통일
-- [ ] `useNudgeMutation` (`hooks/services/notification/mutation.ts:48`) 삭제
-- [ ] `nudgeService.sendNudge`가 `walkId`를 받도록 확장 (현재 `''` 하드코딩 — `nudge.service.ts:34`)
+- [x] 3개 화면을 `useSendNudgeMutation`으로 통일
+- [x] `useNudgeMutation` (`hooks/services/notification/mutation.ts:48`) 삭제
+- [x] `nudgeService.sendNudge`가 `walkId`를 받도록 확장 (현재 `''` 하드코딩 — `nudge.service.ts:34`)
 
 ---
 
@@ -156,10 +161,10 @@ paywall은 상품을 못 불러와 영구 "준비 중" 상태가 된다.
 
 ### 수정
 
-- [ ] `.env.example`에 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY` 추가
+- [x] `.env.example`에 `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY` 추가
 - [ ] EAS 환경변수(production 프로필)에 실제 키 등록 — `eas.json`은 production만 `"environment": "production"`이라 dev/preview는 로컬 `.env`에 의존
 - [ ] `.env.local`의 `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` 채우기
-- [ ] 세팅 절차는 `docs/revenuecat-setup.md`에 반영
+- [x] 세팅 절차는 `docs/revenuecat-setup.md`에 반영
 
 ---
 
@@ -187,7 +192,8 @@ paywall은 상품을 못 불러와 영구 "준비 중" 상태가 된다.
 ### 수정
 
 - [ ] `supabase gen types typescript`로 `database.types.ts` 재생성
-- [ ] `daily-steps.service.ts` / `memory-stamps.service.ts` / `useBackgroundStepSync.ts`의 `as never` 캐스팅 제거
+- [x] 현재 placeholder `database.types.ts`에 `daily_steps` / `memory_stamps` 타입 보강
+- [x] `daily-steps.service.ts` / `memory-stamps.service.ts` / `useBackgroundStepSync.ts`의 `as never` 캐스팅 제거
 - [ ] 재생성 시 5장의 dead 테이블/RPC 목록도 같이 재확인
 
 ---
@@ -213,7 +219,7 @@ paywall은 상품을 못 불러와 영구 "준비 중" 상태가 된다.
 하나뿐**이다. `CalendarMonthNav` / `MonthYearPicker`도 planner가 자체 구현으로 대체하면서
 배럴에만 남았다.
 
-- [ ] planner 캘린더에 스탬프 인디케이터 연결 / 또는 4개 파일 제거 (8.1 참고)
+- [x] planner 캘린더에 스탬프 인디케이터 연결 / 또는 4개 파일 제거 (8.1 참고)
 
 ### 6.3 푸시 딥링크가 `walkId`를 버림
 
@@ -226,7 +232,7 @@ else if (data?.coupleId) routerRef.current.push('/(tabs)');
 `notifyWalkCreated` / `notifyWalkRevealed` / `notifyNudge`가 `data.walkId`를 실어 보내는데
 탭하면 목록으로만 간다. `/diary-detail`로 보낼 정보가 있는데 쓰지 않는다.
 
-- [ ] `router.push({ pathname: '/diary-detail', params: { ... } })`로 변경
+- [x] `router.push({ pathname: '/diary-detail', params: { ... } })`로 변경
 
 ### 6.4 콜드스타트 시 profile-setup 닉네임 프리필 실패
 
@@ -236,7 +242,7 @@ else if (data?.coupleId) routerRef.current.push('/(tabs)');
 
 → 프로필 미완성 상태로 앱을 재시작하면 닉네임이 빈칸으로 시작한다.
 
-- [ ] `index.tsx`의 세션 복원 경로에서 `setUser(profile)` 호출 (이미 `profile`을 조회하고 있다)
+- [x] `index.tsx`의 세션 복원 경로에서 `setUser(profile)` 호출 (이미 `profile`을 조회하고 있다)
 - [ ] 또는 `profile-setup`이 `useGetMeQuery()`를 쓰도록 변경 (authStore 의존 제거 방향이 더 맞음 — 8.1 `coupleStore` 참고)
 
 ### 6.5 영상 압축이 no-op
@@ -279,7 +285,7 @@ else if (data?.coupleId) routerRef.current.push('/(tabs)');
 | 타입에 있지만 파일 없음 | `/reflection`, `/reflection-timeline` |
 | 파일 있지만 타입에 없음 | `/media-viewer`, `/quick-capture`, `/each-moments`, `/walk-book`, `/(tabs)/planner` |
 
-- [ ] `schedules.service.ts` `patch` 타입을 `ScheduleUpdate`로 명시
+- [x] `schedules.service.ts` `patch` 타입을 `ScheduleUpdate`로 명시
 - [ ] `expo start`로 `.expo/types` 재생성 → tsc 초록
 
 ### 7.2 프로필 "커플 연결하기"가 자기 자신을 push
@@ -291,7 +297,7 @@ onPress={() => router.push('/(tabs)')}
 
 탭 안에서 탭 그룹을 push한다. 홈 탭으로 이동하지만 스택이 쌓인다.
 
-- [ ] `router.navigate('/(tabs)')` 또는 홈의 커플 연결 시트를 직접 여는 방식으로 변경
+- [x] `router.navigate('/(tabs)')` 또는 홈의 커플 연결 시트를 직접 여는 방식으로 변경
 
 ### 7.3 칼로리 공식이 3곳에 서로 다르게 존재
 
@@ -303,7 +309,7 @@ onPress={() => router.push('/(tabs)')}
 
 DB에 쓰는 두 곳 모두 `CALORIE.PER_STEP`을 쓰지 않는다.
 
-- [ ] `stepsToCalories`를 단일 source로 통일 (소수 자리 정책 확정)
+- [x] `stepsToCalories`를 단일 source로 통일 (소수 1자리 정책)
 
 ### 7.4 걸음수 폴링 상수가 미사용 — 값이 하드코딩
 
@@ -312,7 +318,7 @@ DB에 쓰는 두 곳 모두 `CALORIE.PER_STEP`을 쓰지 않는다.
 `hooks/services/notification/query.ts:32`에 `30_000` 하드코딩되어 있다.
 **idle 판정 로직(`IDLE_TIMEOUT_MS`) 자체가 구현되지 않았다** — `docs/step-sync.md` 설계와 불일치.
 
-- [ ] 하드코딩된 `30_000`을 `PARTNER_POLLING.STEPS_INTERVAL_MS`로 교체
+- [x] 하드코딩된 `30_000`을 도메인별 polling 상수로 교체
 - [ ] idle 판정을 구현하거나 `docs/step-sync.md`에서 해당 설계를 제거
 
 ### 7.5 암호화가 조용히 평문으로 fallback
@@ -344,7 +350,7 @@ AGENTS.md의 "민감 값은 출시 전 서버 프록시로 이전" 원칙에 해
 `fontFamily`를 지정하지 않는다. AGENTS.md가 지적한 그 케이스다
 (`components/base/Input.tsx:111`은 `FONT_FAMILY.pixel` 정상 적용).
 
-- [ ] `LocationPicker`의 `TextInput`에 `FONT_FAMILY.pixel` 적용
+- [x] `LocationPicker`의 `TextInput`에 `FONT_FAMILY.pixel` 적용
 
 ### 7.7 보안 — `couples` RLS SELECT 정책 재검토 필요
 
@@ -385,11 +391,11 @@ AGENTS.md의 "민감 값은 출시 전 서버 프록시로 이전" 원칙에 해
 - `src/lib/i18n/types.d.ts`는 ambient 선언 파일이라 도달성 분석에 안 잡히는 게 정상 (dead 아님)
 - `api/api.ts`는 참조용 의도가 주석에 있으므로 삭제보다 `docs/`로 이동이 맞을 수 있다
 
-- [ ] `src/api/*` + `secureStorage.ts` 처리 (삭제 또는 `api.ts`만 docs 이동) + `axios` 의존성 제거
-- [ ] `feature/calendar/*` + `services/calendar/query.ts` 처리 (6.2 결정과 연동)
-- [ ] `TapedPolaroid.tsx`, `CoupleHeader.tsx`, `PermissionGate.tsx` 삭제 + 배럴 정리
-- [ ] `coupleStore.ts` 삭제 + `auth/mutation.ts`의 `clearCouple` 호출 제거
-- [ ] `styles/index.ts` 삭제
+- [x] `src/api/*` + `secureStorage.ts` 처리 (삭제 또는 `api.ts`만 docs 이동) + `axios` 의존성 제거
+- [x] `feature/calendar/*` + `services/calendar/query.ts` 처리 (6.2 결정과 연동)
+- [x] `TapedPolaroid.tsx`, `CoupleHeader.tsx`, `PermissionGate.tsx` 삭제 + 배럴 정리
+- [x] `coupleStore.ts` 삭제 + `auth/mutation.ts`의 `clearCouple` 호출 제거
+- [x] `styles/index.ts` 삭제
 
 ### 8.2 Dead 서비스 / 레포 메서드
 
@@ -460,7 +466,7 @@ useSignUpMutation / useLoginMutation      (hooks/services/auth/mutation.ts:25,53
 | `scrapbook/assetRegistry.ts` | `DIARY_TEXTURES` — `src/assets/diary/textures/` 6개 파일이 있으나 미적용 |
 | `scrapbook/photoLayouts/dailyQuotes.ts` | `COUPLE_QUOTES`, `DailyQuote` |
 
-- [ ] `utils/media.ts`의 중복 duration 상수 제거 (`PREMIUM.*`를 single source로)
+- [x] `utils/media.ts`의 중복 duration 상수 제거 (`PREMIUM.*`를 single source로)
 - [ ] 나머지 제거 또는 연결
 
 ### 8.6 Dead 환경변수 · locale
@@ -468,8 +474,8 @@ useSignUpMutation / useLoginMutation      (hooks/services/auth/mutation.ts:25,53
 - `EXPO_PUBLIC_API_URL` — 죽은 `api/client.ts`의 유일한 사용처. `.env.example` / `.env.local`에서 제거 대상
 - `postcard` 네임스페이스 — `lib/i18n/index.ts:88,106`에서 로드하지만 코드 참조 **0건**. `lib/i18n/types.d.ts`에도 누락돼 있어 불일치
 
-- [ ] `EXPO_PUBLIC_API_URL` 제거
-- [ ] `postcard.json` + i18n 등록 제거, 또는 `types.d.ts`에 추가하고 기능 부활
+- [x] `EXPO_PUBLIC_API_URL` 제거
+- [x] `postcard.json` + i18n 등록 제거, 또는 `types.d.ts`에 추가하고 기능 부활
 
 ### 8.7 참고 — dead가 아닌 것
 

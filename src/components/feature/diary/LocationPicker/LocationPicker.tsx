@@ -23,7 +23,7 @@ import {
   type Place,
 } from '@/lib/location';
 import { theme } from '@/styles/theme';
-import { SPACING } from '@/styles/type';
+import { FONT_FAMILY, SPACING } from '@/styles/type';
 
 const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
 const HAS_WEB_NAVER_MAP = !!NAVER_MAP_CLIENT_ID;
@@ -368,9 +368,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     gap: SPACING.sm,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
+	  searchInput: {
+	    flex: 1,
+	    fontFamily: FONT_FAMILY.pixel,
+	    fontSize: 15,
     color: theme.colors.text,
     padding: 0,
     margin: 0,

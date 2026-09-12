@@ -17,7 +17,8 @@ if (hasNativeModule) {
   const TaskManager = require('expo-task-manager') as typeof import('expo-task-manager');
   const BackgroundFetch = require('expo-background-fetch') as typeof import('expo-background-fetch');
   const { Pedometer } = require('expo-sensors') as typeof import('expo-sensors');
-  const { supabase } = require('@/server/client') as { supabase: import('@supabase/supabase-js').SupabaseClient };
+  const { stepsToCalories } = require('@/constants/game-config') as typeof import('@/constants/game-config');
+  const { supabase } = require('@/server/client') as typeof import('@/server/client');
 
   TaskManager.defineTask(TASK_NAME, async () => {
     try {
@@ -39,7 +40,7 @@ if (hasNativeModule) {
       if (!user) return BackgroundFetch.BackgroundFetchResult.Failed;
 
       const today = formatLocalDateKey(now);
-      const kcal = Math.round(steps * 0.04 * 10) / 10;
+      const kcal = stepsToCalories(steps);
 
       await supabase
         .from('daily_steps')

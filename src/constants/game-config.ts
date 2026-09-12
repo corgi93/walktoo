@@ -29,6 +29,11 @@ export const PARTNER_POLLING = {
   IDLE_TIMEOUT_MS: 45_000,
 } as const;
 
+export const NOTIFICATION_POLLING = {
+  /** 읽지 않은 알림 수 폴링 주기 (ms) */
+  UNREAD_COUNT_INTERVAL_MS: 30_000,
+} as const;
+
 export const SELF_WALKING = {
   /** 내 걸음 idle 판정 (ms) */
   IDLE_TIMEOUT_MS: 10_000,
@@ -36,6 +41,6 @@ export const SELF_WALKING = {
   CHECK_INTERVAL_MS: 2_000,
 } as const;
 
-/** 걸음 → 칼로리 변환 (반올림) */
+/** 걸음 → 칼로리 변환 (소수 1자리 반올림) */
 export const stepsToCalories = (steps: number): number =>
-  Math.round(steps * CALORIE.PER_STEP);
+  Math.round(steps * CALORIE.PER_STEP * 10) / 10;

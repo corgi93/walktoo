@@ -82,19 +82,6 @@ export const requestPermission = async (
   }
 };
 
-// ─── Check All ──────────────────────────────────────
-
-export const checkAllPermissions = async (): Promise<
-  Record<PermissionType, PermissionStatus>
-> => {
-  const [location, pedometer, notifications] = await Promise.all([
-    checkPermission('location'),
-    checkPermission('pedometer'),
-    checkPermission('notifications'),
-  ]);
-  return { location, pedometer, notifications };
-};
-
 // ─── Open System Settings ───────────────────────────
 
 export const openAppSettings = (): void => {

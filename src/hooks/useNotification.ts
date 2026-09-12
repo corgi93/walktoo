@@ -91,13 +91,17 @@ export function useNotificationSetup() {
         });
 
       responseListener.current =
-        Notifications.addNotificationResponseReceivedListener((response) => {
-          const data = response.notification.request.content.data;
-          if (data?.walkId) {
-            routerRef.current.push('/diary-list');
-          } else if (data?.coupleId) {
-            routerRef.current.push('/(tabs)');
-          }
+	        Notifications.addNotificationResponseReceivedListener((response) => {
+	          const data = response.notification.request.content.data;
+	          const walkId = typeof data?.walkId === 'string' ? data.walkId : undefined;
+	          if (walkId) {
+	            routerRef.current.push({
+	              pathname: '/diary-detail',
+	              params: { id: walkId },
+	            });
+	          } else if (data?.coupleId) {
+	            routerRef.current.push('/(tabs)');
+	          }
         });
     } catch {
       // Expo Go에서 네이티브 모듈 없으면 무시

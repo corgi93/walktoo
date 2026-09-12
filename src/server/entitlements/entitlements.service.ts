@@ -74,13 +74,14 @@ export async function markThemePackPurchased(
 
 // ─── 종합 entitlement 상태 ──────────────────────────────
 
-export async function getStatus(): Promise<EntitlementStatus> {
+export async function getStatus(userId: string): Promise<EntitlementStatus> {
   // theme pack 컬럼이 아직 없는 DB(마이그레이션 전)에서도 기존 premium
   // 게이팅이 깨지지 않도록, 컬럼 누락 에러 시 legacy 컬럼으로 폴백한다.
   let profile: ProfilePremiumRow | null = null;
   const { data: fullProfile, error: profileError } = await supabase
     .from('profiles')
     .select('has_premium, premium_expires_at, has_theme_pack, couple_id')
+    .eq('id', userId)
     .single<ProfilePremiumRow>();
 
   if (!profileError && fullProfile) {
@@ -89,6 +90,7 @@ export async function getStatus(): Promise<EntitlementStatus> {
     const { data: premiumProfile, error: premiumError } = await supabase
       .from('profiles')
       .select('has_premium, premium_expires_at, couple_id')
+      .eq('id', userId)
       .single<Omit<ProfilePremiumRow, 'has_theme_pack'>>();
 
     if (!premiumError && premiumProfile) {
@@ -97,6 +99,7 @@ export async function getStatus(): Promise<EntitlementStatus> {
       const { data: legacyProfile, error: legacyError } = await supabase
         .from('profiles')
         .select('has_premium, couple_id')
+        .eq('id', userId)
         .single<Omit<ProfilePremiumRow, 'has_theme_pack'>>();
       if (legacyError || !legacyProfile) {
         console.warn(

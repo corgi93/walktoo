@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, Text } from '@/components/base';
 import { useToast } from '@/components/composite/toast/ToastProvider';
 import { useDiaryListQuery } from '@/hooks/services/diary/query';
-import { useNudgeMutation } from '@/hooks/services/notification/mutation';
+import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
@@ -213,7 +213,7 @@ const DayPage = memo(function DayPage({
   isActive: boolean;
 }) {
   const router = useRouter();
-  const nudge = useNudgeMutation();
+  const nudge = useSendNudgeMutation();
   const toast = useToast();
   const nudgedRef = useRef(false);
 
@@ -248,7 +248,12 @@ const DayPage = memo(function DayPage({
   const handleNudge = () => {
     if (!partnerId || !coupleId || nudgedRef.current) return;
     nudge.mutate(
-      { recipientId: partnerId, coupleId, walkId: group.walkId },
+      {
+        recipientId: partnerId,
+        coupleId,
+        senderName: myName,
+        walkId: group.walkId,
+      },
       {
         onSuccess: () => {
           nudgedRef.current = true;

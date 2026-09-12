@@ -18,8 +18,8 @@ import { useGetMeQuery } from '../user/query';
 export const useEntitlementQuery = () => {
   const { data: me } = useGetMeQuery();
   return useQuery({
-    queryKey: QUERY_KEYS.entitlement.status,
-    queryFn: () => entitlementsService.getStatus(),
+    queryKey: [...QUERY_KEYS.entitlement.status, me?.id],
+    queryFn: () => entitlementsService.getStatus(me!.id),
     enabled: !!me?.id,
     staleTime: 30_000,
   });

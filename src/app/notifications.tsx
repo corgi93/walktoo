@@ -65,13 +65,21 @@ export default function NotificationsScreen() {
         markAsRead.mutate(notification.id);
       }
 
+      const walkId =
+        typeof notification.data.walkId === "string"
+          ? notification.data.walkId
+          : undefined;
+
       // 화면 이동 (타입별 분기)
       switch (notification.type) {
         case "walk_created":
         case "walk_revealed":
         case "nudge":
-          // 산책 관련 → 산책 기록 페이지
-          router.push("/diary-list");
+          if (walkId) {
+            router.push({ pathname: "/diary-detail", params: { id: walkId } });
+          } else {
+            router.push("/diary-list");
+          }
           break;
         case "couple_joined":
         case "stamp_claimed":
