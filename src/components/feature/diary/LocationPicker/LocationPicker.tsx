@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -59,6 +59,12 @@ export function LocationPicker({
   const [pendingPick, setPendingPick] = useState<PickedLocation | null>(null);
   const { results, isSearching, error, providerId } = useLocationSearch(query);
   const keyboardBottomInset = useKeyboardBottomInset(SPACING.lg);
+
+  useEffect(() => {
+    if (!open) return;
+    setQuery(initialQuery);
+    setPendingPick(null);
+  }, [initialQuery, open]);
 
   const handleSelectFromList = (p: Place) => {
     const picked: PickedLocation = {
@@ -180,7 +186,11 @@ export function LocationPicker({
               ]}
               onPress={handleConfirm}
             >
-              <Text variant="bodyMedium" color="white" style={{ fontWeight: '700' }}>
+              <Text
+                variant="bodyMedium"
+                color="white"
+                style={{ fontWeight: '700' }}
+              >
                 이 위치로 저장
               </Text>
             </Pressable>
@@ -190,97 +200,103 @@ export function LocationPicker({
         {/* 검색 단계 — pendingPick 없을 때만 노출 */}
         {!pendingPick && (
           <>
+            {/* 검색창 */}
+            <View style={styles.searchBoxWrap}>
+              <View style={styles.searchBox}>
+                <Icon name="search" size={16} color={theme.colors.gray500} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="장소 검색 (예: 한강공원, 라디오비숍)"
+                  placeholderTextColor={theme.colors.gray400}
+                  value={query}
+                  onChangeText={setQuery}
+                  autoFocus
+                  cursorColor={theme.colors.primary}
+                  returnKeyType="search"
+                />
+                {query.length > 0 && (
+                  <Pressable onPress={() => setQuery('')} hitSlop={6}>
+                    <Icon name="x" size={14} color={theme.colors.gray500} />
+                  </Pressable>
+                )}
+              </View>
+            </View>
 
-        {/* 검색창 */}
-        <View style={styles.searchBoxWrap}>
-          <View style={styles.searchBox}>
-            <Icon name="search" size={16} color={theme.colors.gray500} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="장소 검색 (예: 한강공원, 라디오비숍)"
-              placeholderTextColor={theme.colors.gray400}
-              value={query}
-              onChangeText={setQuery}
-              autoFocus
-              cursorColor={theme.colors.primary}
-              returnKeyType="search"
-            />
-            {query.length > 0 && (
-              <Pressable onPress={() => setQuery('')} hitSlop={6}>
-                <Icon name="x" size={14} color={theme.colors.gray500} />
-              </Pressable>
+            {/* attribution */}
+            <Row px="lg" style={styles.attribution}>
+              <Text variant="caption" color="textMuted">
+                {providerId === 'naver'
+                  ? '· 네이버 지역검색'
+                  : '· Google Places'}
+              </Text>
+            </Row>
+
+            {/* 결과 영역 */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text variant="bodySmall" color="error" align="center">
+                  {error}
+                </Text>
+                {query.trim().length > 0 && (
+                  <Pressable
+                    style={[styles.plainTextBtn, { marginTop: SPACING.md }]}
+                    onPress={handlePlainText}
+                  >
+                    <Text variant="bodySmall" color="primary">
+                      「{query.trim()}」 그대로 사용
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            ) : isSearching ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator color={theme.colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={results}
+                keyExtractor={(p) => p.id}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  query.trim().length === 0 ? (
+                    <EmptyHint />
+                  ) : (
+                    <NoResults onUseQuery={handlePlainText} query={query} />
+                  )
+                }
+                renderItem={({ item }) => (
+                  <PlaceRow
+                    place={item}
+                    onPress={() => handleSelectFromList(item)}
+                  />
+                )}
+                contentContainerStyle={[
+                  styles.list,
+                  { paddingBottom: SPACING.lg + keyboardBottomInset },
+                ]}
+              />
             )}
-          </View>
-        </View>
 
-        {/* attribution */}
-        <Row px="lg" style={styles.attribution}>
-          <Text variant="caption" color="textMuted">
-            {providerId === 'naver' ? '· 네이버 지역검색' : '· Google Places'}
-          </Text>
-        </Row>
-
-        {/* 결과 영역 */}
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text variant="bodySmall" color="error" align="center">
-              {error}
-            </Text>
-            {query.trim().length > 0 && (
+            {/* 직접 입력 fallback (검색 결과가 있어도 노출) */}
+            {results.length > 0 && query.trim().length > 0 && (
               <Pressable
-                style={[styles.plainTextBtn, { marginTop: SPACING.md }]}
+                style={[
+                  styles.plainTextCta,
+                  {
+                    paddingBottom:
+                      SPACING.md +
+                      insets.bottom +
+                      (keyboardBottomInset ? SPACING.lg : 0),
+                  },
+                ]}
                 onPress={handlePlainText}
               >
-                <Text variant="bodySmall" color="primary">
+                <Icon name="edit" size={14} color={theme.colors.primary} />
+                <Text variant="bodySmall" color="primary" ml="xs">
                   「{query.trim()}」 그대로 사용
                 </Text>
               </Pressable>
             )}
-          </View>
-        ) : isSearching ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={theme.colors.primary} />
-          </View>
-        ) : (
-          <FlatList
-            data={results}
-            keyExtractor={(p) => p.id}
-            keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={
-              query.trim().length === 0 ? (
-                <EmptyHint />
-              ) : (
-                <NoResults onUseQuery={handlePlainText} query={query} />
-              )
-            }
-            renderItem={({ item }) => (
-              <PlaceRow place={item} onPress={() => handleSelectFromList(item)} />
-            )}
-            contentContainerStyle={[
-              styles.list,
-              { paddingBottom: SPACING.lg + keyboardBottomInset },
-            ]}
-          />
-        )}
-
-        {/* 직접 입력 fallback (검색 결과가 있어도 노출) */}
-        {results.length > 0 && query.trim().length > 0 && (
-          <Pressable
-            style={[
-              styles.plainTextCta,
-              {
-                paddingBottom:
-                  SPACING.md + insets.bottom + (keyboardBottomInset ? SPACING.lg : 0),
-              },
-            ]}
-            onPress={handlePlainText}
-          >
-            <Icon name="edit" size={14} color={theme.colors.primary} />
-            <Text variant="bodySmall" color="primary" ml="xs">
-              「{query.trim()}」 그대로 사용
-            </Text>
-          </Pressable>
-        )}
           </>
         )}
       </KeyboardAvoidingView>
@@ -368,10 +384,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     gap: SPACING.sm,
   },
-	  searchInput: {
-	    flex: 1,
-	    fontFamily: FONT_FAMILY.pixel,
-	    fontSize: 15,
+  searchInput: {
+    flex: 1,
+    fontFamily: FONT_FAMILY.pixel,
+    fontSize: 15,
     color: theme.colors.text,
     padding: 0,
     margin: 0,

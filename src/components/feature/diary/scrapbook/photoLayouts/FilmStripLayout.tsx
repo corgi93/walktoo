@@ -31,7 +31,8 @@ export function FilmStripLayout({
   onAddPhoto,
   onRemovePhoto,
 }: FilmStripLayoutProps) {
-  const fallback = PLACEHOLDER_CAPTIONS[t.id] ?? PLACEHOLDER_CAPTIONS.vintage_film;
+  const fallback =
+    PLACEHOLDER_CAPTIONS[t.id] ?? PLACEHOLDER_CAPTIONS.vintage_film;
   const stickers = t.imgStickers;
   const tapes = t.imgTapes;
   const { scale, stageWidth, onLayout } = useStageScale(REF_W);
@@ -50,10 +51,7 @@ export function FilmStripLayout({
   const captionMaxWidth = Math.max(40, sideWidth - 8);
 
   return (
-    <View
-      onLayout={onLayout}
-      style={[styles.stage, { height: stageHeight }]}
-    >
+    <View onLayout={onLayout} style={[styles.stage, { height: stageHeight }]}>
       {/* 필름 스트립 본체 — 가로 정중앙 */}
       <View
         style={[
@@ -157,12 +155,7 @@ export function FilmStripLayout({
         })}
 
         {/* 아랫면 스프로켓 */}
-        <View
-          style={[
-            styles.sprocketRow,
-            { top: 'auto', bottom: 4 * scale },
-          ]}
-        >
+        <View style={[styles.sprocketRow, { top: 'auto', bottom: 4 * scale }]}>
           {Array.from({ length: 8 }).map((_, i) => (
             <View
               key={`bot-${i}`}
@@ -324,7 +317,7 @@ const styles = StyleSheet.create({
   frameAddLabel: {
     fontSize: 10,
     letterSpacing: 1.5,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   frameRemove: {
     position: 'absolute',

@@ -1,19 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Image,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/base';
 import { theme } from '@/styles/theme';
 import { SPACING } from '@/styles/type';
 import type { WalkDiary } from '@/types/diary';
 
+export interface MarkerSelection {
+  walk: WalkDiary;
+  placeName: string;
+  thumbnailUrl?: string;
+  visitCount: number;
+}
+
 interface MarkerDetailSheetProps {
-  walk: WalkDiary | null;
+  selection: MarkerSelection | null;
   bottomInset: number;
   onClose: () => void;
   onOpenDetail: (walk: WalkDiary) => void;
@@ -27,49 +28,56 @@ const SHEET_HEIGHT = 200;
  * - 다른 마커 클릭 시 walk만 swap → content 부드럽게 교체 (재오픈 X)
  */
 export function MarkerDetailSheet({
-  walk,
+  selection,
   bottomInset,
   onClose,
   onOpenDetail,
 }: MarkerDetailSheetProps) {
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT + 80)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const [displayWalk, setDisplayWalk] = useState<WalkDiary | null>(walk);
+  const [displaySelection, setDisplaySelection] =
+    useState<MarkerSelection | null>(selection);
 
   useEffect(() => {
-    if (walk) {
-      setDisplayWalk(walk);
+    if (selection) {
+      setDisplaySelection(selection);
     }
     Animated.parallel([
       Animated.spring(translateY, {
-        toValue: walk ? 0 : SHEET_HEIGHT + bottomInset + 40,
+        toValue: selection ? 0 : SHEET_HEIGHT + bottomInset + 40,
         useNativeDriver: true,
         damping: 22,
         stiffness: 180,
         mass: 0.6,
       }),
       Animated.timing(backdropOpacity, {
-        toValue: walk ? 1 : 0,
+        toValue: selection ? 1 : 0,
         duration: 220,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      if (!walk) setDisplayWalk(null);
+      if (!selection) setDisplaySelection(null);
     });
-  }, [walk, bottomInset, translateY, backdropOpacity]);
+  }, [selection, bottomInset, translateY, backdropOpacity]);
 
-  if (!displayWalk) return null;
+  if (!displaySelection) return null;
 
-  const thumbnail =
-    displayWalk.myEntry?.photos?.[0] ?? displayWalk.partnerEntry?.photos?.[0];
-  const kindLabel = displayWalk.kind === 'together' ? '우리의 하루' : '각자의 하루';
+  const {
+    walk: displayWalk,
+    placeName,
+    thumbnailUrl,
+    visitCount,
+  } = displaySelection;
+  const thumbnail = thumbnailUrl;
+  const kindLabel =
+    displayWalk.kind === 'together' ? '우리의 하루' : '각자의 하루';
   const dateLabel = formatDate(displayWalk.date);
 
   return (
     <>
       <Animated.View
         style={[styles.backdrop, { opacity: backdropOpacity }]}
-        pointerEvents={walk ? 'auto' : 'none'}
+        pointerEvents={selection ? 'auto' : 'none'}
       >
         <Pressable style={styles.backdropPress} onPress={onClose} />
       </Animated.View>
@@ -112,14 +120,11 @@ export function MarkerDetailSheet({
                 color="textSecondary"
               >
                 {kindLabel} · {dateLabel}
+                {visitCount > 1 ? ` · ${visitCount}번 방문` : ''}
               </Text>
             </View>
-            <Text
-              variant="headingSmall"
-              style={styles.place}
-              numberOfLines={1}
-            >
-              {displayWalk.locationName || '기록'}
+            <Text variant="headingSmall" style={styles.place} numberOfLines={1}>
+              {placeName}
             </Text>
           </View>
 
@@ -130,10 +135,7 @@ export function MarkerDetailSheet({
 
         <Pressable
           onPress={() => onOpenDetail(displayWalk)}
-          style={({ pressed }) => [
-            styles.cta,
-            pressed && styles.ctaPressed,
-          ]}
+          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
         >
           <Text variant="bodyMedium" style={styles.ctaText}>
             자세히 보기

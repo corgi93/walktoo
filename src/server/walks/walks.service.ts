@@ -1,4 +1,9 @@
-import type { WalkDiary, CreateWalkDiaryInput, FootprintEntry } from '@/types/diary';
+import type {
+  WalkDiary,
+  CreateWalkDiaryInput,
+  FootprintEntry,
+} from '@/types/diary';
+import type { PickedLocation } from '@/lib/location';
 import { getLocalToday, parseLocalDate } from '@/utils/date';
 
 import { notificationsService } from '../notifications/notifications.service';
@@ -12,7 +17,9 @@ const remoteUrls = (urls: readonly string[] | null | undefined): string[] =>
 
 // ─── Row → Domain Type 변환 ────────────────────────────
 
-const toFootprintEntry = (row: FootprintEntryRow & { profiles?: { nickname: string } | null }): FootprintEntry => ({
+const toFootprintEntry = (
+  row: FootprintEntryRow & { profiles?: { nickname: string } | null },
+): FootprintEntry => ({
   id: row.id,
   userId: row.user_id,
   nickname: row.profiles?.nickname ?? '',
@@ -36,7 +43,9 @@ const toWalkDiary = (
   row: WalkWithEntries,
   currentUserId: string,
 ): WalkDiary => {
-  const myEntry = row.footprint_entries.find((e) => e.user_id === currentUserId);
+  const myEntry = row.footprint_entries.find(
+    (e) => e.user_id === currentUserId,
+  );
   const partnerEntry = row.footprint_entries.find(
     (e) => e.user_id !== currentUserId,
   );
@@ -221,12 +230,14 @@ export const walksService = {
 
     if (result.created_walk) {
       // 상대방에게 알림 (비동기, 실패해도 무시)
-      walksService._notifyPartnerWalkCreated(
-        coupleId,
-        currentUserId,
-        walkId,
-        input.locationName,
-      ).catch(() => {});
+      walksService
+        ._notifyPartnerWalkCreated(
+          coupleId,
+          currentUserId,
+          walkId,
+          input.locationName,
+        )
+        .catch(() => {});
     }
 
     if (result.just_revealed) {
@@ -248,17 +259,17 @@ export const walksService = {
       coupleQuestionId?: number;
       coupleAnswer?: string;
     },
-    locationName?: string,
+    location?: Partial<PickedLocation>,
   ) => {
     const { data: result, error } = await walksRepository.addEntryToWalk({
       p_walk_id: walkId,
       p_memo: memo,
       p_photos: photos,
-      p_entry_location_name: locationName ?? '',
-      p_entry_location_lat: null,
-      p_entry_location_lng: null,
-      p_entry_location_address: null,
-      p_entry_location_source: null,
+      p_entry_location_name: location?.name ?? '',
+      p_entry_location_lat: location?.coords?.lat ?? null,
+      p_entry_location_lng: location?.coords?.lng ?? null,
+      p_entry_location_address: location?.address ?? null,
+      p_entry_location_source: location?.source ?? null,
       p_diary_question_id: questionData?.diaryQuestionId ?? null,
       p_diary_answer: questionData?.diaryAnswer ?? '',
       p_couple_question_id: questionData?.coupleQuestionId ?? null,
@@ -280,6 +291,9 @@ export const walksService = {
     photos: string[],
     answerData?: {
       locationName?: string;
+      locationCoords?: PickedLocation['coords'];
+      locationAddress?: string;
+      locationSource?: PickedLocation['source'];
       diaryAnswer?: string;
       coupleAnswer?: string;
     },
@@ -292,9 +306,17 @@ export const walksService = {
       photos,
       ...(answerData?.locationName !== undefined && {
         location_name: answerData.locationName,
+        location_lat: answerData.locationCoords?.lat ?? null,
+        location_lng: answerData.locationCoords?.lng ?? null,
+        location_address: answerData.locationAddress ?? null,
+        location_source: answerData.locationSource ?? null,
       }),
-      ...(answerData?.diaryAnswer !== undefined && { diary_answer: answerData.diaryAnswer }),
-      ...(answerData?.coupleAnswer !== undefined && { couple_answer: answerData.coupleAnswer }),
+      ...(answerData?.diaryAnswer !== undefined && {
+        diary_answer: answerData.diaryAnswer,
+      }),
+      ...(answerData?.coupleAnswer !== undefined && {
+        couple_answer: answerData.coupleAnswer,
+      }),
     });
     if (error) throw error;
 

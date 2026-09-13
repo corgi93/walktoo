@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/constants/keys';
 import { storageService, walksService } from '@/server';
 import type { CreateWalkDiaryInput } from '@/types';
+import type { Coords, ProviderId } from '@/lib/location';
 import { useFieldCrypto } from '@/hooks/useCrypto';
 import { useGetMeQuery } from '../user/query';
 
@@ -37,8 +38,12 @@ export const useCreateDiaryMutation = () => {
         walkId = await walksService.create(coupleId, currentUserId, {
           ...input,
           memo: encrypt(input.memo),
-          diaryAnswer: input.diaryAnswer ? encrypt(input.diaryAnswer) : input.diaryAnswer,
-          coupleAnswer: input.coupleAnswer ? encrypt(input.coupleAnswer) : input.coupleAnswer,
+          diaryAnswer: input.diaryAnswer
+            ? encrypt(input.diaryAnswer)
+            : input.diaryAnswer,
+          coupleAnswer: input.coupleAnswer
+            ? encrypt(input.coupleAnswer)
+            : input.coupleAnswer,
           photos: photoUrls.length > 0 ? photoUrls : input.photos,
         });
       } catch (error) {
@@ -71,6 +76,9 @@ export const useAddEntryMutation = () => {
       memo,
       photos,
       locationName,
+      locationCoords,
+      locationAddress,
+      locationSource,
       diaryQuestionId,
       diaryAnswer,
       coupleQuestionId,
@@ -81,6 +89,9 @@ export const useAddEntryMutation = () => {
       photos: string[];
       /** kind='each' 인 walk에 조인할 때 내 장소 */
       locationName?: string;
+      locationCoords?: Coords;
+      locationAddress?: string;
+      locationSource?: ProviderId;
       diaryQuestionId?: number;
       diaryAnswer?: string;
       coupleQuestionId?: number;
@@ -111,7 +122,12 @@ export const useAddEntryMutation = () => {
             coupleQuestionId,
             coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
           },
-          locationName,
+          {
+            name: locationName,
+            coords: locationCoords,
+            address: locationAddress,
+            source: locationSource,
+          },
         );
       } catch (error) {
         if (photoUrls.length > 0) {
@@ -144,6 +160,9 @@ export const useUpdateEntryMutation = () => {
       memo,
       photos,
       locationName,
+      locationCoords,
+      locationAddress,
+      locationSource,
       diaryAnswer,
       coupleAnswer,
     }: {
@@ -153,6 +172,9 @@ export const useUpdateEntryMutation = () => {
       photos: string[];
       /** 'each' walk의 내 장소 수정 시 */
       locationName?: string;
+      locationCoords?: Coords;
+      locationAddress?: string;
+      locationSource?: ProviderId;
       diaryAnswer?: string;
       coupleAnswer?: string;
     }) => {
@@ -176,6 +198,9 @@ export const useUpdateEntryMutation = () => {
       try {
         await walksService.updateEntry(entryId, encrypt(memo), allPhotos, {
           locationName,
+          locationCoords,
+          locationAddress,
+          locationSource,
           diaryAnswer: diaryAnswer ? encrypt(diaryAnswer) : diaryAnswer,
           coupleAnswer: coupleAnswer ? encrypt(coupleAnswer) : coupleAnswer,
         });

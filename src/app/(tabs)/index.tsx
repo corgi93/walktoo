@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Platform,
   Pressable,
@@ -66,9 +72,7 @@ export default function HomeScreen() {
     usePermission('notifications');
   const [notifBannerDismissed, setNotifBannerDismissed] = useState(false);
   const showNotifBanner =
-    isCoupleConnected &&
-    (notifDenied || notifBlocked) &&
-    !notifBannerDismissed;
+    isCoupleConnected && (notifDenied || notifBlocked) && !notifBannerDismissed;
 
   const { data: unreadCount = 0 } = useUnreadCountQuery();
   const { data: hasTodayStamp = false } = useTodayStampQuery(
@@ -78,11 +82,8 @@ export default function HomeScreen() {
   const today = getLocalToday();
 
   // 홈 위젯은 첫 페이지만 사용한다. 전체 기록은 목록/상세 화면에서 사용자가 요청할 때 불러온다.
-  const { data: walkPages } = useDiaryListQuery();
-  const recentWalks = useMemo(
-    () => walkPages?.pages[0] ?? [],
-    [walkPages],
-  );
+  const { data: walkPages, isLoading: isDiaryLoading } = useDiaryListQuery();
+  const recentWalks = useMemo(() => walkPages?.pages[0] ?? [], [walkPages]);
   const todayWalk = useMemo(
     () => recentWalks.find((w) => w.date === today && w.kind === 'each'),
     [recentWalks, today],
@@ -90,7 +91,9 @@ export default function HomeScreen() {
 
   // 홈 지도 조작 중에는 상위 ScrollView가 드래그를 가져가지 않게 잠근다.
   const [isMapInteracting, setIsMapInteracting] = useState(false);
-  const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const lockMapScroll = useCallback(() => {
     if (mapInteractionTimer.current) {
@@ -169,9 +172,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <HomeTopBar
-        unreadCount={unreadCount}
-      />
+      <HomeTopBar unreadCount={unreadCount} />
 
       <ScrollView
         contentContainerStyle={[
@@ -202,7 +203,11 @@ export default function HomeScreen() {
             <Pressable onPress={openAppSettings}>
               <PixelCard bg={theme.colors.primarySurface}>
                 <Row style={styles.notifBannerRow}>
-                  <Icon name="bell-off" size={18} color={theme.colors.primary} />
+                  <Icon
+                    name="bell-off"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
                   <View style={styles.notifBannerText}>
                     <Text variant="bodyMedium" color="primary">
                       {t('home:notif-permission.title')}
@@ -233,7 +238,9 @@ export default function HomeScreen() {
                 <Icon name="heart" size={18} color={theme.colors.textMuted} />
                 <View style={styles.partnerDeletedText}>
                   <Text variant="bodyMedium">
-                    {t('couple:partner-deleted.home-title', { name: partnerName })}
+                    {t('couple:partner-deleted.home-title', {
+                      name: partnerName,
+                    })}
                   </Text>
                   <Text variant="caption" color="textSecondary" mt="xxs">
                     {t('couple:partner-deleted.home-subtitle')}
@@ -247,6 +254,7 @@ export default function HomeScreen() {
         {isCoupleConnected && (
           <WidgetBoard
             firstMetDate={couple?.firstMetDate}
+            isDiaryLoading={isDiaryLoading}
             todayWalk={todayWalk}
             walks={recentWalks}
             myName={myName}

@@ -1,12 +1,18 @@
 import { useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, PixelProgressBar, Text } from '@/components/base';
 import { usePopup } from '@/components/composite/popup/PopupProvider';
-import { STAMP, STEP_GOAL, stepsToCalories } from '@/constants/game-config';
+import { STAMP, STEP_GOAL } from '@/constants/game-config';
 import { useSendNudgeMutation } from '@/hooks/services/nudge/mutation';
 import { usePartnerDerivation } from '@/hooks/usePartnerDerivation';
 import { useDialogStore } from '@/stores/dialogStore';
@@ -30,6 +36,7 @@ const FRAMES_MAP: Record<CharacterType, typeof BOY_FRAMES> = {
 
 interface WidgetBoardProps {
   firstMetDate?: string;
+  isDiaryLoading?: boolean;
   todayWalk?: WalkDiary;
   walks: readonly WalkDiary[];
   myName: string;
@@ -48,6 +55,7 @@ interface WidgetBoardProps {
 
 export function WidgetBoard({
   firstMetDate,
+  isDiaryLoading = false,
   todayWalk,
   walks,
   myName,
@@ -113,10 +121,10 @@ export function WidgetBoard({
   // 상대 카드: 상대가 올렸으면 보기, 없으면 콕 찌르기
   const handleOpenPartner = () => {
     if (partnerEntry) {
-      if (myEntry && diaryDetailParams) {
+      if (!myEntry) {
+        router.push('/quick-capture');
+      } else if (diaryDetailParams) {
         router.push({ pathname: '/diary-detail', params: diaryDetailParams });
-      } else {
-        openMediaViewer(partnerEntry);
       }
       return;
     }
@@ -150,32 +158,7 @@ export function WidgetBoard({
         onPress={onDdayPress}
       />
 
-      {/* 핵심 기록 액션 — 첫 화면에서 앱의 목적을 바로 드러낸다. */}
-      <PrimaryRecordActions />
-
-      {/* 오늘의 두 장면 — 각자의 오늘 루프 */}
-      <View style={styles.row}>
-        <TodayPolaroidWidget
-          name={myName}
-          entry={myEntry}
-          kind={todayWalk?.kind}
-          isMine
-          onPress={handleOpenToday}
-        />
-        <TodayPolaroidWidget
-          name={partnerName}
-          entry={partnerEntry}
-          kind={todayWalk?.kind}
-          isMine={false}
-          isRevealed={todayWalk?.isRevealed ?? false}
-          onPress={handleOpenPartner}
-        />
-      </View>
-
-      {/* 투로그 모아보기 — 과거 each 기록이 있을 때만 노출 */}
-      <EachMomentsBrowseLink walks={walks} />
-
-      {/* 걸음 미션은 보조 습관으로 유지하되, 기록 CTA보다 뒤에 둔다. */}
+      {/* 걸음은 매일 돌아오는 이유, 지도는 기록이 쌓이는 이유다. */}
       <StepsWidget
         myName={myName}
         partnerName={partnerName}
@@ -188,70 +171,72 @@ export function WidgetBoard({
         onClaimStamp={onClaimStamp}
       />
 
-      {/* 우리 지도 */}
       <HomeMapWidget
         walks={walks}
+        isLoading={isDiaryLoading}
         onMapInteractionStart={onMapInteractionStart}
         onMapInteractionEnd={onMapInteractionEnd}
       />
+
+      <TodaySectionHeader hasMyEntry={isDiaryLoading || !!myEntry} />
+
+      {/* 오늘의 두 장면 — 각자의 오늘 루프 */}
+      <View style={styles.row}>
+        <TodayPolaroidWidget
+          name={myName}
+          entry={myEntry}
+          isLoading={isDiaryLoading}
+          kind={todayWalk?.kind}
+          isMine
+          onPress={handleOpenToday}
+        />
+        <TodayPolaroidWidget
+          name={partnerName}
+          entry={partnerEntry}
+          isLoading={isDiaryLoading}
+          kind={todayWalk?.kind}
+          isMine={false}
+          isRevealed={todayWalk?.isRevealed ?? false}
+          onPress={handleOpenPartner}
+        />
+      </View>
+
+      {/* 투로그 모아보기 — 과거 each 기록이 있을 때만 노출 */}
+      <EachMomentsBrowseLink walks={walks} />
     </View>
   );
 }
 
-// ─── 핵심 기록 액션 ─────────────────────────────────────
+// ─── 오늘의 가벼운 기록 ──────────────────────────────────
 
-function PrimaryRecordActions() {
+function TodaySectionHeader({ hasMyEntry }: { hasMyEntry: boolean }) {
   const router = useRouter();
   const { t } = useTranslation('home');
 
   return (
-    <View style={styles.actionRow}>
-      <Pressable
-        onPress={() => router.push('/quick-capture')}
-        style={({ pressed }) => [
-          styles.actionButton,
-          styles.actionButtonPrimary,
-          pressed && styles.pressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={t('cta.today-moment')}
-      >
-        <Icon name="camera" size={16} color={theme.colors.white} />
-        <Text
-          variant="caption"
-          color="white"
-          numberOfLines={2}
-          style={styles.actionButtonText}
-        >
-          {t('cta.today-moment')}
+    <View style={styles.todayHeader}>
+      <View>
+        <Text variant="headingSmall">{t('today.section-title')}</Text>
+        <Text variant="caption" color="textMuted" mt="xxs">
+          {t('today.section-description')}
         </Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() =>
-          router.push({
-            pathname: '/footprint-create',
-            params: { kind: 'together' },
-          })
-        }
-        style={({ pressed }) => [
-          styles.actionButton,
-          styles.actionButtonSecondary,
-          pressed && styles.pressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={t('cta.together-walk')}
-      >
-        <Icon name="heart" size={16} color={theme.colors.primary} />
-        <Text
-          variant="caption"
-          color="primary"
-          numberOfLines={2}
-          style={styles.actionButtonText}
+      </View>
+      {!hasMyEntry && (
+        <Pressable
+          onPress={() => router.push('/quick-capture')}
+          style={({ pressed }) => [
+            styles.todayAddButton,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={t('cta.today-moment')}
         >
-          {t('cta.together-walk')}
-        </Text>
-      </Pressable>
+          <Icon name="camera" size={15} color={theme.colors.primary} />
+          <Text variant="caption" color="primary">
+            {t('today.add-short')}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -261,11 +246,7 @@ function PrimaryRecordActions() {
 // 과거 kind='each' + 미디어 있는 walks가 있을 때만 노출.
 // 신규 유저가 진입하자마자 빈 상태로 갔다가 돌아오는 경험을 피하기 위함.
 
-function EachMomentsBrowseLink({
-  walks,
-}: {
-  walks: readonly WalkDiary[];
-}) {
+function EachMomentsBrowseLink({ walks }: { walks: readonly WalkDiary[] }) {
   const router = useRouter();
 
   const eachMomentCount = React.useMemo(() => {
@@ -284,10 +265,7 @@ function EachMomentsBrowseLink({
   return (
     <Pressable
       onPress={() => router.push('/each-moments')}
-      style={({ pressed }) => [
-        styles.browseLink,
-        pressed && { opacity: 0.85 },
-      ]}
+      style={({ pressed }) => [styles.browseLink, pressed && { opacity: 0.85 }]}
       accessibilityRole="button"
       accessibilityLabel="투로그 모아보기"
     >
@@ -297,10 +275,10 @@ function EachMomentsBrowseLink({
         </View>
         <View style={styles.browseLinkText}>
           <Text variant="bodyMedium" style={styles.browseLinkTitle}>
-            투로그 모아보기
+            지난 투로그
           </Text>
           <Text variant="caption" color="textMuted">
-            최근 {eachMomentCount}일의 투로그를 한 번에
+            가볍게 주고받은 둘의 하루 {eachMomentCount}개
           </Text>
         </View>
       </View>
@@ -329,10 +307,8 @@ function DdayLine({
         <Text variant="bodySmall" color="textMuted">
           <Text variant="bodySmall" color="primary">
             {myName}
-          </Text>
-          {' '}
-          <Icon name="heart" size={11} color={theme.colors.primaryDark} />
-          {' '}
+          </Text>{' '}
+          <Icon name="heart" size={11} color={theme.colors.primaryDark} />{' '}
           <Text variant="bodySmall" color="primary">
             {partnerName}
           </Text>
@@ -358,6 +334,7 @@ function DdayLine({
 function TodayPolaroidWidget({
   name,
   entry,
+  isLoading = false,
   kind,
   isMine,
   isRevealed = true,
@@ -369,6 +346,7 @@ function TodayPolaroidWidget({
     memo: string;
     diaryAnswer?: string;
   };
+  isLoading?: boolean;
   kind?: 'together' | 'each';
   isMine: boolean;
   isRevealed?: boolean;
@@ -376,8 +354,8 @@ function TodayPolaroidWidget({
 }) {
   const { t } = useTranslation(['home', 'diary']);
   const router = useRouter();
-  const photo = entry?.photos?.[0];
-  const blurred = !isMine && entry && !isRevealed;
+  const blurred = !isMine && !!entry && !isRevealed;
+  const photo = blurred ? undefined : entry?.photos?.[0];
   const isVideo = isVideoUri(photo);
 
   // kindBadge(해/하트) 탭 = 풀스크린 media-viewer로 바로 진입.
@@ -443,11 +421,15 @@ function TodayPolaroidWidget({
           </View>
         ) : (
           <View style={styles.polaroidEmpty}>
-            <Icon
-              name={isMine ? 'camera' : 'heart'}
-              size={22}
-              color={theme.colors.gray400}
-            />
+            {isLoading ? (
+              <ActivityIndicator size="small" color={theme.colors.gray400} />
+            ) : (
+              <Icon
+                name={isMine ? 'camera' : 'heart'}
+                size={22}
+                color={theme.colors.gray400}
+              />
+            )}
           </View>
         )}
         {kind && entry && (
@@ -484,13 +466,15 @@ function TodayPolaroidWidget({
           numberOfLines={1}
           style={{ fontSize: 9 }}
         >
-          {entry
-            ? blurred
-              ? t('home:today.waiting-reveal')
-              : t('home:today.done')
-            : isMine
-              ? t('home:today.empty-mine')
-              : t('home:today.empty-partner')}
+          {isLoading
+            ? t('home:today.loading')
+            : entry
+              ? blurred
+                ? t('home:today.waiting-reveal')
+                : t('home:today.done')
+              : isMine
+                ? t('home:today.empty-mine')
+                : t('home:today.empty-partner')}
         </Text>
       </View>
     </Pressable>
@@ -524,24 +508,27 @@ function StepsWidget({
   const goal = STEP_GOAL.DAILY_COUPLE_MISSION;
   const total = mySteps + partnerSteps;
   const progress = Math.min(total / goal, 1);
-  const percent = Math.min(Math.round(progress * 100), 100);
   const isCompleted = total >= goal;
+  const remaining = Math.max(goal - total, 0);
 
   return (
     <View style={[styles.widget, styles.steps]}>
-      {/* 상단 ─ 3-column: [나 텍스트] [🧍♥🧍 stage] [상대 텍스트] */}
-      <View style={stepsStyles.stageRow}>
-        <PersonStat
-          name={myName}
-          steps={mySteps}
-          color={theme.colors.primary}
-        />
+      <View style={stepsStyles.summaryRow}>
+        <View style={stepsStyles.summaryText}>
+          <Text variant="caption" color="textSecondary">
+            {t('unified-mission.combined-title')}
+          </Text>
+          <View style={stepsStyles.totalRow}>
+            <Text variant="headingLarge" color="primary">
+              {formatSteps(total)}
+            </Text>
+            <Text variant="bodySmall" color="textMuted" ml="xs">
+              {t('unified-mission.steps-unit')}
+            </Text>
+          </View>
+        </View>
         <View style={stepsStyles.centerStage}>
-          <WalkingSprite
-            frames={FRAMES_MAP[myCharacter]}
-            size={30}
-            delay={0}
-          />
+          <WalkingSprite frames={FRAMES_MAP[myCharacter]} size={30} delay={0} />
           <View style={stepsStyles.heartBadge}>
             <Icon name="heart" size={12} color={theme.colors.white} />
           </View>
@@ -551,26 +538,6 @@ function StepsWidget({
             delay={150}
           />
         </View>
-        <PersonStat
-          name={partnerName}
-          steps={partnerSteps}
-          color={theme.colors.secondary}
-        />
-      </View>
-
-      {/* 하단 ─ 오늘의 미션 strip */}
-      <View style={stepsStyles.missionDivider} />
-
-      <View style={stepsStyles.missionHeader}>
-        <View style={stepsStyles.missionHeaderLeft}>
-          <Icon name="target" size={12} color={theme.colors.secondary} />
-          <Text variant="caption" color="textSecondary" style={{ marginLeft: 4 }}>
-            {t('unified-mission.title')}
-          </Text>
-        </View>
-        <Text variant="caption" color="textMuted">
-          {percent}%
-        </Text>
       </View>
 
       <PixelProgressBar
@@ -580,12 +547,20 @@ function StepsWidget({
         style={stepsStyles.progressBar}
       />
 
-      <View style={stepsStyles.missionFooter}>
-        <Text variant="caption" color="primary" style={stepsStyles.footerSteps}>
-          {formatSteps(total)}
+      <View style={stepsStyles.detailRow}>
+        <Text
+          variant="caption"
+          color="textSecondary"
+          numberOfLines={1}
+          style={stepsStyles.names}
+        >
+          {myName} {formatSteps(mySteps)} · {partnerName}{' '}
+          {formatSteps(partnerSteps)}
         </Text>
-        <Text variant="caption" color="textMuted" style={{ marginLeft: 3 }}>
-          / {goal.toLocaleString()}
+        <Text variant="caption" color={isCompleted ? 'secondary' : 'textMuted'}>
+          {isCompleted
+            ? t('unified-mission.completed')
+            : t('unified-mission.remaining', { count: formatSteps(remaining) })}
         </Text>
       </View>
 
@@ -611,7 +586,9 @@ function StepsWidget({
           >
             {hasTodayStamp
               ? t('unified-mission.claim-done')
-              : t('unified-mission.claim-button', { count: STAMP.DAILY_REWARD })}
+              : t('unified-mission.claim-button', {
+                  count: STAMP.DAILY_REWARD,
+                })}
           </Text>
         </Pressable>
       )}
@@ -619,84 +596,18 @@ function StepsWidget({
   );
 }
 
-function PersonStat({
-  name,
-  steps,
-  color,
-}: {
-  name: string;
-  steps: number;
-  color: string;
-}) {
-  const kcal = stepsToCalories(steps);
-
-  return (
-    <View style={stepsStyles.personStat}>
-      <Text
-        variant="caption"
-        color="textSecondary"
-        numberOfLines={1}
-        style={stepsStyles.personName}
-      >
-        {name}
-      </Text>
-      <Text variant="headingMedium" style={[stepsStyles.personSteps, { color }]}>
-        {formatSteps(steps)}
-      </Text>
-      <View style={stepsStyles.personFooter}>
-        <Text variant="caption" color="textMuted" style={stepsStyles.unit}>
-          걸음
-        </Text>
-        <Text variant="caption" color="textMuted" style={stepsStyles.dot}>
-          ·
-        </Text>
-        <Icon name="fire" size={10} color={theme.colors.accent} />
-        <Text variant="caption" color="textSecondary" style={stepsStyles.kcal}>
-          {kcal}kcal
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 const stepsStyles = StyleSheet.create({
-  // 상단 3-column stage: [나 stat] [🧍♥🧍] [상대 stat]
-  stageRow: {
+  summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
   },
-  personStat: {
+  summaryText: {
     flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: SPACING.xs,
   },
-  personName: {
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  personSteps: {
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  personFooter: {
+  totalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 3,
-  },
-  unit: {
-    fontSize: 10,
-  },
-  dot: {
-    marginHorizontal: 4,
-    fontSize: 10,
-    opacity: 0.5,
-  },
-  kcal: {
-    marginLeft: 3,
-    fontSize: 10,
   },
   centerStage: {
     flexDirection: 'row',
@@ -714,33 +625,18 @@ const stepsStyles = StyleSheet.create({
     marginHorizontal: 2,
   },
 
-  // 미션 strip
-  missionDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    opacity: 0.4,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  missionHeader: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: SPACING.sm,
+    marginTop: SPACING.xs,
   },
-  missionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  names: {
+    flex: 1,
   },
   progressBar: {
-    marginTop: 6,
-  },
-  missionFooter: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 4,
-  },
-  footerSteps: {
-    fontWeight: '700',
+    marginTop: SPACING.sm,
   },
 
   // Claim 버튼
@@ -776,38 +672,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.sm,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-  },
-  actionButton: {
-    flex: 1,
-    minHeight: 52,
+  todayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+  },
+  todayAddButton: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACING.xs,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    borderRadius: theme.radius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    shadowColor: theme.colors.border,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-  },
-  actionButtonPrimary: {
-    backgroundColor: theme.colors.primary,
-  },
-  actionButtonSecondary: {
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.primarySurface,
-  },
-  actionButtonText: {
-    flexShrink: 1,
-    fontWeight: '700',
-    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
   },
   pressed: {
     opacity: 0.86,

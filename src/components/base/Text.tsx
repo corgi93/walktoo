@@ -1,5 +1,11 @@
 import React from 'react';
-import { Platform, Text as RNText, TextProps as RNTextProps, TextStyle } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  Text as RNText,
+  TextProps as RNTextProps,
+  TextStyle,
+} from 'react-native';
 
 import { ColorType, theme } from '@/styles/theme';
 import {
@@ -31,7 +37,10 @@ const Text: React.FC<TextProps> = ({
   size,
   weight,
   align,
-  mt, mb, ml, mr,
+  mt,
+  mb,
+  ml,
+  mr,
   style,
   children,
   ...rest
@@ -40,7 +49,9 @@ const Text: React.FC<TextProps> = ({
 
   const fontFamily = font
     ? FONT_FAMILY[font]
-    : ('fontFamily' in base ? base.fontFamily : FONT_FAMILY.body);
+    : 'fontFamily' in base
+      ? base.fontFamily
+      : FONT_FAMILY.pixel;
 
   const textStyle: TextStyle = {
     fontSize: size ?? base.fontSize,
@@ -57,10 +68,19 @@ const Text: React.FC<TextProps> = ({
   };
 
   return (
-    <RNText style={[textStyle, style]} {...rest}>
+    <RNText style={[textStyle, style, styles.singlePixelFont]} {...rest}>
       {children}
     </RNText>
   );
 };
+
+const styles = StyleSheet.create({
+  // NeoDunggeunmo ships as one Regular face. Unsupported weights can fall
+  // back to the platform font, so keep the family and weight coupled here.
+  singlePixelFont: {
+    fontFamily: FONT_FAMILY.pixel,
+    fontWeight: '400',
+  },
+});
 
 export default Text;

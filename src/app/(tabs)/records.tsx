@@ -1,5 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,7 +17,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { Box, Button, Icon, Row, TabScreenHeader, Text } from '@/components/base';
+import {
+  Box,
+  Button,
+  Icon,
+  Row,
+  TabScreenHeader,
+  Text,
+} from '@/components/base';
 import { NoCoupleCard } from '@/components/feature/couple';
 import { FootprintTimeline } from '@/components/feature/diary';
 import { RecordsMapView } from '@/components/feature/records/RecordsMapView';
@@ -32,7 +45,7 @@ export default function RecordsScreen() {
   const { isCoupleConnected } = usePartnerDerivation();
   const params = useLocalSearchParams<{ view?: string }>();
   const [viewMode, setViewMode] = useState<ViewMode>(
-    params.view === 'map' ? 'map' : 'list',
+    params.view === 'list' ? 'list' : 'map',
   );
 
   useEffect(() => {
@@ -69,44 +82,55 @@ function RecordsContent({
   const router = useRouter();
   const { myName, partnerName } = usePartnerDerivation();
   const [isMapInteracting, setIsMapInteracting] = useState(false);
-  const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapInteractionTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const {
     data,
     fetchNextPage,
     hasNextPage,
     isLoading,
+    isError,
     isFetchingNextPage,
-  } = useDiaryListQuery('together');
+    refetch,
+  } = useDiaryListQuery();
   const walks = useMemo(
     () => data?.pages.flatMap((page) => page) ?? [],
     [data],
   );
 
-  const togetherWalks = walks;
+  const placeWalks = useMemo(() => walks.filter(hasPlaceRecord), [walks]);
   const mapPlaceCount = useMemo(
-    () => togetherWalks.filter(hasWalkCoords).length,
-    [togetherWalks],
+    () =>
+      placeWalks.reduce((count, walk) => count + getVisiblePinCount(walk), 0),
+    [placeWalks],
   );
   const mapPlaceLabel =
     mapPlaceCount > RECORD_MAP_MARKER_LIMIT
-      ? `최근 ${RECORD_MAP_MARKER_LIMIT}곳`
-      : `${mapPlaceCount}곳`;
+      ? `최근 ${RECORD_MAP_MARKER_LIMIT}개 핀`
+      : `${mapPlaceCount}개 핀`;
 
   useEffect(() => {
-    if (viewMode !== 'map') return;
     if (!hasNextPage || isFetchingNextPage) return;
-    if (togetherWalks.length >= RECORD_MAP_MARKER_LIMIT) return;
+    const needsMoreMapRecords =
+      viewMode === 'map' && walks.length < RECORD_MAP_MARKER_LIMIT;
+    const needsFirstListPlace = viewMode === 'list' && placeWalks.length === 0;
+    if (!needsMoreMapRecords && !needsFirstListPlace) return;
     fetchNextPage();
   }, [
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    togetherWalks.length,
+    placeWalks.length,
+    walks.length,
     viewMode,
   ]);
 
   const handleAddRecord = () => {
-    router.push({ pathname: '/footprint-create', params: { kind: 'together' } });
+    router.push({
+      pathname: '/footprint-create',
+      params: { kind: 'together' },
+    });
   };
 
   const handleItemPress = (walk: WalkDiary) => {
@@ -119,7 +143,9 @@ function RecordsContent({
         kind: walk.kind,
         isRevealed: String(walk.isRevealed),
         myEntry: walk.myEntry ? JSON.stringify(walk.myEntry) : '',
-        partnerEntry: walk.partnerEntry ? JSON.stringify(walk.partnerEntry) : '',
+        partnerEntry: walk.partnerEntry
+          ? JSON.stringify(walk.partnerEntry)
+          : '',
       },
     });
   };
@@ -158,7 +184,7 @@ function RecordsContent({
         style={styles.addButton}
         hitSlop={6}
         accessibilityRole="button"
-        accessibilityLabel="기록 추가"
+        accessibilityLabel="장소 추가"
       >
         <Icon name="plus" size={13} color={theme.colors.primary} />
         <Text variant="caption" style={styles.addButtonText}>
@@ -183,7 +209,7 @@ function RecordsContent({
       <View style={styles.stat}>
         <Icon name="footprint" size={14} color={theme.colors.primary} />
         <Text variant="caption" color="textSecondary" ml="xxs">
-          우리 기록 {togetherWalks.length}
+          장소 기록 {placeWalks.length}
         </Text>
       </View>
       <View style={styles.statDivider} />
@@ -198,13 +224,40 @@ function RecordsContent({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 지도 모드: 헤더 + 전체 영역 지도 (ScrollView 밖) */}
-      {viewMode === 'map' ? (
+      {isLoading || isError ? (
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            styles.statusScreen,
+            { paddingBottom: insets.bottom + LAYOUT.sectionGap },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderHeaderBlock()}
+          <View style={styles.statusBody}>
+            <Icon
+              name={isError ? 'alert-circle' : 'map-pin'}
+              size={28}
+              color={theme.colors.gray400}
+            />
+            <Text variant="bodySmall" color="textMuted" align="center" mt="sm">
+              {isError
+                ? '장소 기록을 불러오지 못했어요'
+                : '장소를 불러오는 중...'}
+            </Text>
+            {isError && (
+              <Button onPress={() => void refetch()} mt="lg" size="small">
+                다시 불러오기
+              </Button>
+            )}
+          </View>
+        </ScrollView>
+      ) : viewMode === 'map' ? (
         <>
           {renderHeaderBlock()}
           <View style={styles.mapArea}>
             <RecordsMapView
-              walks={togetherWalks}
+              walks={placeWalks}
               myName={myName}
               partnerName={partnerName}
               bottomInset={insets.bottom}
@@ -213,7 +266,7 @@ function RecordsContent({
             />
           </View>
         </>
-      ) : isLoading || togetherWalks.length === 0 ? (
+      ) : placeWalks.length === 0 ? (
         <ScrollView
           scrollEnabled={!isMapInteracting}
           nestedScrollEnabled={false}
@@ -226,20 +279,12 @@ function RecordsContent({
           {renderHeaderBlock()}
           {renderStatBlock()}
           <View style={styles.listMode}>
-            {isLoading ? (
-              <Box px="xxl">
-                <Text variant="bodySmall" color="textMuted" align="center">
-                  기록을 불러오는 중...
-                </Text>
-              </Box>
-            ) : (
-              <EmptyRecordsState onCreate={handleAddRecord} />
-            )}
+            <EmptyRecordsState onCreate={handleAddRecord} />
           </View>
         </ScrollView>
       ) : (
         <FootprintTimeline
-          diaries={togetherWalks}
+          diaries={placeWalks}
           myName={myName}
           partnerName={partnerName}
           onItemPress={handleItemPress}
@@ -267,7 +312,6 @@ function RecordsContent({
           }
         />
       )}
-
     </View>
   );
 }
@@ -304,12 +348,35 @@ function EmptyRecordsState({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-const hasWalkCoords = (walk: WalkDiary) => {
-  const coords =
-    walk.locationCoords ??
-    walk.myEntry?.locationCoords ??
-    walk.partnerEntry?.locationCoords;
-  return !!coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+const hasPlaceRecord = (walk: WalkDiary) => {
+  if (
+    (walk.isRevealed || walk.myEntry) &&
+    (walk.locationName.trim() || walk.locationCoords)
+  ) {
+    return true;
+  }
+  if (walk.myEntry?.locationName.trim() || walk.myEntry?.locationCoords) {
+    return true;
+  }
+  return (
+    walk.isRevealed &&
+    !!(
+      walk.partnerEntry?.locationName.trim() ||
+      walk.partnerEntry?.locationCoords
+    )
+  );
+};
+
+const hasCoords = (coords: WalkDiary['locationCoords']) =>
+  !!coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng);
+
+const getVisiblePinCount = (walk: WalkDiary) => {
+  if (hasCoords(walk.locationCoords)) return 1;
+  let count = hasCoords(walk.myEntry?.locationCoords) ? 1 : 0;
+  if (walk.isRevealed && hasCoords(walk.partnerEntry?.locationCoords)) {
+    count += 1;
+  }
+  return count;
 };
 
 // ─── ViewToggle (리스트/지도) ────────────────────────────
@@ -329,10 +396,7 @@ function ViewToggle({
           <Pressable
             key={m}
             onPress={() => onChange(m)}
-            style={[
-              toggleStyles.button,
-              active && toggleStyles.buttonActive,
-            ]}
+            style={[toggleStyles.button, active && toggleStyles.buttonActive]}
             hitSlop={4}
           >
             <Icon
@@ -348,7 +412,7 @@ function ViewToggle({
                 marginLeft: 4,
               }}
             >
-              {m === 'list' ? '리스트' : '지도'}
+              {m === 'list' ? '모아보기' : '지도'}
             </Text>
           </Pressable>
         );
@@ -376,7 +440,6 @@ const toggleStyles = StyleSheet.create({
   },
 });
 
-
 // ─── No Couple Fallback ─────────────────────────────────
 
 function RecordsNoCoupleFallback({
@@ -395,7 +458,10 @@ function RecordsNoCoupleFallback({
       <ScrollView
         contentContainerStyle={[
           styles.fallbackScroll,
-          { paddingBottom: insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset },
+          {
+            paddingBottom:
+              insets.bottom + LAYOUT.bottomSafe + keyboardBottomInset,
+          },
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
@@ -435,7 +501,7 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.primaryLight,
     borderWidth: 1,
     borderColor: theme.colors.primary,
@@ -447,6 +513,16 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
+  },
+  statusScreen: {
+    minHeight: '100%',
+  },
+  statusBody: {
+    flex: 1,
+    minHeight: 320,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: LAYOUT.screenPx,
   },
   listMode: {
     marginTop: SPACING.md,

@@ -113,9 +113,7 @@ export const walksRepository = {
 
   /** 기존 산책에 내 엔트리 추가 + reveal 판정 (DB transaction) */
   addEntryToWalk: (args: AddEntryToWalkArgs) =>
-    supabase
-      .rpc('add_entry_to_walk', args)
-      .returns<WalkEntryMutationResult>(),
+    supabase.rpc('add_entry_to_walk', args).returns<WalkEntryMutationResult>(),
 
   /** 발자취 엔트리 수정 */
   updateEntry: (
@@ -124,6 +122,10 @@ export const walksRepository = {
       memo?: string;
       photos?: string[];
       location_name?: string;
+      location_lat?: number | null;
+      location_lng?: number | null;
+      location_address?: string | null;
+      location_source?: 'naver' | 'google' | null;
       diary_answer?: string;
       couple_answer?: string;
     },
@@ -143,11 +145,7 @@ export const walksRepository = {
       .eq('walk_id', walkId),
 
   /** 특정 날짜와 종류에 커플의 산책이 있는지 확인 */
-  findByDateAndKind: (
-    coupleId: string,
-    date: string,
-    kind: WalkRow['kind'],
-  ) =>
+  findByDateAndKind: (coupleId: string, date: string, kind: WalkRow['kind']) =>
     supabase
       .from('walks')
       .select('id')

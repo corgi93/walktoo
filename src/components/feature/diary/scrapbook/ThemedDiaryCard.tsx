@@ -89,7 +89,7 @@ export function ThemedDiaryCard({
                 },
               ]}
             >
-              <Text style={{ color: t.accent, fontWeight: '700' }}>Q. </Text>
+              <Text style={{ color: t.accent, fontWeight: '400' }}>Q. </Text>
               {question}
             </Text>
           </View>
